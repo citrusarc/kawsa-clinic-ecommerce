@@ -22,11 +22,11 @@ export default function RootLayout({
       <body className="relative antialiased overflow-x-hidden overflow-y-auto bg-custom">
         <Navbar />
         <main>{children}</main>
-        <footer className="flex flex-col items-start justify-start px-4 py-8 sm:px-24 sm:py-24 gap-8 sm:gap-16 text-white bg-violet-950">
+        <footer className="flex flex-col items-start justify-start px-4 py-8 sm:p-24 gap-8 sm:gap-16 text-white bg-violet-950">
           <div className="flex flex-col sm:flex-row gap-8 w-full justify-between">
             <div className="flex flex-col gap-8">
               <Link href="/">
-                <BrandLogo className="w-16 sm:w-24 h-8 sm:h-12 text-white" />
+                <BrandLogo className="w-24 h-12 text-white" />
               </Link>
               <p>KAWSA CLINIC</p>
               <Link
