@@ -63,13 +63,13 @@ export default function Navbar() {
               : "opacity-0 scale-y-0 pointer-events-none"
           )}
         >
-          <div className="flex flex-col gap-8 p-4">
+          <div className="flex flex-col gap-8">
             {navItems.map((item) => (
               <Link
                 key={item.id}
                 href={item.href}
                 onClick={() => setOpenMenu(false)}
-                className="text-xl sm:text-2xl"
+                className="p-4 w-fit text-xl sm:text-2xl hover:text-white hover:bg-violet-600"
               >
                 {item.name}
               </Link>
