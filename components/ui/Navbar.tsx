@@ -34,14 +34,49 @@ export default function Navbar() {
     <nav
       className={clsx(
         "sticky top-0 z-50 flex p-4 sm:py-6 sm:px-24 w-full items-center justify-between",
-        openMenu || !(isHome || isWhatCustomersSay)
-          ? "text-black"
-          : "text-black" // Change to text-white
+        openMenu
+          ? "text-black bg-white"
+          : scroll
+          ? "text-white bg-violet-600"
+          : isHome || isWhatCustomersSay
+          ? "text-black bg-transparent"
+          : "text-black bg-white"
       )}
     >
-      <Link href="/" className="">
+      <button onClick={() => setOpenMenu(!openMenu)}>
+        {openMenu ? (
+          <Xmark className="w-6 h-6" />
+        ) : (
+          <Menu className="w-6 h-6" />
+        )}
+      </button>
+      <Link href="/" className={clsx(openMenu && "invisible")}>
         <BrandLogo className="w-16 sm:w-24 h-8 sm:h-12" />
       </Link>
+      <ShoppingBag className={clsx("w-6 h-6", openMenu && "invisible")} />
+      {openMenu && (
+        <div
+          className={clsx(
+            "absolute top-full left-0 p-4 sm:py-6 sm:px-24 w-full h-screen sm:h-fit shadow-md text-black bg-white transform transition-all duration-300 origin-top",
+            openMenu
+              ? "opacity-100 scale-y-100 pointer-events-auto"
+              : "opacity-0 scale-y-0 pointer-events-none"
+          )}
+        >
+          <div className="flex flex-col gap-8 p-4">
+            {navItems.map((item) => (
+              <Link
+                key={item.id}
+                href={item.href}
+                onClick={() => setOpenMenu(false)}
+                className="text-xl sm:text-2xl"
+              >
+                {item.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
