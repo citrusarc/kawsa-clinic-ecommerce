@@ -16,7 +16,7 @@ export default function Navbar() {
 
   const navItems = siteConfig.navItems.filter((item) => !item.status?.isHidden);
   const isHome = pathname === "/";
-  const isWhatCustomersSay = pathname === "what-customers-say";
+  const isWhatCustomersSay = pathname === "/what-customers-say";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,14 +33,14 @@ export default function Navbar() {
   return (
     <nav
       className={clsx(
-        "sticky top-0 z-50 flex p-4 sm:py-6 sm:px-24 w-full items-center justify-between",
+        "sticky top-0 z-50 flex p-4 sm:py-6 sm:px-24 w-full items-center justify-between transition-colors duration-300",
         openMenu
           ? "text-black bg-white"
           : scroll
           ? "text-white bg-violet-600"
-          : isHome || isWhatCustomersSay
-          ? "text-black bg-transparent"
-          : "text-black bg-white"
+          : !(isHome || isWhatCustomersSay)
+          ? "text-black bg-white"
+          : "text-white bg-transparent"
       )}
     >
       <button onClick={() => setOpenMenu(!openMenu)}>
