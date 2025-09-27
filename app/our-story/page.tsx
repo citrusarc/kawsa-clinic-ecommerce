@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowUpRight } from "iconoir-react";
 
 import { spectral } from "@/config/font";
 
@@ -131,9 +132,10 @@ export default function OurStoryPage() {
               target="_blank"
               rel="noopener noreferrer"
               href={item.href}
-              className="hover:underline text-neutral-500"
+              className="flex gap-2 items-center hover:underline text-neutral-500"
             >
               {item.address}
+              <ArrowUpRight className="hidden sm:block w-5 h-5" />
             </Link>
           </div>
         ))}
