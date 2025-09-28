@@ -8,13 +8,13 @@ const images = [
   {
     src: "/Images/dummy-image.png",
     alt: "Our Story Banner 1",
-    label: "PROTECT",
+    title: "PROTECT",
   },
-  { src: "/Images/dummy-image.png", alt: "Our Story Banner 2", label: "SHINE" },
+  { src: "/Images/dummy-image.png", alt: "Our Story Banner 2", title: "SHINE" },
   {
     src: "/Images/dummy-image.png",
     alt: "Our Story Banner 3",
-    label: "CONFIDENT",
+    title: "CONFIDENT",
   },
 ];
 
@@ -113,7 +113,7 @@ export default function OurStoryPage() {
               <h1
                 className={`absolute inset-0 flex items-center justify-center text-2xl sm:text-4xl ${spectral.className} text-center text-white`}
               >
-                {item.label}
+                {item.title}
               </h1>
             </div>
           ))}
