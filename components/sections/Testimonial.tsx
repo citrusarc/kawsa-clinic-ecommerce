@@ -14,11 +14,11 @@ export default function TestimonialSection() {
       <p>Healthier and even-toned skin that shines with confidence.</p>
       <div className="w-full h-72 sm:h-150 overflow-hidden">
         <Image
-          src="/Images/our-story-hero-banner.png"
-          alt="Our Story Hero Banner"
+          src="/Images/testimonial-banner.jpg"
+          alt="Testimonial Banner"
           width={1600}
           height={1600}
-          className="w-full h-full object-cover"
+          className="object-cover w-full h-full"
         />
       </div>
       <Link href="/what-customers-say">

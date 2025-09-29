@@ -4,13 +4,17 @@ import { spectral } from "@/config/font";
 
 const images = [
   {
-    src: "/Images/dummy-image.png",
+    src: "/Images/overview-banner-1.jpg",
     alt: "Overview Banner 1",
     title: "CLEANSER",
   },
-  { src: "/Images/dummy-image.png", alt: "Overview Banner 2", title: "SERUM" },
   {
-    src: "/Images/dummy-image.png",
+    src: "/Images/overview-banner-2.jpg",
+    alt: "Overview Banner 2",
+    title: "SERUM",
+  },
+  {
+    src: "/Images/overview-banner-3.jpg",
     alt: "Overview Banner 3",
     title: "MOISTURISER",
   },

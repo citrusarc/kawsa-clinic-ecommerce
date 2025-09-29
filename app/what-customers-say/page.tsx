@@ -4,12 +4,12 @@ import { spectral } from "@/config/font";
 
 const images = [
   {
-    src: "/Images/dummy-image.png",
+    src: "/Images/what-customers-say-banner-1.jpg",
     alt: "Testimony 1",
   },
-  { src: "/Images/dummy-image.png", alt: "Testimony 2" },
+  { src: "/Images/what-customers-say-banner-2.jpg", alt: "Testimony 2" },
   {
-    src: "/Images/dummy-image.png",
+    src: "/Images/what-customers-say-banner-3.jpg",
     alt: "Testimony 3",
   },
 ];

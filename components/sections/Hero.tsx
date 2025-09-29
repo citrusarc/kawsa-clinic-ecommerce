@@ -9,19 +9,19 @@ import { spectral } from "@/config/font";
 export default function HeroSection() {
   const slides = [
     {
-      src: "/Images/dummy-image.png",
+      src: "/Images/hero-banner-1.jpg",
       alt: "Hero Banner 1",
       title: "KAWSA GENTLE EXFOLIATING GEL CLEANSER",
       descriptions: "Lift away dead skin and unclog pores",
     },
     {
-      src: "/Images/dummy-image.png",
+      src: "/Images/hero-banner-2.jpg",
       alt: "Hero Banner 2",
       title: "KAWSA HYDRATING SERUM",
       descriptions: "Deep hydration for glowing skin",
     },
     {
-      src: "/Images/dummy-image.png",
+      src: "/Images/hero-banner-3.jpg",
       alt: "Hero Banner 3",
       title: "KAWSA DAILY SUNSCREEN",
       descriptions: "Protect your skin from harmful UV rays",
