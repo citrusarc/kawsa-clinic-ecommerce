@@ -1,14 +1,25 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { NavArrowLeft, NavArrowRight } from "iconoir-react/regular";
 
 import { spectral } from "@/config/font";
 import { products } from "@/data/products";
 
 export default function ProductsSection() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const itemsToShow = 4;
+  const [itemsToShow, setItemsToShow] = useState(4);
+
+  useEffect(() => {
+    const updateItemsToShow = () => {
+      setItemsToShow(window.innerWidth < 640 ? 1 : 4);
+      setCurrentIndex(0);
+    };
+    updateItemsToShow();
+    window.addEventListener("resize", updateItemsToShow);
+    return () => window.removeEventListener("resize", updateItemsToShow);
+  }, []);
 
   const handlePrev = () => {
     setCurrentIndex((prev) =>
@@ -21,6 +32,7 @@ export default function ProductsSection() {
       prev >= products.length - itemsToShow ? 0 : prev + 1
     );
   };
+
   return (
     <section className="flex flex-col p-4 sm:p-24 gap-8 sm:gap-16 items-center justify-center">
       <h2
@@ -31,55 +43,57 @@ export default function ProductsSection() {
       <p>Healthy Skin Makes Every First Impression Count</p>
 
       <div className="relative w-full flex items-center">
-        {/* Prev button */}
         <button
           onClick={handlePrev}
-          className="absolute left-0 z-10 p-2 bg-white rounded-full shadow hover:bg-violet-600 hover:text-white"
+          className="absolute left-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600 "
         >
-          ◀
+          <NavArrowLeft className="w-6 h-6 " />
         </button>
 
-        {/* Product grid */}
-        <div className="overflow-hidden w-full">
+        <div className="w-full overflow-hidden ">
           <div
-            className="grid grid-cols-1 sm:grid-cols-4 gap-8 transition-transform duration-500"
+            className="flex justify-between transition-transform duration-500"
             style={{
-              transform: `translateX(-${(currentIndex * 100) / itemsToShow}%)`, // // added
+              transform: `translateX(-${(currentIndex * 100) / itemsToShow}%)`,
             }}
           >
-            {products.map((product, index) => (
+            {products.map((item, index) => (
               <div
                 key={index}
-                className="flex flex-col items-center justify-center text-center gap-4"
+                className={`flex flex-col flex-shrink-0 gap-4 items-center justify-center text-center`}
+                style={{
+                  flex:
+                    itemsToShow === 1
+                      ? "0 0 100%"
+                      : `0 0 ${100 / itemsToShow}%`,
+                }}
               >
                 <div className="relative w-full aspect-square">
                   <Image
-                    src={product.src}
-                    alt={product.alt}
                     fill
+                    src={item.src}
+                    alt={item.alt}
                     className="object-cover"
                   />
                 </div>
-                <h3
+                <h2
                   className={`text-lg sm:text-xl font-semibold ${spectral.className}`}
                 >
-                  {product.name}
-                </h3>
-                <p className="text-gray-600">
-                  {product.currency}
-                  {product.price}
+                  {item.name}
+                </h2>
+                <p className="text-neutral-500">
+                  {item.currency}
+                  {item.price}
                 </p>
               </div>
             ))}
           </div>
         </div>
-
-        {/* Next button */}
         <button
           onClick={handleNext}
-          className="absolute right-0 z-10 p-2 bg-white rounded-full shadow hover:bg-violet-600 hover:text-white"
+          className="absolute right-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600 "
         >
-          ▶
+          <NavArrowRight className="w-6 h-6 " />
         </button>
       </div>
     </section>
