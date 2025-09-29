@@ -5,11 +5,17 @@ import { useState, useEffect } from "react";
 import { NavArrowLeft, NavArrowRight } from "iconoir-react/regular";
 
 import { spectral } from "@/config/font";
-import { products } from "@/data/products";
+import { getProducts } from "@/lib/getProducts";
+import { ProductsItem } from "@/types";
 
 export default function ProductsSection() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [itemsToShow, setItemsToShow] = useState(4);
+  const [products, setProducts] = useState<ProductsItem[]>([]);
+
+  useEffect(() => {
+    getProducts().then(setProducts);
+  }, []);
 
   useEffect(() => {
     const updateItemsToShow = () => {

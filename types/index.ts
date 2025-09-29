@@ -31,6 +31,8 @@ export type ProductsItem = {
   alt: string;
   name: string;
   description?: string;
+  additionalInfo1?: string;
+  additionalInfo2?: string;
   currency: string;
   price: string;
 };

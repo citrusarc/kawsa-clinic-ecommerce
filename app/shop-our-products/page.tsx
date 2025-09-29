@@ -1,11 +1,20 @@
+"use client";
+
 import Image from "next/image";
+import { useState, useEffect } from "react";
 
 import { spectral } from "@/config/font";
-import { products } from "@/data/products";
+import { getProducts } from "@/lib/getProducts";
+import { ProductsItem } from "@/types";
 
 export default function ShopOurProductsPage() {
+  const [products, setProducts] = useState<ProductsItem[]>([]);
+
+  useEffect(() => {
+    getProducts().then(setProducts);
+  }, []);
   return (
-    <section className="flex flex-col p-4 sm:p-24 gap-8 sm:gap-16 items-center justify-center">
+    <section className="flex flex-col p-4 sm:p-24 gap-8 sm:gap-16 items-center justify-center text-center">
       <h2
         className={`text-4xl sm:text-6xl ${spectral.className} text-violet-600`}
       >
@@ -14,9 +23,9 @@ export default function ShopOurProductsPage() {
       <p>Shop the routine that works.</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 w-full">
-        {products.map((item, index) => (
+        {products.map((item) => (
           <div
-            key={index}
+            key={item.id}
             className="flex flex-col gap-4 items-center text-center"
           >
             <div className="relative w-full aspect-square">
