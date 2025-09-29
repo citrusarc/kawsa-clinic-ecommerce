@@ -25,7 +25,7 @@ export default function ShippingPolicyPage() {
         <br />
         If you have not received the products within the estimated delivery
         time, you should contact us via our website or by email or by
-        telephoning us. Orders can be delivered only in Malaysia. We don't
+        telephoning us. Orders can be delivered only in Malaysia. We don&apos;t
         support cross border delivery.
         <br />
         <br />
