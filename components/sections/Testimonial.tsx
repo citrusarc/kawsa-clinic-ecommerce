@@ -5,7 +5,7 @@ import { spectral } from "@/config/font";
 
 export default function TestimonialSection() {
   return (
-    <section className="flex flex-col p-4 sm:p-24 gap-8 sm:gap-16 items-center justify-center">
+    <section className="flex flex-col px-4 py-16 sm:p-24 gap-8 sm:gap-16 items-center justify-center">
       <h2
         className={`text-4xl sm:text-6xl ${spectral.className} text-violet-600`}
       >

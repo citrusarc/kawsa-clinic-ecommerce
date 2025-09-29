@@ -8,13 +8,13 @@ export default function IngredientsSection() {
   return (
     <section className="flex flex-col px-4 sm:px-24">
       <div className="-mx-4 sm:-mx-24 w-screen">
-        <div className="grid grid-cols-1 sm:grid-cols-3 w-full h-[640px]">
+        <div className="grid grid-cols-1 sm:grid-cols-3 w-full">
           {ingredients
             .filter((item) => item.position === "top")
             .map((item) => (
               <div
                 key={item.id}
-                className="relative w-full h-full overflow-hidden group"
+                className="relative w-full h-[480px] sm:h-[640px] overflow-hidden group"
               >
                 <Image
                   fill
@@ -40,13 +40,13 @@ export default function IngredientsSection() {
         </div>
       </div>
       <div className="-mx-4 sm:-mx-24 w-screen">
-        <div className="grid grid-cols-1 sm:grid-cols-2 w-full h-[426px] sm:h-[640px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 w-full">
           {ingredients
             .filter((item) => item.position === "bottom")
             .map((item) => (
               <div
                 key={item.id}
-                className="relative w-full h-full overflow-hidden group"
+                className="relative w-full h-[480px] sm:h-[640px] overflow-hidden group"
               >
                 <Image
                   fill

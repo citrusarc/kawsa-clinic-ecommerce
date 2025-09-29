@@ -20,11 +20,11 @@ export default function OverviewSection() {
   return (
     <section className="flex flex-col px-4 sm:px-24">
       <div className="-mx-4 sm:-mx-24 w-screen">
-        <div className="grid grid-cols-1 sm:grid-cols-3 w-full h-[640px]">
+        <div className="grid grid-cols-1 sm:grid-cols-3 w-full">
           {images.map((item, index) => (
             <div
               key={index}
-              className="relative w-full h-full overflow-hidden group"
+              className="relative w-full h-[480px] sm:h-[640px] overflow-hidden group"
             >
               <Image
                 fill

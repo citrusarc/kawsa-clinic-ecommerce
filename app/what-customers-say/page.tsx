@@ -36,7 +36,7 @@ export default function WhatCustomersSayPage() {
           </p>
         </div>
       </div>
-      <div className="flex flex-col px-4 py-8 sm:p-24 gap-8 sm:gap-16 font-medium text-black">
+      <div className="flex flex-col px-4 py-16 sm:p-24 gap-8 sm:gap-16 font-medium text-black">
         <h2 className={`text-4xl sm:text-6xl ${spectral.className}`}>
           TESTIMONIAL RESULTS
         </h2>
