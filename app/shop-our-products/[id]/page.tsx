@@ -1,8 +1,6 @@
-// /shop-our-products/[id]/page.tsx
 import Image from "next/image";
 import { supabase } from "@/utils/supabase/client";
 import { spectral } from "@/config/font";
-import { ProductsItem } from "@/types";
 
 interface ProductDetailsProps {
   params: { id: string };
