@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Whatsapp, Mail } from "iconoir-react";
+import { Phone, Mail } from "iconoir-react";
 import "@/app/globals.css";
 
 import BrandLogo from "@/components/icons/BrandLogo";
@@ -28,19 +28,23 @@ export default function RootLayout({
               <Link href="/">
                 <BrandLogo className="w-24 h-12 text-white" />
               </Link>
-              <p>KAWSA CLINIC</p>
+              <p>DRKAY MEDIBEAUTY SDN BHD</p>
               <Link
                 target="_blank"
                 rel="noopener noreferrer"
                 href="https://maps.app.goo.gl/vkQPXZCdxWLYwta7A"
                 className="hover:underline"
               >
-                No.7, Jalan Perjiranan 4/6
-                <br /> Bandar Dato Onn
-                <br /> 81100 Johor Bahru, Johor
+                39-02, Jalan Padi Emas 1/8,
+                <br /> 81200 Bandar Baru Uda,
+                <br /> Johor Bahru, Johor
               </Link>
               <div className="flex gap-2 items-center">
-                <Whatsapp className="w-5 h-5" strokeWidth={2} />
+                <Phone className="w-5 h-5" strokeWidth={2} />
+                <Link href="tel:+60 18-2074771" className="hover:underline">
+                  +60 18-2074771
+                </Link>
+                <p>/</p>
                 <Link
                   target="_blank"
                   rel="noopener noreferrer"
@@ -53,10 +57,10 @@ export default function RootLayout({
               <div className="flex gap-2 items-center">
                 <Mail className="w-5 h-5" strokeWidth={2} />
                 <Link
-                  href="mailto:kawsaclinic@gmail.com"
+                  href="mailto:drkay.skincare@gmail.com"
                   className="hover:underline"
                 >
-                  kawsaclinic@gmail.com
+                  drkay.skincare@gmail.com
                 </Link>
               </div>
             </div>
@@ -96,9 +100,7 @@ export default function RootLayout({
                   </Link>
                 ))}
             </div>
-            <span className="text-white/30">
-              © 2025 Kawsa. All rights reserved.
-            </span>
+            <span className="text-white/30">© 2025 All rights reserved.</span>
           </div>
         </footer>
       </body>
