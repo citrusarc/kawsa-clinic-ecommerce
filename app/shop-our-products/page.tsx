@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useEffect } from "react";
 
 import { spectral } from "@/config/font";
@@ -24,8 +25,9 @@ export default function ShopOurProductsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 w-full">
         {products.map((item) => (
-          <div
+          <Link
             key={item.id}
+            href={`/shop-our-products/${item.id}`}
             className="flex flex-col gap-4 items-center text-center"
           >
             <div className="relative w-full aspect-square">
@@ -45,7 +47,7 @@ export default function ShopOurProductsPage() {
               {item.currency}
               {item.price}
             </p>
-          </div>
+          </Link>
         ))}
       </div>
     </section>

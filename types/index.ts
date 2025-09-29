@@ -36,3 +36,12 @@ export type ProductsItem = {
   currency: string;
   price: string;
 };
+
+export type IngredientsItem = {
+  id: string;
+  src: string;
+  alt: string;
+  title: string;
+  description: string;
+  position: string;
+};
