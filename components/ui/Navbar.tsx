@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Menu, Xmark, ShoppingBag } from "iconoir-react";
 import clsx from "clsx";
 
@@ -13,6 +13,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [scroll, setScroll] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const navItems = siteConfig.navItems.filter((item) => !item.status?.isHidden);
   const isHome = pathname === "/";
@@ -28,6 +29,20 @@ export default function Navbar() {
 
   useEffect(() => {
     document.body.style.overflow = openMenu ? "hidden" : "";
+  }, [openMenu]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenu(false);
+      }
+    };
+    if (openMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, [openMenu]);
 
   return (
@@ -56,6 +71,7 @@ export default function Navbar() {
       <ShoppingBag className={clsx("w-6 h-6", openMenu && "invisible")} />
       {openMenu && (
         <div
+          ref={menuRef}
           className={clsx(
             "absolute top-full left-0 p-4 sm:py-6 sm:px-24 w-full h-screen sm:h-fit shadow-md text-black bg-white transform transition-all duration-300 origin-top",
             openMenu
