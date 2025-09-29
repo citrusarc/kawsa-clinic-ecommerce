@@ -45,7 +45,7 @@ export default function ProductsSection() {
       <div className="relative w-full flex items-center">
         <button
           onClick={handlePrev}
-          className="absolute left-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600 "
+          className="flex sm:hidden absolute left-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600 "
         >
           <NavArrowLeft className="w-6 h-6 " />
         </button>
@@ -77,7 +77,7 @@ export default function ProductsSection() {
                   />
                 </div>
                 <h2
-                  className={`text-lg sm:text-xl font-semibold ${spectral.className}`}
+                  className={`w-64 text-center text-lg sm:text-xl font-semibold ${spectral.className}`}
                 >
                   {item.name}
                 </h2>
@@ -91,7 +91,7 @@ export default function ProductsSection() {
         </div>
         <button
           onClick={handleNext}
-          className="absolute right-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600 "
+          className="flex sm:hidden absolute right-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600 "
         >
           <NavArrowRight className="w-6 h-6 " />
         </button>
