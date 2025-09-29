@@ -52,7 +52,7 @@ export default function ProductsSection() {
 
         <div className="w-full overflow-hidden ">
           <div
-            className="flex justify-between transition-transform duration-500"
+            className="flex gap-8 transition-transform duration-500"
             style={{
               transform: `translateX(-${(currentIndex * 100) / itemsToShow}%)`,
             }}
@@ -60,12 +60,12 @@ export default function ProductsSection() {
             {products.map((item, index) => (
               <div
                 key={index}
-                className={`flex flex-col flex-shrink-0 gap-4 items-center justify-center text-center`}
+                className={`flex flex-col flex-shrink-0 gap-4 items-center text-center`}
                 style={{
                   flex:
                     itemsToShow === 1
                       ? "0 0 100%"
-                      : `0 0 ${100 / itemsToShow}%`,
+                      : `0 0 calc(${100 / itemsToShow}% - 2rem)`,
                 }}
               >
                 <div className="relative w-full aspect-square">
@@ -77,7 +77,7 @@ export default function ProductsSection() {
                   />
                 </div>
                 <h2
-                  className={`w-64 text-center text-lg sm:text-xl font-semibold ${spectral.className}`}
+                  className={`text-lg sm:text-xl font-semibold ${spectral.className}`}
                 >
                   {item.name}
                 </h2>
