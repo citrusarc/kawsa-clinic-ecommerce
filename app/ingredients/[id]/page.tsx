@@ -22,33 +22,31 @@ export default function IngredientsDetailsPage({
       </section>
     );
   }
-
   return (
-    <section className="flex flex-col items-center justify-center p-4 sm:p-16 gap-8">
-      <div className="relative w-full max-w-2xl aspect-square">
-        <Image
-          fill
-          src={ingredient.src}
-          alt={ingredient.alt}
-          className="object-cover rounded-2xl"
-        />
-      </div>
-      <h1
-        className={`text-4xl sm:text-6xl ${spectral.className} text-violet-600`}
-      >
-        {ingredient.title}
-      </h1>
-      <p className="text-lg text-neutral-700 max-w-xl text-center">
-        {ingredient.description}
-      </p>
-
-      {/* Extra space for future details */}
-      <div className="mt-8 max-w-2xl text-center text-neutral-500">
-        <p>
-          Here you can add more detailed information about{" "}
-          <b>{ingredient.title}</b> — such as benefits, usage, and science
-          behind the ingredient.
-        </p>
+    <section className="flex flex-col gap-8 p-4 sm:p-16 items-center justify-center">
+      <div className="flex flex-col sm:flex-row gap-8 sm:gap-16 py-8 sm:py-24">
+        <div className="relative w-full max-w-2xl aspect-square">
+          <Image
+            fill
+            src={ingredient.src}
+            alt={ingredient.alt}
+            className="object-cover"
+          />
+        </div>
+        <div className="flex flex-col gap-8 sm:gap-16 w-full sm:w-1/2 text-md sm:text-lg">
+          <h2
+            className={`text-4xl sm:text-6xl ${spectral.className} text-black`}
+          >
+            {ingredient.title}
+          </h2>
+          <div className="flex flex-col gap-4">
+            {ingredient.additionalInfo1?.map((paragraph, index) => (
+              <p key={index} className="text-neutral-500">
+                {paragraph}
+              </p>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
