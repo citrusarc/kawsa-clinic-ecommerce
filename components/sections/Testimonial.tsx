@@ -21,10 +21,11 @@ export default function TestimonialSection() {
           className="object-cover w-full h-full"
         />
       </div>
-      <Link href="/what-customers-say">
-        <button className="mt-6 p-4 cursor-pointer border text-white bg-violet-600 hover:text-violet-600 hover:border-violet-600 hover:bg-white">
-          See More Result
-        </button>
+      <Link
+        href="/what-customers-say"
+        className="p-4 cursor-pointer border text-white bg-violet-600 hover:text-violet-600 hover:bg-white hover:border-violet-600"
+      >
+        See More Result
       </Link>
     </section>
   );

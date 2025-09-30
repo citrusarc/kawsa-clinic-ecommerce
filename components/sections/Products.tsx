@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { NavArrowLeft, NavArrowRight } from "iconoir-react/regular";
 
@@ -74,23 +75,29 @@ export default function ProductsSection() {
                       : `0 0 calc(${100 / itemsToShow}% - 2rem)`,
                 }}
               >
-                <div className="relative w-full aspect-square">
-                  <Image
-                    fill
-                    src={item.src}
-                    alt={item.alt}
-                    className="object-cover"
-                  />
-                </div>
-                <h2
-                  className={`text-lg sm:text-xl font-semibold ${spectral.className}`}
+                <Link
+                  key={item.id}
+                  href={`/shop-our-products/${item.id}`}
+                  className="flex flex-col gap-4 items-center text-center border border-transparent hover:border-violet-600"
                 >
-                  {item.name}
-                </h2>
-                <p className="text-neutral-500">
-                  {item.currency}
-                  {item.price}
-                </p>
+                  <div className="relative w-full aspect-square">
+                    <Image
+                      fill
+                      src={item.src}
+                      alt={item.alt}
+                      className="object-cover"
+                    />
+                  </div>
+                  <h2
+                    className={`text-lg sm:text-xl font-semibold ${spectral.className}`}
+                  >
+                    {item.name}
+                  </h2>
+                  <p className="text-neutral-500">
+                    {item.currency}
+                    {item.price}
+                  </p>
+                </Link>
               </div>
             ))}
           </div>

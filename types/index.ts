@@ -30,11 +30,12 @@ export type ProductsItem = {
   src: string;
   alt: string;
   name: string;
-  description?: string;
+  description?: string[];
   additionalInfo1?: string[];
   additionalInfo2?: string[];
   currency: string;
-  price: string;
+  price: number;
+  status?: ItemStatus;
 };
 
 export type IngredientsItem = {
@@ -42,7 +43,7 @@ export type IngredientsItem = {
   src: string;
   alt: string;
   title: string;
-  description: string;
+  description: string[];
   additionalInfo1?: string[];
   additionalInfo2?: string[];
   position: string;
