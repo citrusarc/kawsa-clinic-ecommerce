@@ -41,13 +41,11 @@ export default async function IngredientsDetailsPage({
           >
             {ingredient.title}
           </h2>
-          <div className="flex flex-col gap-4">
-            {ingredient.additionalInfo1?.map((paragraph, index) => (
-              <p key={index} className="text-neutral-500">
-                {paragraph}
-              </p>
-            ))}
-          </div>
+          {ingredient.additionalInfo1?.map((paragraph, index) => (
+            <p key={index} className="text-neutral-500">
+              {paragraph}
+            </p>
+          ))}
         </div>
       </div>
     </section>
