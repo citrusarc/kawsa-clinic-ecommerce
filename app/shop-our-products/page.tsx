@@ -12,8 +12,15 @@ export default function ShopOurProductsPage() {
   const [products, setProducts] = useState<ProductsItem[]>([]);
 
   useEffect(() => {
-    getProducts().then(setProducts);
+    getProducts().then((data) =>
+      setProducts(
+        data.filter(
+          (item) => !item.status?.isHidden && !item.status?.isDisabled
+        )
+      )
+    );
   }, []);
+
   return (
     <section className="flex flex-col p-4 sm:p-24 gap-8 sm:gap-16 items-center justify-center text-center">
       <h2
@@ -39,7 +46,7 @@ export default function ShopOurProductsPage() {
               />
             </div>
             <h2
-              className={`text-lg sm:text-xl font-semibold ${spectral.className}`}
+              className={`w-80 text-lg sm:text-xl font-semibold ${spectral.className}`}
             >
               {item.name}
             </h2>

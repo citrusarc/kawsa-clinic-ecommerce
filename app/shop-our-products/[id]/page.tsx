@@ -7,6 +7,7 @@ import { NavArrowLeft, NavArrowRight } from "iconoir-react";
 
 import { supabase } from "@/utils/supabase/client";
 import { spectral } from "@/config/font";
+import { ProductsItem } from "@/types";
 
 interface ProductDetailsProps {
   params: Promise<{ id: string }>;
@@ -14,8 +15,8 @@ interface ProductDetailsProps {
 
 export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   const { id } = use(params);
-  const [product, setProduct] = useState<any>(null);
-  const [products, setProducts] = useState<any[]>([]);
+  const [product, setProduct] = useState<ProductsItem | null>(null);
+  const [products, setProducts] = useState<ProductsItem[]>([]);
   const [itemsToShow, setItemsToShow] = useState(4);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -27,7 +28,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
         .from("products")
         .select("*")
         .eq("id", id)
-        .single();
+        .single<ProductsItem>();
 
       if (!error && prod) {
         setProduct(prod);
@@ -36,9 +37,14 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
       const { data: others } = await supabase
         .from("products")
         .select("*")
-        .neq("id", id);
+        .neq("id", id)
+        .returns<ProductsItem[]>();
 
-      setProducts((others || []).filter((item) => !item.status?.isHidden));
+      setProducts(
+        (others || []).filter(
+          (item) => !item.status?.isHidden && !item.status?.isDisabled
+        )
+      );
       setLoading(false);
     };
 
@@ -73,9 +79,9 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
     return <div className="p-8 text-center">Product not found.</div>;
 
   return (
-    <section className="flex flex-col gap-8 p-4 sm:p-24 items-center justify-center">
-      <div className="flex flex-col sm:flex-row gap-8 sm:gap-16">
-        <div className="relative w-full max-w-2xl aspect-square">
+    <section className="flex flex-col gap-8 p-4 sm:p-24 items-start justify-center">
+      <div className="flex flex-col sm:flex-row gap-8 sm:gap-16 w-full">
+        <div className="relative w-full sm:w-1/2 max-w-2xl aspect-square">
           <Image
             fill
             src={product.src}
@@ -144,7 +150,9 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
 
           <div className="w-full overflow-hidden ">
             <div
-              className="flex gap-8 transition-transform duration-500"
+              className={`flex transition-transform duration-500 ${
+                itemsToShow === 4 ? "gap-8" : ""
+              }`}
               style={{
                 transform: `translateX(-${
                   (currentIndex * 100) / itemsToShow
@@ -159,13 +167,15 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                     flex:
                       itemsToShow === 1
                         ? "0 0 100%"
-                        : `0 0 calc(${100 / itemsToShow}% - 2rem)`,
+                        : `0 0 calc(${100 / itemsToShow}% - ${
+                            itemsToShow === 4 ? "2rem" : "0rem"
+                          })`,
                   }}
                 >
                   <Link
                     key={item.id}
                     href={`/shop-our-products/${item.id}`}
-                    className="flex flex-col gap-4 items-center text-center border border-transparent hover:border-violet-600"
+                    className="flex flex-col gap-4 w-full items-center text-center border border-transparent hover:border-violet-600"
                   >
                     <div className="relative w-full aspect-square">
                       <Image
@@ -176,7 +186,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                       />
                     </div>
                     <h2
-                      className={`text-lg sm:text-xl font-semibold ${spectral.className}`}
+                      className={`w-80 text-lg sm:text-xl font-semibold ${spectral.className}`}
                     >
                       {item.name}
                     </h2>

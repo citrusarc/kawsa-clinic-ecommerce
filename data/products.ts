@@ -27,7 +27,7 @@ export const products: ProductsItem[] = [
     ],
     currency: "RM",
     price: 70.0,
-    status: { isComingSoon: true },
+    status: { ...defaultStatus },
   },
   {
     id: "product-2",
