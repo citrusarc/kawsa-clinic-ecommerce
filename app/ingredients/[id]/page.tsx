@@ -8,10 +8,11 @@ interface IngredientsDetailsPageProps {
   };
 }
 
-export default function IngredientsDetailsPage({
+export default async function IngredientsDetailsPage({
   params,
 }: IngredientsDetailsPageProps) {
-  const ingredient = ingredients.find((item) => item.id === params.id);
+  const { id } = await params;
+  const ingredient = ingredients.find((item) => item.id === id);
 
   if (!ingredient) {
     return (
@@ -22,6 +23,7 @@ export default function IngredientsDetailsPage({
       </section>
     );
   }
+
   return (
     <section className="flex flex-col gap-8 p-4 sm:p-16 items-center justify-center">
       <div className="flex flex-col sm:flex-row gap-8 sm:gap-16 py-8 sm:py-24">
