@@ -44,15 +44,15 @@ export default function HeroSection() {
           className="flex transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${current * 100}%)` }}
         >
-          {slides.map((slide, index) => (
+          {slides.map((item, index) => (
             <div
               key={index}
               className="relative w-full h-[640px] sm:h-[960px] flex-shrink-0"
             >
               <Image
                 fill
-                src={slide.src}
-                alt={slide.alt}
+                src={item.src}
+                alt={item.alt}
                 className="object-cover"
               />
             </div>
