@@ -48,7 +48,7 @@ export const metadata: Metadata = {
       "Kawsa Clinic in Johor Bahru offers medibeauty services and premium skincare products like Gentle Exfoliating Gel Cleanser, Hydrating Serum, and Daily Sunscreen.",
     images: [
       {
-        url: "https://kawsa-clinic-ecommerce.vercel.app/images/banner.png",
+        url: "https://kawsa-clinic-ecommerce.vercel.app/Images/banner.png",
         width: 1200,
         height: 630,
         alt: "Kawsa Clinic Skincare Products",
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     title: "Kawsa Clinic • Medibeauty & Skincare",
     description:
       "Shop Kawsa Clinic’s skincare products in Johor Bahru: Gentle Exfoliating Gel Cleanser, Hydrating Serum, and Daily Sunscreen for glowing skin.",
-    images: ["https://kawsa-clinic-ecommerce.vercel.app/images/banner.png"],
+    images: ["https://kawsa-clinic-ecommerce.vercel.app/Images/banner.png"],
   },
   alternates: {
     canonical: "https://kawsa-clinic-ecommerce.vercel.app",
@@ -98,7 +98,7 @@ export default function RootLayout({
             "@type": "MedicalClinic",
             name: "Kawsa Clinic",
             image:
-              "https://kawsa-clinic-ecommerce.vercel.app/images/banner.png",
+              "https://kawsa-clinic-ecommerce.vercel.app/Images/banner.png",
             url: "https://kawsa-clinic-ecommerce.vercel.app/",
             telephone: "+60182074771",
             address: {
