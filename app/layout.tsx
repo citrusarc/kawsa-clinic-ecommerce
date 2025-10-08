@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import { Phone, Mail } from "iconoir-react";
 import "@/app/globals.css";
 
@@ -8,8 +9,75 @@ import Navbar from "@/components/ui/Navbar";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: "Kawsa Clinic",
-  description: "Kawsa Clinic",
+  metadataBase: new URL("https://kawsa-clinic-ecommerce.vercel.app"),
+  title: {
+    default: "Kawsa Clinic • Medibeauty & Skincare",
+    template: "%s | Kawsa Clinic",
+  },
+  description:
+    "Kawsa Clinic offers expert medibeauty and skincare in Johor Bahru. Shop our Gentle Exfoliating Gel Cleanser, Hydrating Serum, and Daily Sunscreen. Open Mon-Sat 9AM–6PM.",
+  keywords: [
+    "Kawsa Clinic",
+    "Medibeauty Johor Bahru",
+    "Skincare Products Malaysia",
+    "Aesthetic Clinic Johor",
+    "Gentle Exfoliating Cleanser",
+    "Hydrating Serum",
+    "Daily Sunscreen",
+    "Hyaluronic Acid Skincare",
+    "Dr Kay Medibeauty",
+  ],
+  authors: [
+    { name: "Kawsa Clinic", url: "https://kawsa-clinic-ecommerce.vercel.app" },
+  ],
+  creator: "Kawsa Clinic",
+  publisher: "Kawsa Clinic",
+  category: "Medical Clinic",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_MY",
+    url: "https://kawsa-clinic-ecommerce.vercel.app",
+    siteName: "Kawsa Clinic",
+    title: "Kawsa Clinic • Medibeauty & Skincare",
+    description:
+      "Kawsa Clinic in Johor Bahru offers medibeauty services and premium skincare products like Gentle Exfoliating Gel Cleanser, Hydrating Serum, and Daily Sunscreen.",
+    images: [
+      {
+        url: "https://kawsa-clinic-ecommerce.vercel.app/images/banner.png",
+        width: 1200,
+        height: 630,
+        alt: "Kawsa Clinic Skincare Products",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@kawsaclinic",
+    creator: "@kawsaclinic",
+    title: "Kawsa Clinic • Medibeauty & Skincare",
+    description:
+      "Shop Kawsa Clinic’s skincare products in Johor Bahru: Gentle Exfoliating Gel Cleanser, Hydrating Serum, and Daily Sunscreen for glowing skin.",
+    images: ["https://kawsa-clinic-ecommerce.vercel.app/images/banner.png"],
+  },
+  alternates: {
+    canonical: "https://kawsa-clinic-ecommerce.vercel.app",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export default function RootLayout({
@@ -19,6 +87,107 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          id="ldjson-clinic"
+          type="application/ld+json"
+          strategy="afterInteractive"
+        >
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "MedicalClinic",
+            name: "Kawsa Clinic",
+            image:
+              "https://kawsa-clinic-ecommerce.vercel.app/images/banner.png",
+            url: "https://kawsa-clinic-ecommerce.vercel.app/",
+            telephone: "+60182074771",
+            address: {
+              "@type": "PostalAddress",
+              streetAddress: "39-02, Jalan Padi Emas 1/8, Bandar Baru Uda",
+              addressLocality: "Johor Bahru",
+              addressRegion: "Johor",
+              postalCode: "81200",
+              addressCountry: {
+                "@type": "Country",
+                name: "MY",
+              },
+            },
+            geo: {
+              "@type": "GeoCoordinates",
+              latitude: 1.496141,
+              longitude: 103.719517,
+            },
+            openingHoursSpecification: [
+              {
+                "@type": "OpeningHoursSpecification",
+                dayOfWeek: [
+                  "Monday",
+                  "Tuesday",
+                  "Wednesday",
+                  "Thursday",
+                  "Friday",
+                  "Saturday",
+                ],
+                opens: "09:00",
+                closes: "18:00",
+              },
+              {
+                "@type": "OpeningHoursSpecification",
+                dayOfWeek: "Sunday",
+                opens: "00:00",
+                closes: "00:00",
+              },
+            ],
+            medicalSpecialty: ["Dermatology", "Aesthetic Medicine"],
+            priceRange: "RM 100-500",
+            contactPoint: {
+              "@type": "ContactPoint",
+              telephone: "+60182074771",
+              contactType: "customer service",
+              email: "drkay.skincare@gmail.com",
+              availableLanguage: ["English", "Malay"],
+            },
+            sameAs: [
+              "https://www.instagram.com/kawsaclinic/",
+              "https://www.facebook.com/kawsaclinic/",
+              "https://wasap.my/60138088912",
+            ],
+            hasOfferCatalog: {
+              "@type": "OfferCatalog",
+              name: "Skincare Products",
+              itemListElement: [
+                {
+                  "@type": "Offer",
+                  itemOffered: {
+                    "@type": "Product",
+                    name: "Kawsa Gentle Exfoliating Gel Cleanser",
+                    description:
+                      "Lifts away dead skin and unclogs pores for a refreshed complexion.",
+                  },
+                },
+                {
+                  "@type": "Offer",
+                  itemOffered: {
+                    "@type": "Product",
+                    name: "Kawsa Hydrating Serum",
+                    description:
+                      "Provides deep hydration for glowing, healthy skin.",
+                  },
+                },
+                {
+                  "@type": "Offer",
+                  itemOffered: {
+                    "@type": "Product",
+                    name: "Kawsa Daily Sunscreen",
+                    description:
+                      "Protects your skin from harmful UV rays with daily use.",
+                  },
+                },
+              ],
+            },
+          })}
+        </Script>
+      </head>
       <body className="relative antialiased overflow-x-hidden overflow-y-auto bg-custom">
         <Navbar />
         <main>{children}</main>
