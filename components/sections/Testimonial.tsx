@@ -46,7 +46,7 @@ export default function TestimonialSection() {
       </h2>
       <p>Healthier and even-toned skin that shines with confidence.</p>
       <div className="w-full flex flex-col gap-8 sm:gap-16">
-        {testimonialSets.map((set, index) => (
+        {testimonialSets.map((item, index) => (
           <div
             key={index}
             className="flex flex-col sm:flex-row w-full justify-center"
@@ -54,8 +54,8 @@ export default function TestimonialSection() {
             <div className="relative w-full sm:w-1/2 aspect-square">
               <Image
                 fill
-                src={set.before.src}
-                alt={set.before.alt}
+                src={item.before.src}
+                alt={item.before.alt}
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, 50vw"
                 priority={index === 0}
@@ -68,8 +68,8 @@ export default function TestimonialSection() {
             <div className="relative w-full sm:w-1/2 aspect-square">
               <Image
                 fill
-                src={set.after.src}
-                alt={set.after.alt}
+                src={item.after.src}
+                alt={item.after.alt}
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, 50vw"
                 priority={index === 0}

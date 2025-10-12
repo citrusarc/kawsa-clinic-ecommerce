@@ -43,6 +43,9 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedOption, setSelectedOption] = useState<VariantOption | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -73,7 +76,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
         }
 
         if (prod) {
-          setProduct({
+          const transformedProduct: ProductsItem = {
             id: prod.id,
             src: prod.src,
             alt: prod.alt,
@@ -107,7 +110,9 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                 ),
               })
             ),
-          });
+          };
+          setProduct(transformedProduct);
+          setSelectedOption(transformedProduct.variants[0]?.options[0] || null);
         }
 
         const { data: others, error: othersError } = await supabase
@@ -178,8 +183,12 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
               })
             )
         );
-      } catch (err: any) {
-        setError(err.message || "An error occurred while fetching products.");
+      } catch (err: unknown) {
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "An error occurred while fetching products.";
+        setError(errorMessage);
         console.error("Fetch error:", err);
       } finally {
         setLoading(false);
@@ -208,6 +217,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
     setCurrentIndex((prev) =>
       prev >= products.length - itemsToShow ? 0 : prev + 1
     );
+  };
+
+  const handleOptionSelect = (option: VariantOption) => {
+    setSelectedOption(option);
   };
 
   if (loading) return <div className="p-8 text-center">Loading...</div>;
@@ -239,10 +252,30 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
               </p>
             ))}
           </div>
-          {/* add selection optionName here that using button that reflect price of the that options */}
+          {product.variants[0]?.options?.length > 0 && (
+            <div className="flex flex-col gap-4">
+              <h2 className="text-lg">{product.variants[0].variantName}</h2>
+              <div className="flex flex-wrap gap-2">
+                {product.variants[0].options.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => handleOptionSelect(option)}
+                    className={`px-4 py-2 border ${
+                      selectedOption?.id === option.id
+                        ? "text-white border-violet-600 bg-violet-600"
+                        : "text-violet-600 hover:text-white border-violet-600 bg-white hover:bg-violet-600"
+                    }`}
+                  >
+                    {option.optionName}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <p className="text-2xl sm:text-4xl text-black">
-            {product.currency}
-            {product.variants[0]?.options[0]?.price.toFixed(2) || "N/A"}
+            {selectedOption
+              ? `${product.currency} ${selectedOption.price.toFixed(2)}`
+              : "N/A"}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 w-full">
             <button className="p-4 w-full cursor-pointer border text-violet-600 bg-white border-violet-600 hover:text-white hover:bg-violet-600 hover:border-white">
@@ -281,7 +314,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
         <div className="relative w-full flex items-center">
           <button
             onClick={handlePrev}
-            className="flex sm:hidden absolute left-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600 "
+            className="flex sm:hidden absolute left-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600"
           >
             <NavArrowLeft className="w-6 h-6 " />
           </button>
@@ -339,9 +372,9 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
           </div>
           <button
             onClick={handleNext}
-            className="flex sm:hidden absolute right-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600 "
+            className="flex sm:hidden absolute right-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600"
           >
-            <NavArrowRight className="w-6 h-6 " />
+            <NavArrowRight className="w-6 h-6" />
           </button>
         </div>
       </div>
