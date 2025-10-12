@@ -7,10 +7,32 @@ import { NavArrowLeft, NavArrowRight } from "iconoir-react";
 
 import { supabase } from "@/utils/supabase/client";
 import { spectral } from "@/config/font";
-import { ProductsItem } from "@/types";
+import { ProductsItem, ProductVariant, VariantOption } from "@/types";
 
 interface ProductDetailsProps {
   params: Promise<{ id: string }>;
+}
+
+interface SupabaseProduct {
+  id: string;
+  src: string;
+  alt: string;
+  name: string;
+  description: string | string[];
+  additionalInfo1: string | string[];
+  additionalInfo2: string | string[];
+  currency: string;
+  status: { isHidden: boolean; isDisabled: boolean; isComingSoon: boolean };
+  product_variants: {
+    id: string;
+    variantName: string;
+    variant_options: {
+      id: string;
+      optionName: string;
+      price: number;
+      currency: string;
+    }[];
+  }[];
 }
 
 export default function ProductDetailsPage({ params }: ProductDetailsProps) {
@@ -20,14 +42,78 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   const [itemsToShow, setItemsToShow] = useState(4);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const { data: prod, error } = await supabase
-        .from("products")
-        .select(
+      try {
+        const { data: prod, error } = await supabase
+          .from("products")
+          .select(
+            `
+            *,
+            product_variants (
+              id,
+              variantName,
+              variant_options (
+                id,
+                optionName,
+                price,
+                currency
+              )
+            )
           `
+          )
+          .eq("id", id)
+          .single();
+
+        if (error) {
+          throw new Error(`Failed to fetch product: ${error.message}`);
+        }
+
+        if (prod) {
+          setProduct({
+            id: prod.id,
+            src: prod.src,
+            alt: prod.alt,
+            name: prod.name,
+            description: Array.isArray(prod.description)
+              ? prod.description
+              : JSON.parse(prod.description || "[]"),
+            additionalInfo1: Array.isArray(prod.additionalInfo1)
+              ? prod.additionalInfo1
+              : JSON.parse(prod.additionalInfo1 || "[]"),
+            additionalInfo2: Array.isArray(prod.additionalInfo2)
+              ? prod.additionalInfo2
+              : JSON.parse(prod.additionalInfo2 || "[]"),
+            currency: prod.currency,
+            status: prod.status,
+            variants: prod.product_variants.map(
+              (
+                variant: SupabaseProduct["product_variants"][number]
+              ): ProductVariant => ({
+                id: variant.id,
+                variantName: variant.variantName,
+                options: variant.variant_options.map(
+                  (
+                    option: SupabaseProduct["product_variants"][number]["variant_options"][number]
+                  ): VariantOption => ({
+                    id: option.id,
+                    optionName: option.optionName,
+                    price: option.price,
+                    currency: option.currency,
+                  })
+                ),
+              })
+            ),
+          });
+        }
+
+        const { data: others, error: othersError } = await supabase
+          .from("products")
+          .select(
+            `
           *,
           product_variants (
             id,
@@ -40,91 +126,64 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
             )
           )
         `
-        )
-        .eq("id", id)
-        .single();
+          )
+          .neq("id", id);
 
-      if (!error && prod) {
-        setProduct({
-          id: prod.id,
-          src: prod.src,
-          alt: prod.alt,
-          name: prod.name,
-          description: Array.isArray(prod.description)
-            ? prod.description
-            : JSON.parse(prod.description || "[]"),
-          additionalInfo1: Array.isArray(prod.additionalInfo1)
-            ? prod.additionalInfo1
-            : JSON.parse(prod.additionalInfo1 || "[]"),
-          additionalInfo2: Array.isArray(prod.additionalInfo2)
-            ? prod.additionalInfo2
-            : JSON.parse(prod.additionalInfo2 || "[]"),
-          currency: prod.currency,
-          status: prod.status,
-          variants: prod.product_variants.map((variant: any) => ({
-            id: variant.id,
-            variantName: variant.variantName,
-            options: variant.variant_options.map((option: any) => ({
-              id: option.id,
-              optionName: option.optionName,
-              price: option.price,
-              currency: option.currency,
-            })),
-          })),
-        });
+        if (othersError) {
+          throw new Error(
+            `Failed to fetch other products: ${othersError.message}`
+          );
+        }
+
+        setProducts(
+          (others || [])
+            .filter(
+              (item) => !item.status?.isHidden && !item.status?.isDisabled
+            )
+            .map(
+              (item: SupabaseProduct): ProductsItem => ({
+                id: item.id,
+                src: item.src,
+                alt: item.alt,
+                name: item.name,
+                description: Array.isArray(item.description)
+                  ? item.description
+                  : JSON.parse(item.description || "[]"),
+                additionalInfo1: Array.isArray(item.additionalInfo1)
+                  ? item.additionalInfo1
+                  : JSON.parse(item.additionalInfo1 || "[]"),
+                additionalInfo2: Array.isArray(item.additionalInfo2)
+                  ? item.additionalInfo2
+                  : JSON.parse(item.additionalInfo2 || "[]"),
+                currency: item.currency,
+                status: item.status,
+                variants: item.product_variants.map(
+                  (
+                    variant: SupabaseProduct["product_variants"][number]
+                  ): ProductVariant => ({
+                    id: variant.id,
+                    variantName: variant.variantName,
+                    options: variant.variant_options.map(
+                      (
+                        option: SupabaseProduct["product_variants"][number]["variant_options"][number]
+                      ): VariantOption => ({
+                        id: option.id,
+                        optionName: option.optionName,
+                        price: option.price,
+                        currency: option.currency,
+                      })
+                    ),
+                  })
+                ),
+              })
+            )
+        );
+      } catch (err: any) {
+        setError(err.message || "An error occurred while fetching products.");
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
       }
-
-      const { data: others } = await supabase
-        .from("products")
-        .select(
-          `
-          *,
-          product_variants (
-            id,
-            variantName,
-            variant_options (
-              id,
-              optionName,
-              price,
-              currency
-            )
-          )
-        `
-        )
-        .neq("id", id);
-
-      setProducts(
-        (others || [])
-          .filter((item) => !item.status?.isHidden && !item.status?.isDisabled)
-          .map((item) => ({
-            id: item.id,
-            src: item.src,
-            alt: item.alt,
-            name: item.name,
-            description: Array.isArray(item.description)
-              ? item.description
-              : JSON.parse(item.description || "[]"),
-            additionalInfo1: Array.isArray(item.additionalInfo1)
-              ? item.additionalInfo1
-              : JSON.parse(item.additionalInfo1 || "[]"),
-            additionalInfo2: Array.isArray(item.additionalInfo2)
-              ? item.additionalInfo2
-              : JSON.parse(item.additionalInfo2 || "[]"),
-            currency: item.currency,
-            status: item.status,
-            variants: item.product_variants.map((variant: any) => ({
-              id: variant.id,
-              variantName: variant.variantName,
-              options: variant.variant_options.map((option: any) => ({
-                id: option.id,
-                optionName: option.optionName,
-                price: option.price,
-                currency: option.currency,
-              })),
-            })),
-          }))
-      );
-      setLoading(false);
     };
     fetchData();
   }, [id]);
@@ -152,6 +211,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   };
 
   if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
   if (!product)
     return <div className="p-8 text-center">Product not found.</div>;
 
@@ -179,6 +239,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
               </p>
             ))}
           </div>
+          {/* add selection optionName here that using button that reflect price of the that options */}
           <p className="text-2xl sm:text-4xl text-black">
             {product.currency}
             {product.variants[0]?.options[0]?.price.toFixed(2) || "N/A"}

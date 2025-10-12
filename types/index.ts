@@ -61,3 +61,8 @@ export type IngredientsItem = {
   additionalInfo2?: string[];
   position: string;
 };
+
+export type TestimonialSet = {
+  before: { src: string; alt: string };
+  after: { src: string; alt: string };
+};

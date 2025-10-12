@@ -1,5 +1,27 @@
 import { supabase } from "@/utils/supabase/client";
-import { ProductsItem } from "@/types";
+import { ProductsItem, ProductVariant, VariantOption } from "@/types";
+
+interface SupabaseProduct {
+  id: string;
+  src: string;
+  alt: string;
+  name: string;
+  description: string | string[];
+  additionalInfo1: string | string[];
+  additionalInfo2: string | string[];
+  currency: string;
+  status: { isHidden: boolean; isDisabled: boolean; isComingSoon: boolean };
+  product_variants: {
+    id: string;
+    variantName: string;
+    variant_options: {
+      id: string;
+      optionName: string;
+      price: number;
+      currency: string;
+    }[];
+  }[];
+}
 
 export async function getProducts(): Promise<ProductsItem[]> {
   const { data, error } = await supabase.from("products").select(`
@@ -23,33 +45,44 @@ export async function getProducts(): Promise<ProductsItem[]> {
     );
   }
 
-  const transformedData: ProductsItem[] = data.map((product) => ({
-    id: product.id,
-    src: product.src,
-    alt: product.alt,
-    name: product.name,
-    description: Array.isArray(product.description)
-      ? product.description
-      : JSON.parse(product.description || "[]"),
-    additionalInfo1: Array.isArray(product.additionalInfo1)
-      ? product.additionalInfo1
-      : JSON.parse(product.additionalInfo1 || "[]"),
-    additionalInfo2: Array.isArray(product.additionalInfo2)
-      ? product.additionalInfo2
-      : JSON.parse(product.additionalInfo2 || "[]"),
-    currency: product.currency,
-    status: product.status,
-    variants: product.product_variants.map((variant: any) => ({
-      id: variant.id,
-      variantName: variant.variantName,
-      options: variant.variant_options.map((option: any) => ({
-        id: option.id,
-        optionName: option.optionName,
-        price: option.price,
-        currency: option.currency,
-      })),
-    })),
-  }));
+  if (!data) {
+    console.warn("No data returned from products query");
+    return [];
+  }
+
+  const transformedData: ProductsItem[] = data.map(
+    (product: SupabaseProduct) => ({
+      id: product.id,
+      src: product.src,
+      alt: product.alt,
+      name: product.name,
+      description: Array.isArray(product.description)
+        ? product.description
+        : JSON.parse(product.description || "[]"),
+      additionalInfo1: Array.isArray(product.additionalInfo1)
+        ? product.additionalInfo1
+        : JSON.parse(product.additionalInfo1 || "[]"),
+      additionalInfo2: Array.isArray(product.additionalInfo2)
+        ? product.additionalInfo2
+        : JSON.parse(product.additionalInfo2 || "[]"),
+      currency: product.currency,
+      status: product.status,
+      variants: product.product_variants.map(
+        (variant): ProductVariant => ({
+          id: variant.id,
+          variantName: variant.variantName,
+          options: variant.variant_options.map(
+            (option): VariantOption => ({
+              id: option.id,
+              optionName: option.optionName,
+              price: option.price,
+              currency: option.currency,
+            })
+          ),
+        })
+      ),
+    })
+  );
 
   return transformedData;
 }
