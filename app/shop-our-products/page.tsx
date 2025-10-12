@@ -52,7 +52,7 @@ export default function ShopOurProductsPage() {
             </h2>
             <p className="text-neutral-500">
               {item.currency}
-              {item.price}
+              {item.variants[0]?.options[0]?.price.toFixed(2) || "N/A"}
             </p>
           </Link>
         ))}

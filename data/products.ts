@@ -21,13 +21,26 @@ export const products: ProductsItem[] = [
       "Water, Coco Beatine, Glycerine, Polysorbate 20, Phenoxythenol, Xanthum Gum, Propylene Glycol, Glycolic acid, Salicylic Acid, Fragrance",
     ],
     additionalInfo2: [
-      "1. Wet face and apply a small amount of cleanser ( 1-2 pumps ) to your face and eye area with vigorous, yet gentle, circular motion.",
+      "1. Wet face and apply a small amount of cleanser (1-2 pumps) to your face and eye area with vigorous, yet gentle, circular motion.",
       "2. Rinse well.",
       "3. To remove heavy makeup, repeat or use with a clean, wet washcloth.",
     ],
     currency: "RM",
-    price: 70.0,
     status: { ...defaultStatus },
+    variants: [
+      {
+        id: "variant-1",
+        variantName: "Default",
+        options: [
+          {
+            id: "option-1",
+            optionName: "Standard",
+            price: 70.0,
+            currency: "RM",
+          },
+        ],
+      },
+    ],
   },
   {
     id: "product-2",
@@ -47,8 +60,21 @@ export const products: ProductsItem[] = [
       "2. For optimal results, use twice daily day and night.",
     ],
     currency: "RM",
-    price: 80.75,
     status: { ...defaultStatus },
+    variants: [
+      {
+        id: "variant-2",
+        variantName: "Default",
+        options: [
+          {
+            id: "option-2",
+            optionName: "Standard",
+            price: 85.0,
+            currency: "RM",
+          },
+        ],
+      },
+    ],
   },
   {
     id: "product-3",
@@ -64,8 +90,21 @@ export const products: ProductsItem[] = [
     additionalInfo1: [""],
     additionalInfo2: [""],
     currency: "RM",
-    price: 210.0,
     status: { ...defaultStatus },
+    variants: [
+      {
+        id: "variant-3",
+        variantName: "Default",
+        options: [
+          {
+            id: "option-3",
+            optionName: "Standard",
+            price: 210.0,
+            currency: "RM",
+          },
+        ],
+      },
+    ],
   },
   {
     id: "product-4",
@@ -75,7 +114,7 @@ export const products: ProductsItem[] = [
     description: [
       "Suitable for ALL SKIN TYPES.",
       "SLES, PARABEN FREE | HYPOALLERGENIC | NON-COMEDOGENIC",
-      "This ideal multi-tasker is perfect for those struggling with signs of ageing and hyperpigmentation. Alpha Arbutin and Pitera join forces to provide immediate hydration while nourishing, mantaining healthier, younger-looking skin and a brighter complexion. Cucumber and Aloe Vera extract infused to sooth and calm the appearance of redness and sensitivity while further moisten the skin.",
+      "This ideal multi-tasker is perfect for those struggling with signs of ageing and hyperpigmentation. Alpha Arbutin and Pitera join forces to provide immediate hydration while nourishing, maintaining healthier, younger-looking skin and a brighter complexion. Cucumber and Aloe Vera extract infused to soothe and calm the appearance of redness and sensitivity while further moisten the skin.",
     ],
     additionalInfo1: [
       "Distilled Water, Glyceryl Monostearate (GMS), White Oil, Capric Triglycerides, Aloevera Oil, Glycerine, Shea Butter, Simethicone350, Stearic Acid, Proplene Glycol, Cucumber Extract, Phenoxyethanol, Polysorbate 20, Carbomer, Titanium Dioxide, Tetraethanolamine (TEA), Aloevera Extract, Pitera, Collagen, Alpha Arbutin, Pearl, Fragrance.",
@@ -85,7 +124,20 @@ export const products: ProductsItem[] = [
       "2. Aim to moisturise twice a day on a cleansed face and after applying serum.",
     ],
     currency: "RM",
-    price: 75.0,
     status: { ...defaultStatus },
+    variants: [
+      {
+        id: "variant-4",
+        variantName: "Default",
+        options: [
+          {
+            id: "option-4",
+            optionName: "Standard",
+            price: 75.0,
+            currency: "RM",
+          },
+        ],
+      },
+    ],
   },
-] satisfies (ItemStatus | ProductsItem)[];
+];

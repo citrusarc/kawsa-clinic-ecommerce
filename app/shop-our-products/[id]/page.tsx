@@ -26,28 +26,106 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
       setLoading(true);
       const { data: prod, error } = await supabase
         .from("products")
-        .select("*")
+        .select(
+          `
+          *,
+          product_variants (
+            id,
+            variantName,
+            variant_options (
+              id,
+              optionName,
+              price,
+              currency
+            )
+          )
+        `
+        )
         .eq("id", id)
-        .single<ProductsItem>();
+        .single();
 
       if (!error && prod) {
-        setProduct(prod);
+        setProduct({
+          id: prod.id,
+          src: prod.src,
+          alt: prod.alt,
+          name: prod.name,
+          description: Array.isArray(prod.description)
+            ? prod.description
+            : JSON.parse(prod.description || "[]"),
+          additionalInfo1: Array.isArray(prod.additionalInfo1)
+            ? prod.additionalInfo1
+            : JSON.parse(prod.additionalInfo1 || "[]"),
+          additionalInfo2: Array.isArray(prod.additionalInfo2)
+            ? prod.additionalInfo2
+            : JSON.parse(prod.additionalInfo2 || "[]"),
+          currency: prod.currency,
+          status: prod.status,
+          variants: prod.product_variants.map((variant: any) => ({
+            id: variant.id,
+            variantName: variant.variantName,
+            options: variant.variant_options.map((option: any) => ({
+              id: option.id,
+              optionName: option.optionName,
+              price: option.price,
+              currency: option.currency,
+            })),
+          })),
+        });
       }
 
       const { data: others } = await supabase
         .from("products")
-        .select("*")
-        .neq("id", id)
-        .returns<ProductsItem[]>();
+        .select(
+          `
+          *,
+          product_variants (
+            id,
+            variantName,
+            variant_options (
+              id,
+              optionName,
+              price,
+              currency
+            )
+          )
+        `
+        )
+        .neq("id", id);
 
       setProducts(
-        (others || []).filter(
-          (item) => !item.status?.isHidden && !item.status?.isDisabled
-        )
+        (others || [])
+          .filter((item) => !item.status?.isHidden && !item.status?.isDisabled)
+          .map((item) => ({
+            id: item.id,
+            src: item.src,
+            alt: item.alt,
+            name: item.name,
+            description: Array.isArray(item.description)
+              ? item.description
+              : JSON.parse(item.description || "[]"),
+            additionalInfo1: Array.isArray(item.additionalInfo1)
+              ? item.additionalInfo1
+              : JSON.parse(item.additionalInfo1 || "[]"),
+            additionalInfo2: Array.isArray(item.additionalInfo2)
+              ? item.additionalInfo2
+              : JSON.parse(item.additionalInfo2 || "[]"),
+            currency: item.currency,
+            status: item.status,
+            variants: item.product_variants.map((variant: any) => ({
+              id: variant.id,
+              variantName: variant.variantName,
+              options: variant.variant_options.map((option: any) => ({
+                id: option.id,
+                optionName: option.optionName,
+                price: option.price,
+                currency: option.currency,
+              })),
+            })),
+          }))
       );
       setLoading(false);
     };
-
     fetchData();
   }, [id]);
 
@@ -74,7 +152,6 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   };
 
   if (loading) return <div className="p-8 text-center">Loading...</div>;
-
   if (!product)
     return <div className="p-8 text-center">Product not found.</div>;
 
@@ -104,7 +181,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
           </div>
           <p className="text-2xl sm:text-4xl text-black">
             {product.currency}
-            {product.price}
+            {product.variants[0]?.options[0]?.price.toFixed(2) || "N/A"}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 w-full">
             <button className="p-4 w-full cursor-pointer border text-violet-600 bg-white border-violet-600 hover:text-white hover:bg-violet-600 hover:border-white">
@@ -192,7 +269,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                     </h2>
                     <p className="text-neutral-500">
                       {item.currency}
-                      {item.price}
+                      {item.variants[0]?.options[0]?.price.toFixed(2) || "N/A"}
                     </p>
                   </Link>
                 </div>

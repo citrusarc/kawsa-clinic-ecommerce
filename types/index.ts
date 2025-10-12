@@ -25,6 +25,19 @@ export type FooterItem = {
   status?: ItemStatus;
 };
 
+export type VariantOption = {
+  id: string;
+  optionName: string;
+  price: number;
+  currency: string;
+};
+
+export type ProductVariant = {
+  id: string;
+  variantName: string;
+  options: VariantOption[];
+};
+
 export type ProductsItem = {
   id: string;
   src: string;
@@ -34,8 +47,8 @@ export type ProductsItem = {
   additionalInfo1?: string[];
   additionalInfo2?: string[];
   currency: string;
-  price: number;
   status?: ItemStatus;
+  variants: ProductVariant[];
 };
 
 export type IngredientsItem = {
