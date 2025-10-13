@@ -26,25 +26,28 @@ export default function ProductsSection() {
 
   useEffect(() => {
     const updateItemsToShow = () => {
-      setItemsToShow(window.innerWidth < 640 ? 1 : 4);
-      setCurrentIndex(0);
+      const newItemsToShow = window.innerWidth < 640 ? 1 : 4;
+      setItemsToShow(newItemsToShow);
+      setCurrentIndex((prev) =>
+        Math.min(prev, Math.max(0, products.length - newItemsToShow))
+      );
     };
     updateItemsToShow();
     window.addEventListener("resize", updateItemsToShow);
     return () => window.removeEventListener("resize", updateItemsToShow);
-  }, []);
+  }, [products.length]);
+
+  const maxIndex = Math.max(0, products.length - itemsToShow);
 
   const handlePrev = () => {
-    setCurrentIndex((prev) =>
-      prev === 0 ? products.length - itemsToShow : prev - 1
-    );
+    setCurrentIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) =>
-      prev >= products.length - itemsToShow ? 0 : prev + 1
-    );
+    setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
   };
+
+  const showNavigation = products.length > itemsToShow;
 
   return (
     <section className="flex flex-col px-4 py-16 sm:p-24 gap-8 sm:gap-16 items-center justify-center">
@@ -56,20 +59,23 @@ export default function ProductsSection() {
       <p>Healthy Skin Makes Every First Impression Count</p>
 
       <div className="relative flex w-full items-center">
-        <button
-          onClick={handlePrev}
-          className="flex sm:hidden absolute left-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600 "
-        >
-          <NavArrowLeft className="w-6 h-6 " />
-        </button>
-
-        <div className="w-full overflow-hidden ">
+        {showNavigation && (
+          <button
+            onClick={handlePrev}
+            className="flex absolute left-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600"
+          >
+            <NavArrowLeft className="w-6 h-6" />
+          </button>
+        )}
+        <div className="w-full overflow-hidden">
           <div
             className={`flex transition-transform duration-500 ${
-              itemsToShow === 4 ? "justify-between" : ""
+              itemsToShow === 4 ? "gap-2" : ""
             }`}
             style={{
-              transform: `translateX(-${(currentIndex * 100) / itemsToShow}%)`,
+              transform: `translateX(-${
+                currentIndex * (100 / itemsToShow + (itemsToShow === 4 ? 2 : 0))
+              }%)`,
             }}
           >
             {products.map((item, index) => (
@@ -80,9 +86,7 @@ export default function ProductsSection() {
                   flex:
                     itemsToShow === 1
                       ? "0 0 100%"
-                      : `0 0 calc(${100 / itemsToShow}% - ${
-                          itemsToShow === 4 ? "2rem" : "0rem"
-                        })`,
+                      : `0 0 ${100 / itemsToShow}%`,
                 }}
               >
                 <Link
@@ -112,12 +116,14 @@ export default function ProductsSection() {
             ))}
           </div>
         </div>
-        <button
-          onClick={handleNext}
-          className="flex sm:hidden absolute right-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600 "
-        >
-          <NavArrowRight className="w-6 h-6 " />
-        </button>
+        {showNavigation && (
+          <button
+            onClick={handleNext}
+            className="flex absolute right-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600"
+          >
+            <NavArrowRight className="w-6 h-6" />
+          </button>
+        )}
       </div>
     </section>
   );
