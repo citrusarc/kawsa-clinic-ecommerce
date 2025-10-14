@@ -183,9 +183,9 @@ export default function RootLayout({
           })}
         </Script>
       </head>
-      <body className="relative antialiased overflow-x-hidden overflow-y-auto bg-custom">
+      <body className="relative antialiased overflow-x-hidden overflow-y-auto max-w-full bg-custom">
         <Navbar />
-        <main>{children}</main>
+        <main className="w-full max-w-full">{children}</main>
         <footer className="flex flex-col items-start justify-start px-4 py-8 sm:p-24 gap-8 sm:gap-16 text-white bg-violet-950">
           <div className="flex flex-col sm:flex-row gap-8 w-full justify-between">
             <div className="flex flex-col gap-8">
