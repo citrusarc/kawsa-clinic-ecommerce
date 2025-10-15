@@ -72,6 +72,9 @@ export default function HeroSection() {
                   {slide.title}
                 </h1>
                 <p className="text-xl sm:text-2xl">{slide.descriptions}</p>
+                <p className="mt-8 italic">
+                  Also used in treatments at Prestige Medispa.
+                </p>
               </div>
               <Link href="/shop-our-products">
                 <button className="mt-6 p-4 cursor-pointer text-violet-600 bg-white hover:text-white hover:bg-violet-600">
