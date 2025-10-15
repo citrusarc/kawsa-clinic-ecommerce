@@ -2,39 +2,25 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { spectral } from "@/config/font";
-import { TestimonialSet } from "@/types";
+import { TestimonialItem } from "@/types";
 
 export default function TestimonialSection() {
-  const testimonialSets: TestimonialSet[] = [
+  const testimonial: TestimonialItem[] = [
     {
-      before: {
-        src: "/Images/testimonial-banner-1.png",
-        alt: "Before Testimonial 1",
-      },
-      after: {
-        src: "/Images/testimonial-banner-2.png",
-        alt: "After Testimonial 1",
-      },
+      src: "/Images/testimonial-banner-1.jpg",
+      alt: "Testimonial 1",
     },
     {
-      before: {
-        src: "/Images/testimonial-banner-3.png",
-        alt: "Before Testimonial 2",
-      },
-      after: {
-        src: "/Images/testimonial-banner-4.png",
-        alt: "After Testimonial 2",
-      },
+      src: "/Images/testimonial-banner-2.jpg",
+      alt: "Testimonial 2",
     },
     {
-      before: {
-        src: "/Images/testimonial-banner-5.png",
-        alt: "Before Testimonial 3",
-      },
-      after: {
-        src: "/Images/testimonial-banner-6.png",
-        alt: "After Testimonial 3",
-      },
+      src: "/Images/testimonial-banner-3.jpg",
+      alt: "Testimonial 3",
+    },
+    {
+      src: "/Images/testimonial-banner-4.jpg",
+      alt: "Testimonial 4",
     },
   ];
   return (
@@ -45,39 +31,18 @@ export default function TestimonialSection() {
         THE GLOW IS REAL
       </h2>
       <p>Healthier and even-toned skin that shines with confidence.</p>
-      <div className="w-full flex flex-col gap-8 sm:gap-16">
-        {testimonialSets.map((item, index) => (
+      <div className="flex flex-col gap-8 sm:gap-16 w-full items-center">
+        {testimonial.map((item, index) => (
           <div
             key={index}
-            className="flex flex-col sm:flex-row w-full justify-center"
+            className="relative w-full sm:h-[960px] aspect-square"
           >
-            <div className="relative w-full sm:w-1/2 aspect-square">
-              <Image
-                fill
-                src={item.before.src}
-                alt={item.before.alt}
-                className="object-cover"
-                sizes="(max-width: 640px) 100vw, 50vw"
-                priority={index === 0}
-              />
-              <p className="absolute top-2 left-2 px-2 py-1 text-sm sm:text-base rounded text-white bg-violet-600">
-                Before
-              </p>
-            </div>
-
-            <div className="relative w-full sm:w-1/2 aspect-square">
-              <Image
-                fill
-                src={item.after.src}
-                alt={item.after.alt}
-                className="object-cover"
-                sizes="(max-width: 640px) 100vw, 50vw"
-                priority={index === 0}
-              />
-              <p className="absolute top-2 left-2 px-2 py-1 text-sm sm:text-base rounded text-white bg-violet-600">
-                After
-              </p>
-            </div>
+            <Image
+              fill
+              src={item.src}
+              alt={item.alt}
+              className="object-cover"
+            />
           </div>
         ))}
       </div>

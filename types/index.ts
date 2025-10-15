@@ -64,3 +64,8 @@ export type TestimonialSet = {
   before: { src: string; alt: string };
   after: { src: string; alt: string };
 };
+
+export type TestimonialItem = {
+  src: string;
+  alt: string;
+};
