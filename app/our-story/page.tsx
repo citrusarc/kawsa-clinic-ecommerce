@@ -124,9 +124,14 @@ export default function OurStoryPage() {
         </div>
       </div>
       <div className="flex flex-col py-8 sm:py-24 gap-8 sm:gap-16 font-medium text-black">
-        <h2 className={`text-4xl sm:text-6xl ${spectral.className}`}>
-          Your Nearest Kawsa Partner
-        </h2>
+        <div>
+          <h2 className={`text-4xl sm:text-6xl ${spectral.className}`}>
+            Your Nearest Kawsa Partner
+          </h2>
+          <p className="italic text-neutral-500">
+            Also used in treatments at Prestige Medispa.
+          </p>
+        </div>
         {partners.map((item, index) => (
           <div key={index}>
             <h2 className={`text-lg font-semibold ${spectral.className}`}>
