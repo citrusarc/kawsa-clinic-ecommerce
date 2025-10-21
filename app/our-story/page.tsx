@@ -62,7 +62,7 @@ export default function OurStoryPage() {
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="absolute inset-0 bg-violet-600/50" />
+        <div className="absolute inset-0 bg-violet-600/30" />
         <h2
           className={`absolute inset-0 flex items-center justify-center text-center text-4xl sm:text-6xl ${spectral.className} text-white`}
         >

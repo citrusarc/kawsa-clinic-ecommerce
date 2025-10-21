@@ -51,11 +51,11 @@ export default function WhatCustomersSayPage() {
       <div className="relative w-screen h-[640px] sm:h-[960px]">
         <Image
           fill
-          src="/Images/what-customers-say-hero-banner.png"
+          src="/Images/what-customers-say-hero-banner.jpg"
           alt="What Customers Say Hero Banner"
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-black/15" />
+        <div className="absolute inset-0 bg-violet-600/30" />
         <div
           className={`absolute inset-0 flex flex-col gap-2 items-center justify-center text-center text-white`}
         >
