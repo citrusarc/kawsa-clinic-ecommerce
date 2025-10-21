@@ -52,21 +52,24 @@ const partners = [
 export default function OurStoryPage() {
   return (
     <section className="flex flex-col p-4 sm:p-24 gap-8 sm:gap-16">
-      <h2
-        className={`text-4xl sm:text-6xl ${spectral.className} text-violet-600`}
-      >
-        The Story Behind the Glow
-      </h2>
-      <div className="w-full h-72 sm:h-150 rounded-4xl overflow-hidden">
-        <Image
-          src="/Images/our-story-hero-banner.png"
-          alt="Our Story Hero Banner"
-          width={1600}
-          height={1600}
-          className="w-full h-full object-cover"
-        />
+      <div className="relative -m-4 sm:-m-24 w-screen">
+        <div className="w-full h-72 sm:h-150">
+          <Image
+            src="/Images/our-story-hero-banner.png"
+            alt="Our Story Hero Banner"
+            width={1600}
+            height={1600}
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="absolute inset-0 bg-violet-600/50" />
+        <h2
+          className={`absolute inset-0 flex items-center justify-center text-center text-4xl sm:text-6xl ${spectral.className} text-white`}
+        >
+          The Story Behind the Glow
+        </h2>
       </div>
-      <div className="flex flex-col sm:flex-row gap-8 sm:gap-16 py-8 sm:py-24">
+      <div className="flex flex-col sm:flex-row gap-8 sm:gap-16 py-8 sm:py-24 mt-4 sm:mt-24">
         <div className="flex flex-col gap-8 sm:gap-16 w-full sm:w-1/2 text-md sm:text-lg">
           <h2
             className={`text-4xl sm:text-6xl ${spectral.className} text-violet-600`}
@@ -76,9 +79,9 @@ export default function OurStoryPage() {
           <p className="text-neutral-500">
             Kawsa Skincare was founded by Dr. Kauthar Ismail (MBBS, MSc Healthy
             Aging, Medical Aesthetic & Regenerative Medicine), a medical doctor
-            deeply passionate about anti-aging and wellness. With over nine
-            years’ experience, she and her team at Prestige Medispa Malaysia
-            have been treating skin concerns such as acne, hyperpigmentation and
+            deeply passionate about anti-aging and wellness. With over 9 years’
+            experience, she and her team at Prestige Medispa Malaysia have been
+            treating skin concerns such as acne, hyperpigmentation and
             irregularities.
           </p>
           <p className="text-neutral-500">
