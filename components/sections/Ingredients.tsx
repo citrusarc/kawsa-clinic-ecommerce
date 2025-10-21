@@ -30,7 +30,7 @@ export default function IngredientsSection() {
                   <p>{item.description}</p>
                   <Link
                     href={`/ingredients/${item.id}`}
-                    className="mt-6 p-4 rounded-lg overflow-hidden cursor-pointer text-violet-600 bg-white hover:text-white hover:bg-violet-600"
+                    className="mt-6 p-4 rounded-full overflow-hidden cursor-pointer text-violet-600 bg-white hover:text-white hover:bg-violet-600"
                   >
                     Learn More
                   </Link>
@@ -62,7 +62,7 @@ export default function IngredientsSection() {
                   <p>{item.description}</p>
                   <Link
                     href={`/ingredients/${item.id}`}
-                    className="mt-6 p-4 rounded-lg overflow-hidden cursor-pointer text-violet-600 bg-white hover:text-white hover:bg-violet-600"
+                    className="mt-6 p-4 rounded-full overflow-hidden cursor-pointer text-violet-600 bg-white hover:text-white hover:bg-violet-600"
                   >
                     Learn More
                   </Link>

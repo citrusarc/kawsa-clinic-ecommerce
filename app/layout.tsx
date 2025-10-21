@@ -187,7 +187,7 @@ export default function RootLayout({
         <Navbar />
         <main className="w-full max-w-full">{children}</main>
         <footer className="p-0 sm:p-8">
-          <div className="flex flex-col items-start justify-start p-6 sm:p-24 gap-8 sm:gap-16 rounded-none sm:rounded-4xl overflow-hidden text-violet-600 bg-violet-200">
+          <div className="flex flex-col items-start justify-start p-6 sm:p-24 gap-8 sm:gap-16 rounded-none sm:rounded-4xl overflow-hidden text-violet-500 bg-violet-200">
             <div className="flex flex-col sm:flex-row gap-8 w-full justify-between">
               <div className="flex flex-col gap-8">
                 <Link href="/">
