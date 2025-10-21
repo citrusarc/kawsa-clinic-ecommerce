@@ -14,7 +14,7 @@ export default function IngredientsSection() {
             .map((item) => (
               <div
                 key={item.id}
-                className="relative w-full h-[480px] sm:h-[640px] overflow-hidden group"
+                className="relative group w-full h-[480px] sm:h-[640px] rounded-full overflow-hidden"
               >
                 <Image
                   fill
@@ -46,7 +46,7 @@ export default function IngredientsSection() {
             .map((item) => (
               <div
                 key={item.id}
-                className="relative w-full h-[480px] sm:h-[640px] overflow-hidden group"
+                className="relative group w-full h-[480px] sm:h-[640px] rounded-full overflow-hidden"
               >
                 <Image
                   fill

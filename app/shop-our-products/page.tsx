@@ -35,7 +35,7 @@ export default function ShopOurProductsPage() {
           <Link
             key={item.id}
             href={`/shop-our-products/${item.id}`}
-            className="flex flex-col gap-4 items-center text-center border border-transparent hover:border-violet-600"
+            className="flex flex-col gap-4 items-center text-center rounded-4xl overflow-hidden border border-transparent hover:border-violet-600"
           >
             <div className="relative w-full aspect-square rounded-4xl overflow-hidden">
               <Image
