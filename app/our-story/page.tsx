@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight } from "iconoir-react";
+import { ArrowUpRight, Flower } from "iconoir-react";
 
 import { spectral } from "@/config/font";
 
@@ -52,10 +52,12 @@ const partners = [
 export default function OurStoryPage() {
   return (
     <section className="flex flex-col p-4 sm:p-24 gap-8 sm:gap-16">
-      <h2 className={`text-4xl sm:text-6xl ${spectral.className} text-black`}>
+      <h2
+        className={`text-4xl sm:text-6xl ${spectral.className} text-violet-600`}
+      >
         The Story Behind the Glow
       </h2>
-      <div className="w-full h-72 sm:h-150 overflow-hidden">
+      <div className="w-full h-72 sm:h-150 rounded-4xl overflow-hidden">
         <Image
           src="/Images/our-story-hero-banner.png"
           alt="Our Story Hero Banner"
@@ -67,35 +69,65 @@ export default function OurStoryPage() {
       <div className="flex flex-col sm:flex-row gap-8 sm:gap-16 py-8 sm:py-24">
         <div className="flex flex-col gap-8 sm:gap-16 w-full sm:w-1/2 text-md sm:text-lg">
           <h2
-            className={`text-4xl sm:text-6xl ${spectral.className} text-black`}
+            className={`text-4xl sm:text-6xl ${spectral.className} text-violet-600`}
           >
             Made for Your Skin
           </h2>
           <p className="text-neutral-500">
             Kawsa Skincare was founded by Dr. Kauthar Ismail (MBBS, MSc Healthy
             Aging, Medical Aesthetic & Regenerative Medicine), a medical doctor
-            passionate about anti-aging and wellness. With over nine years of
-            experience, Dr. Kauthar and her team at Prestige Medispa Malaysia
-            have treated skin concerns such as acne, hyperpigmentation, and
-            irregularities since 2017.
+            deeply passionate about anti-aging and wellness. With over nine
+            years’ experience, she and her team at Prestige Medispa Malaysia
+            have been treating skin concerns such as acne, hyperpigmentation and
+            irregularities.
           </p>
           <p className="text-neutral-500">
-            Over time, they saw how many Malaysians suffered from using
-            unsuitable or even mercury-based products. This inspired the
-            creation of Kawsa Skincare: safe, effective formulas free from
-            SLES/SLS, parabens, mercury, and heavy metals.
+            Over time, they noticed the alarmingly high number of Malaysians
+            using unsuitable — sometimes even mercury-based — skincare products.
+            This realisation prompted the creation of Kawsa Skincare: safe,
+            effective formulas free from SLES/SLS, parabens, mercury and heavy
+            metals.
           </p>
           <p className="text-neutral-500">
             At Kawsa, we believe skincare should not harm. It should heal,
-            protect, and give you the confidence to feel good in your own skin.
+            protect and give you the confidence to feel good in your own skin.
           </p>
+          <div className="flex flex-col sm:flex-row gap-8 w-full items-center">
+            <p
+              className={`flex flex-col p-4 gap-4 w-full h-36 items-center justify-center text-center rounded-2xl overflow-hidden text-2xl ${spectral.className} text-violet-200 bg-violet-800`}
+            >
+              <Flower
+                style={{ strokeWidth: 1 }}
+                className="w-16 h-16 text-violet-400"
+              />
+              Since 2017
+            </p>
+            <p
+              className={`flex flex-col p-4 gap-4 w-full h-36 items-center justify-center text-center rounded-2xl overflow-hidden text-2xl ${spectral.className} text-violet-200 bg-violet-800`}
+            >
+              <Flower
+                style={{ strokeWidth: 1 }}
+                className="w-16 h-16 text-violet-400"
+              />
+              16,500+ Clients
+            </p>
+            <p
+              className={`flex flex-col p-4 gap-4 w-full h-36 items-center justify-center text-center rounded-2xl overflow-hidden text-2xl ${spectral.className} text-violet-200 bg-violet-800`}
+            >
+              <Flower
+                style={{ strokeWidth: 1 }}
+                className="w-16 h-16 text-violet-400"
+              />
+              Across Malaysia
+            </p>
+          </div>
         </div>
-        <div className="w-full sm:w-1/2 max-h-128 aspect-square overflow-hidden">
+        <div className="w-full sm:w-1/2 aspect-square overflow-hidden">
           <Image
-            src="/Images/our-story-banner-1.png"
+            src="/Images/our-story-hero-banner-2.jpg"
             alt="Our Story Banner 1"
-            width={1600}
-            height={1600}
+            width={640}
+            height={640}
             className="object-cover object-top w-full h-full"
           />
         </div>
@@ -123,25 +155,29 @@ export default function OurStoryPage() {
           ))}
         </div>
       </div>
-      <div className="flex flex-col py-8 sm:py-24 gap-8 sm:gap-16 font-medium text-black">
+      <div className="flex flex-col p-8 sm:px-8 sm:py-24 gap-8 sm:gap-16 rounded-4xl overflow-hidden font-medium bg-violet-600">
         <div>
-          <h2 className={`text-4xl sm:text-6xl ${spectral.className}`}>
+          <h2
+            className={`text-4xl sm:text-6xl ${spectral.className} text-white`}
+          >
             Your Nearest Kawsa Partner
           </h2>
-          <p className="italic text-neutral-500">
+          <p className="italic text-violet-300">
             Also used in treatments at Prestige Medispa.
           </p>
         </div>
         {partners.map((item, index) => (
           <div key={index}>
-            <h2 className={`text-lg font-semibold ${spectral.className}`}>
+            <h2
+              className={`text-lg font-semibold ${spectral.className} text-amber-400`}
+            >
               {index + 1}. {item.name}
             </h2>
             <Link
               target="_blank"
               rel="noopener noreferrer"
               href={item.href}
-              className="flex gap-2 items-center hover:underline text-neutral-500"
+              className="flex gap-2 items-center hover:underline text-violet-200"
             >
               {item.address}
               <ArrowUpRight className="hidden sm:block w-5 h-5" />
