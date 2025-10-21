@@ -48,7 +48,7 @@ export default function TestimonialSection() {
       </div>
       <Link
         href="/what-customers-say"
-        className="p-4 cursor-pointer border text-white bg-violet-600 hover:text-violet-600 hover:bg-white hover:border-violet-600"
+        className="p-4 cursor-pointer border rounded-lg overflow-hidden text-white bg-violet-600 hover:text-violet-600 hover:bg-white hover:border-violet-600"
       >
         See More Result
       </Link>

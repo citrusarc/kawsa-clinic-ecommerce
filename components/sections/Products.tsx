@@ -94,7 +94,7 @@ export default function ProductsSection() {
                   href={`/shop-our-products/${item.id}`}
                   className="flex flex-col gap-4 w-full items-center text-center border border-transparent hover:border-violet-600"
                 >
-                  <div className="relative w-full aspect-square">
+                  <div className="relative w-full aspect-square rounded-4xl overflow-hidden">
                     <Image
                       fill
                       src={item.src}

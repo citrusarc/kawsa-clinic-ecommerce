@@ -231,7 +231,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   return (
     <section className="flex flex-col gap-8 p-4 sm:p-24 items-start justify-center">
       <div className="flex flex-col sm:flex-row gap-8 sm:gap-16 w-full">
-        <div className="relative w-full sm:w-1/2 max-w-2xl aspect-square">
+        <div className="relative w-full sm:w-1/2 max-w-2xl aspect-square rounded-4xl overflow-hidden">
           <Image
             fill
             src={product.src}
@@ -262,8 +262,8 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                     onClick={() => handleOptionSelect(option)}
                     className={`px-4 py-2 border ${
                       selectedOption?.id === option.id
-                        ? "text-white border-violet-600 bg-violet-600"
-                        : "text-violet-600 hover:text-white border-violet-600 bg-white hover:bg-violet-600"
+                        ? "rounded-lg overflow-hidden text-white border-violet-600 bg-violet-600"
+                        : "rounded-lg overflow-hidden text-violet-600 hover:text-white border-violet-600 bg-white hover:bg-violet-600"
                     }`}
                   >
                     {option.optionName}
@@ -278,10 +278,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
               : "N/A"}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 w-full">
-            <button className="p-4 w-full cursor-pointer border text-violet-600 bg-white border-violet-600 hover:text-white hover:bg-violet-600 hover:border-white">
+            <button className="p-4 w-full rounded-lg overflow-hidden cursor-pointer border text-violet-600 bg-white border-violet-600 hover:text-white hover:bg-violet-600 hover:border-white">
               ADD TO CART
             </button>
-            <button className="p-4 w-full cursor-pointer border text-white bg-violet-600 hover:text-violet-600 hover:bg-white hover:border-violet-600">
+            <button className="p-4 w-full rounded-lg overflow-hidden cursor-pointer border text-white bg-violet-600 hover:text-violet-600 hover:bg-white hover:border-violet-600">
               BUY NOW
             </button>
           </div>
@@ -348,7 +348,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                     href={`/shop-our-products/${item.id}`}
                     className="flex flex-col gap-4 w-full items-center text-center border border-transparent hover:border-violet-600"
                   >
-                    <div className="relative w-full aspect-square">
+                    <div className="relative w-full aspect-square rounded-4xl overflow-hidden">
                       <Image
                         fill
                         src={item.src}

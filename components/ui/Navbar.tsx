@@ -73,7 +73,7 @@ export default function Navbar() {
         <div
           ref={menuRef}
           className={clsx(
-            "absolute top-full left-1/2 -translate-x-1/2 p-4 w-[94vw] max-w-[2400px] h-fit shadow-md rounded-2xl sm:rounded-4xl overflow-hidden backdrop-blur-2xl text-black bg-white/80 transform transition-all duration-300 origin-top",
+            "absolute top-full left-1/2 -translate-x-1/2 p-4 w-[94vw] max-w-[2400px] h-fit shadow-md rounded-2xl sm:rounded-4xl overflow-hidden backdrop-blur-2xl text-black bg-violet-200/80 transform transition-all duration-300 origin-top",
             openMenu
               ? "opacity-100 scale-y-100 pointer-events-auto"
               : "opacity-0 scale-y-0 pointer-events-none"

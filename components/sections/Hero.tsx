@@ -77,7 +77,7 @@ export default function HeroSection() {
                 </p>
               </div>
               <Link href="/shop-our-products">
-                <button className="mt-6 p-4 cursor-pointer text-violet-600 bg-white hover:text-white hover:bg-violet-600">
+                <button className="mt-6 p-4 rounded-lg overflow-hidden cursor-pointer text-violet-600 bg-white hover:text-white hover:bg-violet-600">
                   SHOP NOW
                 </button>
               </Link>
