@@ -11,37 +11,37 @@ export default function WhatCustomersSayPage() {
         alt: "Before Testimony 1",
       },
       after: {
-        src: "/Images/what-customers-say-banner-1.jpg",
+        src: "/Images/what-customers-say-banner-2.jpg",
         alt: "After Testimony 1",
       },
     },
     {
       before: {
-        src: "/Images/what-customers-say-banner-1.jpg",
+        src: "/Images/what-customers-say-banner-3.jpg",
         alt: "Before Testimony 2",
       },
       after: {
-        src: "/Images/what-customers-say-banner-1.jpg",
+        src: "/Images/what-customers-say-banner-4.jpg",
         alt: "After Testimony 2",
       },
     },
     {
       before: {
-        src: "/Images/what-customers-say-banner-1.jpg",
+        src: "/Images/what-customers-say-banner-5.jpg",
         alt: "Before Testimony 3",
       },
       after: {
-        src: "/Images/what-customers-say-banner-1.jpg",
+        src: "/Images/what-customers-say-banner-6.jpg",
         alt: "After Testimony 3",
       },
     },
     {
       before: {
-        src: "/Images/what-customers-say-banner-1.jpg",
+        src: "/Images/what-customers-say-banner-7.jpg",
         alt: "Before Testimony 4",
       },
       after: {
-        src: "/Images/what-customers-say-banner-1.jpg",
+        src: "/Images/what-customers-say-banner-8.jpg",
         alt: "After Testimony 4",
       },
     },
