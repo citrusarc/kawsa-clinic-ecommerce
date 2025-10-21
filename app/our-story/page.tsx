@@ -69,7 +69,7 @@ export default function OurStoryPage() {
           The Story Behind the Glow
         </h2>
       </div>
-      <div className="flex flex-col sm:flex-row gap-8 sm:gap-16 py-8 sm:py-24 mt-4 sm:mt-24">
+      <div className="flex flex-col sm:flex-row gap-8 sm:gap-16 py-4 sm:py-24 mt-8 sm:mt-16">
         <div className="flex flex-col gap-8 sm:gap-16 w-full sm:w-1/2 text-md sm:text-lg">
           <h2
             className={`text-4xl sm:text-6xl ${spectral.className} text-violet-600`}
@@ -158,7 +158,7 @@ export default function OurStoryPage() {
           ))}
         </div>
       </div>
-      <div className="flex flex-col p-8 sm:px-8 sm:py-24 gap-8 sm:gap-16 rounded-4xl overflow-hidden font-medium bg-violet-600">
+      <div className="flex flex-col p-8 sm:px-8 sm:py-24 gap-8 sm:gap-16 my-8 sm:mt-16 rounded-4xl overflow-hidden font-medium bg-violet-600">
         <div>
           <h2
             className={`text-4xl sm:text-6xl ${spectral.className} text-white`}

@@ -198,15 +198,18 @@ export default function RootLayout({
                   target="_blank"
                   rel="noopener noreferrer"
                   href="https://maps.app.goo.gl/vkQPXZCdxWLYwta7A"
-                  className="hover:underline"
+                  className="text-violet-800 hover:underline"
                 >
                   39-02, Jalan Padi Emas 1/8,
                   <br /> 81200 Bandar Baru Uda,
                   <br /> Johor Bahru, Johor
                 </Link>
                 <div className="flex gap-2 items-center">
-                  <Phone className="w-5 h-5 text-amber-600" strokeWidth={2} />
-                  <Link href="tel:+60 18-2074771" className="hover:underline">
+                  <Phone className="w-5 h-5 text-violet-800" strokeWidth={2} />
+                  <Link
+                    href="tel:+60 18-2074771"
+                    className="text-violet-800 hover:underline"
+                  >
                     +60 18-2074771
                   </Link>
                   <p>/</p>
@@ -214,16 +217,16 @@ export default function RootLayout({
                     target="_blank"
                     rel="noopener noreferrer"
                     href="https://wasap.my/60138088912"
-                    className="hover:underline"
+                    className="text-violet-800 hover:underline"
                   >
                     +60 13-8088912
                   </Link>
                 </div>
                 <div className="flex gap-2 items-center">
-                  <Mail className="w-5 h-5 text-amber-600" strokeWidth={2} />
+                  <Mail className="w-5 h-5 text-violet-800" strokeWidth={2} />
                   <Link
                     href="mailto:drkay.skincare@gmail.com"
-                    className="hover:underline"
+                    className="text-violet-800 hover:underline"
                   >
                     drkay.skincare@gmail.com
                   </Link>
