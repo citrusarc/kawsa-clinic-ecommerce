@@ -28,8 +28,10 @@ export type FooterItem = {
 export type VariantOption = {
   id: string;
   optionName: string;
-  price: number;
   currency: string;
+  price?: number;
+  original?: number;
+  current?: number;
 };
 
 export type ProductVariant = {

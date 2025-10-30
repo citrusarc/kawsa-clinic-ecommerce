@@ -81,7 +81,8 @@ export default function ProductsSection() {
           >
             {products.map((item, index) => {
               const status = item.status || {};
-              const variant = item.variants[0]?.options[0];
+              const option = item.variants[0]?.options[0];
+              const isPromo = item.status?.isPromo;
 
               return (
                 <div
@@ -125,8 +126,24 @@ export default function ProductsSection() {
                       {item.name}
                     </h2>
                     <p className="text-neutral-500">
-                      {item.currency}
-                      {item.variants[0]?.options[0]?.price.toFixed(2) || "N/A"}
+                      {isPromo && option?.original ? (
+                        <>
+                          <span className="line-through text-neutral-400 mr-2">
+                            {item.currency}
+                            {option.original.toFixed(2)}
+                          </span>
+                          <span className="text-red-500 font-semibold">
+                            {item.currency}
+                            {option.current?.toFixed(2) || "N/A"}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          {item.currency}
+                          {(option?.current ?? option?.price)?.toFixed(2) ||
+                            "N/A"}
+                        </>
+                      )}
                     </p>
                   </Link>
                 </div>

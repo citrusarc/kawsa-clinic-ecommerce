@@ -291,16 +291,26 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
               </div>
             </div>
           )}
-          <p className="text-2xl sm:text-4xl text-black">
-            {selectedOption
-              ? `${product.currency} ${selectedOption.price.toFixed(2)}`
-              : "N/A"}
-          </p>
-          {product.status?.isPromo && selectedOption && (
-            <p className="text-neutral-400 line-through text-md">
-              {product.currency}
-              {(selectedOption.price * 1.2).toFixed(2)}
-            </p>
+          {selectedOption && (
+            <>
+              {product.status?.isPromo && selectedOption.original ? (
+                <>
+                  <p className="text-2xl sm:text-4xl text-red-500 font-semibold">
+                    {product.currency}
+                    {selectedOption.current?.toFixed(2)}
+                  </p>
+                  <p className="text-neutral-400 line-through text-md">
+                    {product.currency}
+                    {selectedOption.original?.toFixed(2)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-2xl sm:text-4xl text-black">
+                  {product.currency}
+                  {(selectedOption.current ?? selectedOption.price)?.toFixed(2)}
+                </p>
+              )}
+            </>
           )}
           <div className="flex flex-col sm:flex-row gap-4 w-full">
             <button className="p-4 w-full rounded-lg overflow-hidden cursor-pointer border text-violet-600 bg-white border-violet-600 hover:text-white hover:bg-violet-600 hover:border-white">
@@ -387,8 +397,29 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                       {item.name}
                     </h2>
                     <p className="text-neutral-500">
-                      {item.currency}
-                      {item.variants[0]?.options[0]?.price.toFixed(2) || "N/A"}
+                      {item.status?.isPromo &&
+                      item.variants?.[0]?.options?.[0]?.original ? (
+                        <>
+                          <span className="line-through text-neutral-400 mr-2">
+                            {item.currency}
+                            {item.variants[0].options[0].original.toFixed(2)}
+                          </span>
+                          <span className="text-red-500 font-semibold">
+                            {item.currency}
+                            {item.variants[0].options[0].current?.toFixed(2) ||
+                              "N/A"}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          {item.currency}
+                          {(
+                            item.variants?.[0]?.options?.[0]?.current ??
+                            item.variants?.[0]?.options?.[0]?.price ??
+                            0
+                          ).toFixed(2)}
+                        </>
+                      )}
                     </p>
                   </Link>
                 </div>

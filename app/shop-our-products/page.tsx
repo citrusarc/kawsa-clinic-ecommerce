@@ -64,8 +64,28 @@ export default function ShopOurProductsPage() {
               {item.name}
             </h2>
             <p className="text-neutral-500">
-              {item.currency}
-              {item.variants[0]?.options[0]?.price.toFixed(2) || "N/A"}
+              {item.status?.isPromo &&
+              item.variants?.[0]?.options?.[0]?.original ? (
+                <>
+                  <span className="line-through text-neutral-400 mr-2">
+                    {item.currency}
+                    {item.variants[0].options[0].original.toFixed(2)}
+                  </span>
+                  <span className="text-red-500 font-semibold">
+                    {item.currency}
+                    {item.variants[0].options[0].current?.toFixed(2) || "N/A"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  {item.currency}
+                  {(
+                    item.variants?.[0]?.options?.[0]?.current ??
+                    item.variants?.[0]?.options?.[0]?.price ??
+                    0
+                  ).toFixed(2)}
+                </>
+              )}
             </p>
           </Link>
         ))}
