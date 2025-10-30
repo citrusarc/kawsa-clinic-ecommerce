@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { NavArrowLeft, NavArrowRight } from "iconoir-react/regular";
+import { StarSolid } from "iconoir-react";
 
 import { spectral } from "@/config/font";
 import { getProducts } from "@/lib/getProducts";
@@ -78,42 +79,59 @@ export default function ProductsSection() {
               }%)`,
             }}
           >
-            {products.map((item, index) => (
-              <div
-                key={index}
-                className={`flex flex-col flex-shrink-0 items-center text-center`}
-                style={{
-                  flex:
-                    itemsToShow === 1
-                      ? "0 0 100%"
-                      : `0 0 ${100 / itemsToShow}%`,
-                }}
-              >
-                <Link
-                  key={item.id}
-                  href={`/shop-our-products/${item.id}`}
-                  className="flex flex-col gap-4 w-full items-center text-center rounded-4xl overflow-hidden border border-transparent hover:border-violet-600"
+            {products.map((item, index) => {
+              const status = item.status || {};
+              const variant = item.variants[0]?.options[0];
+
+              return (
+                <div
+                  key={index}
+                  className={`flex flex-col flex-shrink-0 items-center text-center`}
+                  style={{
+                    flex:
+                      itemsToShow === 1
+                        ? "0 0 100%"
+                        : `0 0 ${100 / itemsToShow}%`,
+                  }}
                 >
-                  <div className="relative w-full aspect-square rounded-4xl overflow-hidden">
-                    <Image
-                      fill
-                      src={item.src}
-                      alt={item.alt}
-                      className="object-cover"
-                    />
-                  </div>
-                  <h2
-                    className={`w-80 text-lg sm:text-xl font-semibold ${spectral.className}`}
+                  {status.isPromo && (
+                    <span className="absolute top-2 left-2 px-2 py-1 text-xs font-semibold rounded-md bg-red-500 text-white">
+                      SALE
+                    </span>
+                  )}
+                  {status.isBestSeller && (
+                    <span className="absolute top-2 right-2 px-2 py-1 text-xs font-semibold rounded-md bg-yellow-400 text-black flex items-center gap-1">
+                      <StarSolid className="w-3 h-3" />
+                      Best Seller
+                    </span>
+                  )}
+
+                  <Link
+                    key={item.id}
+                    href={`/shop-our-products/${item.id}`}
+                    className="flex flex-col gap-4 w-full items-center text-center rounded-4xl overflow-hidden border border-transparent hover:border-violet-600"
                   >
-                    {item.name}
-                  </h2>
-                  <p className="text-neutral-500">
-                    {item.currency}
-                    {item.variants[0]?.options[0]?.price.toFixed(2) || "N/A"}
-                  </p>
-                </Link>
-              </div>
-            ))}
+                    <div className="relative w-full aspect-square rounded-4xl overflow-hidden">
+                      <Image
+                        fill
+                        src={item.src}
+                        alt={item.alt}
+                        className="object-cover"
+                      />
+                    </div>
+                    <h2
+                      className={`w-80 text-lg sm:text-xl font-semibold ${spectral.className}`}
+                    >
+                      {item.name}
+                    </h2>
+                    <p className="text-neutral-500">
+                      {item.currency}
+                      {item.variants[0]?.options[0]?.price.toFixed(2) || "N/A"}
+                    </p>
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
         {showNavigation && (

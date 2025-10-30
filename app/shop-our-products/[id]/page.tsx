@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, use } from "react";
-import { NavArrowLeft, NavArrowRight } from "iconoir-react";
+import { NavArrowLeft, NavArrowRight, StarSolid } from "iconoir-react";
 
 import { supabase } from "@/utils/supabase/client";
 import { spectral } from "@/config/font";
@@ -22,7 +22,13 @@ interface SupabaseProduct {
   additionalInfo1: string | string[];
   additionalInfo2: string | string[];
   currency: string;
-  status: { isHidden: boolean; isDisabled: boolean; isComingSoon: boolean };
+  status: {
+    isHidden: boolean;
+    isDisabled: boolean;
+    isComingSoon: boolean;
+    isPromo: boolean;
+    isBestSeller: boolean;
+  };
   product_variants: {
     id: string;
     variantName: string;
@@ -240,6 +246,19 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
           />
         </div>
         <div className="flex flex-col gap-8 sm:gap-16 w-full sm:w-1/2 text-md sm:text-lg">
+          <div className="flex gap-2">
+            {product.status?.isPromo && (
+              <span className="px-2 py-1 text-xs font-semibold rounded-md bg-red-500 text-white">
+                SALE
+              </span>
+            )}
+            {product.status?.isBestSeller && (
+              <span className="px-2 py-1 text-xs font-semibold rounded-md bg-yellow-400 text-black flex items-center gap-1">
+                <StarSolid className="w-3 h-3" />
+                Best Seller
+              </span>
+            )}
+          </div>
           <h2
             className={`text-4xl sm:text-6xl ${spectral.className} text-black`}
           >
@@ -277,6 +296,12 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
               ? `${product.currency} ${selectedOption.price.toFixed(2)}`
               : "N/A"}
           </p>
+          {product.status?.isPromo && selectedOption && (
+            <p className="text-neutral-400 line-through text-md">
+              {product.currency}
+              {(selectedOption.price * 1.2).toFixed(2)}
+            </p>
+          )}
           <div className="flex flex-col sm:flex-row gap-4 w-full">
             <button className="p-4 w-full rounded-lg overflow-hidden cursor-pointer border text-violet-600 bg-white border-violet-600 hover:text-white hover:bg-violet-600 hover:border-white">
               ADD TO CART

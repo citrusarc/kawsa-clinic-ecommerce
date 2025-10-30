@@ -4,6 +4,8 @@ const defaultStatus = {
   isDisabled: false,
   isHidden: false,
   isComingSoon: false,
+  isPromo: false,
+  isBestSeller: false,
 };
 
 export const products: ProductsItem[] = [

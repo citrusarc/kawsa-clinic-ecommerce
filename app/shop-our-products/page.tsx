@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { StarSolid } from "iconoir-react";
 
 import { spectral } from "@/config/font";
 import { getProducts } from "@/lib/getProducts";
@@ -37,6 +38,18 @@ export default function ShopOurProductsPage() {
             href={`/shop-our-products/${item.id}`}
             className="flex flex-col gap-4 items-center text-center rounded-4xl overflow-hidden border border-transparent hover:border-violet-600"
           >
+            {item.status?.isPromo && (
+              <span className="absolute top-2 left-2 px-2 py-1 text-xs font-semibold rounded-md bg-red-500 text-white">
+                SALE
+              </span>
+            )}
+            {item.status?.isBestSeller && (
+              <span className="absolute top-2 right-2 px-2 py-1 text-xs font-semibold rounded-md bg-yellow-400 text-black flex items-center gap-1">
+                <StarSolid className="w-3 h-3" />
+                Best Seller
+              </span>
+            )}
+
             <div className="relative w-full aspect-square rounded-4xl overflow-hidden">
               <Image
                 fill

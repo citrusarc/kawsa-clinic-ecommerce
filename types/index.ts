@@ -2,6 +2,8 @@ export type ItemStatus = {
   isDisabled?: boolean;
   isHidden?: boolean;
   isComingSoon?: boolean;
+  isPromo?: boolean;
+  isBestSeller?: boolean;
 };
 
 export type NavItem = {
