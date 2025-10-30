@@ -270,7 +270,7 @@ export default function RootLayout({
                   ))}
               </div>
               <span className="text-violet-400">
-                © 2025 All rights reserved.
+                © {new Date().getFullYear()} All rights reserved.
               </span>
             </div>
           </div>
