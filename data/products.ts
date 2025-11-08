@@ -142,4 +142,4 @@ export const products: ProductsItem[] = [
       },
     ],
   },
-];
+] satisfies ProductsItem[];

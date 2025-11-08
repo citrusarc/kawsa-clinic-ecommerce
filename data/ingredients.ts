@@ -66,4 +66,4 @@ export const ingredients: IngredientsItem[] = [
     ],
     position: "bottom",
   },
-];
+] satisfies IngredientsItem[];
