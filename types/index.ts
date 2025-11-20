@@ -83,15 +83,19 @@ export type CartItem = {
   currentPrice?: number;
   totalPrice: number;
   quantity: number;
+  swiped?: boolean;
 };
 
 export type CartState = {
   items: CartItem[];
-  updateQuantity: (id: string, quantity: number) => void;
+  setQuantity: (id: string, quantity: number) => void;
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
   clearItem: (id: string) => void;
   cartCount: number;
+  startSwipe: (id: string, startX: number) => void;
+  moveSwipe: (id: string, currentX: number) => void;
+  endSwipe: (id: string) => void;
 };
 
 export type StepperProps = {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { Menu, Xmark, ShoppingBag } from "iconoir-react";
+import { Menu, Xmark, ShoppingBag, Trash } from "iconoir-react";
 import clsx from "clsx";
 
 import { siteConfig } from "@/config/site";
@@ -22,6 +22,9 @@ export default function Navbar() {
   const cartCount = useCart((state) => state.cartCount);
   const cartItems = useCart((state) => state.items);
   const [mounted, setMounted] = useState(false);
+  const startSwipe = useCart((s) => s.startSwipe);
+  const moveSwipe = useCart((s) => s.moveSwipe);
+  const endSwipe = useCart((s) => s.endSwipe);
 
   const navItems = siteConfig.navItems.filter((item) => !item.status?.isHidden);
   const isHome = pathname === "/";
@@ -76,6 +79,7 @@ export default function Navbar() {
           setOpenMenu(!openMenu);
           setOpenCart(false);
         }}
+        className="cursor-pointer"
       >
         {openMenu ? (
           <Xmark className="w-6 h-6" />
@@ -83,7 +87,7 @@ export default function Navbar() {
           <Menu className="w-6 h-6" />
         )}
       </button>
-      <Link href="/">
+      <Link href="/" className="cursor-pointer">
         <BrandLogo className="w-16 sm:w-24 h-8 sm:h-12" />
       </Link>
       <button
@@ -91,7 +95,7 @@ export default function Navbar() {
           setOpenCart(!openCart);
           setOpenMenu(false);
         }}
-        className="relative"
+        className="relative cursor-pointer"
       >
         <ShoppingBag className="w-6 h-6" />
         <span className="absolute -top-2 -right-3  px-2 py-0.5 text-sm rounded-full text-white bg-violet-600 ">
@@ -134,7 +138,7 @@ export default function Navbar() {
           <div className="relative flex flex-col gap-4 sm:gap-8 w-full h-full overflow-hidden">
             <button
               onClick={() => setOpenCart(false)}
-              className="absolute top-0 right-0"
+              className="absolute top-0 right-0 cursor-pointer"
             >
               <Xmark className="w-6 h-6 text-black" />
             </button>
@@ -142,46 +146,66 @@ export default function Navbar() {
             {cartItems.length === 0 ? (
               <p className="text-neutral-400">Your cart is empty.</p>
             ) : (
-              <div className="flex flex-col gap-4 overflow-y-auto max-h-[calc(100%-4rem)]">
+              <div className="flex flex-col gap-8 overflow-y-auto max-h-[calc(100%-4rem)]">
                 {cartItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex w-full items-center justify-between text-black"
-                  >
-                    <div className="flex w-full items-start gap-4">
-                      <div className="relative flex-shrink-0 w-28 h-28 rounded-xl sm:rounded-2xl overflow-hidden">
-                        <Image
-                          fill
-                          src={item.image}
-                          alt={item.name}
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="flex flex-col justify-between w-full">
-                        <p className="font-medium line-clamp-2 break-words">
-                          {item.name}
-                        </p>
-                        <div className="text-sm text-neutral-500">
+                  <div key={item.id} className="flex relative">
+                    <div className="absolute flex sm:hidden inset-y-0 right-0  w-[64px] items-center justify-center">
+                      <button
+                        className="flex w-full h-full items-center justify-center text-red-100 bg-red-500"
+                        onClick={() => useCart.getState().clearItem(item.id)}
+                      >
+                        <Trash className="w-6 h-6" />
+                      </button>
+                    </div>
+                    <div className="flex w-full items-center justify-between text-black">
+                      <div
+                        className={clsx(
+                          "relative flex z-10 w-full items-start gap-4 bg-white p-2 transition-transform duration-200",
+                          item.swiped && "sm:-translate-x-0 -translate-x-20"
+                        )}
+                        onTouchStart={(e) =>
+                          startSwipe(item.id, e.touches[0].clientX)
+                        }
+                        onTouchMove={(e) =>
+                          moveSwipe(item.id, e.touches[0].clientX)
+                        }
+                        onTouchEnd={() => endSwipe(item.id)}
+                      >
+                        <div className="relative flex-shrink-0 w-32 h-32 rounded-xl sm:rounded-2xl overflow-hidden">
+                          <Image
+                            fill
+                            src={item.image}
+                            alt={item.name}
+                            className="object-cover"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2 justify-between w-full">
+                          <div>
+                            <p className="line-clamp-2 break-words font-semibold">
+                              {item.name}
+                            </p>
+                            <p className="text-neutral-400">
+                              RM{item.totalPrice}
+                            </p>
+                          </div>
                           <Stepper
                             value={item.quantity}
                             min={1}
-                            onChange={
-                              (newQty) =>
-                                useCart
-                                  .getState()
-                                  .updateQuantity(item.id, newQty) // // use the new function
+                            onChange={(setNewQuantity) =>
+                              useCart
+                                .getState()
+                                .setQuantity(item.id, setNewQuantity)
                             }
                           />
                         </div>
-                        <p>RM {item.totalPrice}</p>
                       </div>
+                      <button
+                        className="p-3 hidden sm:block flex-shrink-0 cursor-pointer rounded-full text-red-500 hover:bg-red-100"
+                        onClick={() => useCart.getState().clearItem(item.id)}
+                      >
+                        <Trash className="w-6 h-6" />
+                      </button>
                     </div>
-                    <button
-                      className="text-red-500 ml-2 flex-shrink-0"
-                      onClick={() => useCart.getState().clearItem(item.id)}
-                    >
-                      Remove
-                    </button>
                   </div>
                 ))}
               </div>
