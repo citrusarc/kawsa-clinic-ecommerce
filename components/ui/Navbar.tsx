@@ -149,7 +149,7 @@ export default function Navbar() {
               <div className="flex flex-col gap-8 overflow-y-auto max-h-[calc(100%-4rem)]">
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex relative">
-                    <div className="absolute flex sm:hidden inset-y-0 right-0 w-[64px] items-center justify-center">
+                    <div className="absolute flex sm:hidden inset-y-0 right-0 w-[80px] items-center justify-center">
                       <button
                         className="flex w-full h-full items-center justify-center text-red-100 bg-red-500"
                         onClick={() => useCart.getState().clearItem(item.id)}
@@ -161,7 +161,7 @@ export default function Navbar() {
                       <div
                         className={clsx(
                           "relative flex z-10 w-full items-start gap-4 bg-white p-2 transition-transform duration-200",
-                          item.swiped && "sm:-translate-x-0 -translate-x-20"
+                          item.swiped && "sm:-translate-x-0 -translate-x-24"
                         )}
                         onTouchStart={(e) =>
                           startSwipe(item.id, e.touches[0].clientX)
