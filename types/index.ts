@@ -93,6 +93,7 @@ export type CartState = {
   removeItem: (id: string) => void;
   clearItem: (id: string) => void;
   cartCount: number;
+  _swipeStartX: number;
   startSwipe: (id: string, startX: number) => void;
   moveSwipe: (id: string, currentX: number) => void;
   endSwipe: (id: string) => void;

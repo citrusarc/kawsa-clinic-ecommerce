@@ -123,22 +123,21 @@ export const useCart = create<CartState>((set, get) => ({
 
   startSwipe: (id: string, startX: number) =>
     set(() => {
-      (get() as any)._swipeStartX = startX;
-      const reset = (get().items || []).map((it) => ({ ...it, swiped: false }));
+      get()._swipeStartX = startX;
+      const reset = get().items.map((it) => ({ ...it, swiped: false }));
       return { items: reset };
     }),
 
   moveSwipe: (id: string, currentX: number) =>
     set(() => {
-      const startX = (get() as any)._swipeStartX || 0;
+      const startX = get()._swipeStartX || 0;
       const diff = startX - currentX;
       const threshold = 20;
       const activateDiff = 60;
       const shouldSwipe = diff > threshold;
-
       const swipedNow = diff > activateDiff;
 
-      const items = (get().items || []).map((it) =>
+      const items = get().items.map((it) =>
         it.id === id ? { ...it, swiped: shouldSwipe ? swipedNow : false } : it
       );
 
@@ -151,7 +150,7 @@ export const useCart = create<CartState>((set, get) => ({
         it.id === id ? { ...it, swiped: !!it.swiped } : it
       );
 
-      (get() as any)._swipeStartX = 0;
+      get()._swipeStartX = 0;
       return { items };
     }),
 }));
