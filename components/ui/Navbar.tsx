@@ -149,7 +149,7 @@ export default function Navbar() {
               <div className="flex flex-col gap-8 overflow-y-auto max-h-[calc(100%-4rem)]">
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex relative">
-                    <div className="absolute flex sm:hidden inset-y-0 right-0  w-[64px] items-center justify-center">
+                    <div className="absolute flex sm:hidden inset-y-0 right-0 w-[64px] items-center justify-center">
                       <button
                         className="flex w-full h-full items-center justify-center text-red-100 bg-red-500"
                         onClick={() => useCart.getState().clearItem(item.id)}
