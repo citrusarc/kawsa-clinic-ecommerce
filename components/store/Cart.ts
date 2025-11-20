@@ -1,18 +1,27 @@
 "use client";
 import { create } from "zustand";
-
 import { CartState } from "@/types";
 
 export const useCart = create<CartState>((set) => ({
-  items: [],
-  cartCount: 0,
+  items:
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("cartItems") || "[]")
+      : [], // // load from localStorage
+  cartCount:
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("cartItems") || "[]").reduce(
+          (acc: any, i: any) => acc + i.quantity,
+          0
+        )
+      : 0, // // load count from localStorage
 
   addItem: (item) =>
     set((state) => {
       const existing = state.items.find((i) => i.id === item.id);
+      let updatedItems;
 
       if (existing) {
-        const updatedItems = state.items.map((i) =>
+        updatedItems = state.items.map((i) =>
           i.id === item.id
             ? {
                 ...i,
@@ -23,28 +32,19 @@ export const useCart = create<CartState>((set) => ({
               }
             : i
         );
-        const updatedCartCount = updatedItems.reduce(
-          (acc, i) => acc + i.quantity,
-          0
-        );
-
-        return {
-          items: updatedItems,
-          cartCount: updatedCartCount,
-        };
+      } else {
+        updatedItems = [
+          ...state.items,
+          {
+            ...item,
+            totalPrice: (item.currentPrice ?? item.unitPrice) * item.quantity,
+          },
+        ];
       }
 
-      // Add new item with Stepper quantity
-      const newItem = {
-        ...item,
-        totalPrice: (item.currentPrice ?? item.unitPrice) * item.quantity,
-      };
-
-      return {
-        items: [...state.items, newItem],
-        cartCount:
-          state.items.reduce((acc, i) => acc + i.quantity, 0) + item.quantity,
-      };
+      const cartCount = updatedItems.reduce((acc, i) => acc + i.quantity, 0);
+      localStorage.setItem("cartItems", JSON.stringify(updatedItems)); // // save to localStorage
+      return { items: updatedItems, cartCount }; // //
     }),
 
   removeItem: (id) =>
@@ -52,28 +52,48 @@ export const useCart = create<CartState>((set) => ({
       const existing = state.items.find((i) => i.id === id);
       if (!existing) return state;
 
-      if (existing.quantity === 1) {
-        return {
-          items: state.items.filter((i) => i.id !== id),
-          cartCount: state.cartCount - 1,
-        };
+      let updatedItems;
+      if (existing.quantity > 1) {
+        updatedItems = state.items.map((i) =>
+          i.id === id
+            ? {
+                ...i,
+                quantity: i.quantity - 1,
+                totalPrice: (i.currentPrice ?? i.unitPrice) * (i.quantity - 1),
+              }
+            : i
+        );
+      } else {
+        updatedItems = state.items.filter((i) => i.id !== id);
       }
 
-      existing.quantity -= 1;
-      return {
-        items: [...state.items],
-        cartCount: state.cartCount - 1,
-      };
+      const cartCount = updatedItems.reduce((acc, i) => acc + i.quantity, 0);
+      localStorage.setItem("cartItems", JSON.stringify(updatedItems)); // //
+      return { items: updatedItems, cartCount }; // //
     }),
 
   clearItem: (id) =>
     set((state) => {
-      const existing = state.items.find((i) => i.id === id);
-      if (!existing) return state;
+      const updatedItems = state.items.filter((i) => i.id !== id);
+      const cartCount = updatedItems.reduce((acc, i) => acc + i.quantity, 0);
+      localStorage.setItem("cartItems", JSON.stringify(updatedItems)); // //
+      return { items: updatedItems, cartCount }; // //
+    }),
 
-      return {
-        items: state.items.filter((i) => i.id !== id),
-        cartCount: state.cartCount - existing.quantity,
-      };
+  updateQuantity: (id, quantity) =>
+    set((state) => {
+      const updatedItems = state.items.map((i) =>
+        i.id === id
+          ? {
+              ...i,
+              quantity,
+              totalPrice: quantity * (i.currentPrice ?? i.unitPrice),
+            }
+          : i
+      );
+
+      const cartCount = updatedItems.reduce((acc, i) => acc + i.quantity, 0);
+      localStorage.setItem("cartItems", JSON.stringify(updatedItems)); // //
+      return { items: updatedItems, cartCount }; // //
     }),
 }));

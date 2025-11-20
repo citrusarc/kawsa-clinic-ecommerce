@@ -87,6 +87,7 @@ export type CartItem = {
 
 export type CartState = {
   items: CartItem[];
+  updateQuantity: (id: string, quantity: number) => void;
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
   clearItem: (id: string) => void;
