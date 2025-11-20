@@ -126,22 +126,25 @@ export default function ProductsSection() {
                       {item.name}
                     </h2>
                     <p className="text-neutral-500">
-                      {isPromo && option?.original ? (
+                      {isPromo && option?.originalPrice ? (
                         <>
                           <span className="line-through text-neutral-400 mr-2">
                             {item.currency}
-                            {option.original.toFixed(2)}
+                            {(option.originalPrice ?? 0).toFixed(2)}
                           </span>
                           <span className="text-red-500 font-semibold">
                             {item.currency}
-                            {option.current?.toFixed(2) || "N/A"}
+                            {(
+                              option.currentPrice ??
+                              option.unitPrice ??
+                              0
+                            ).toFixed(2)}
                           </span>
                         </>
                       ) : (
                         <>
                           {item.currency}
-                          {(option?.current ?? option?.price)?.toFixed(2) ||
-                            "N/A"}
+                          {(option?.unitPrice ?? 0).toFixed(2)}
                         </>
                       )}
                     </p>

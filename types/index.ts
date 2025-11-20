@@ -29,9 +29,9 @@ export type VariantOption = {
   id: string;
   optionName: string;
   currency: string;
-  price?: number;
-  original?: number;
-  current?: number;
+  unitPrice: number;
+  originalPrice?: number;
+  currentPrice?: number;
 };
 
 export type ProductVariant = {
@@ -72,4 +72,30 @@ export type TestimonialSet = {
 export type TestimonialItem = {
   src: string;
   alt: string;
+};
+
+export type CartItem = {
+  id: string;
+  image: string;
+  name: string;
+  unitPrice: number;
+  originalPrice?: number;
+  currentPrice?: number;
+  totalPrice: number;
+  quantity: number;
+};
+
+export type CartState = {
+  items: CartItem[];
+  addItem: (item: CartItem) => void;
+  removeItem: (id: string) => void;
+  clearItem: (id: string) => void;
+  cartCount: number;
+};
+
+export type StepperProps = {
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
 };

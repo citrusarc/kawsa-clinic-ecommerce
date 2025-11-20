@@ -8,6 +8,8 @@ import { NavArrowLeft, NavArrowRight, StarSolid } from "iconoir-react";
 import { supabase } from "@/utils/supabase/client";
 import { spectral } from "@/config/font";
 import { ProductsItem, ProductVariant, VariantOption } from "@/types";
+import { useCart } from "@/components/store/Cart";
+import { Stepper } from "@/components/ui/Stepper";
 
 interface ProductDetailsProps {
   params: Promise<{ id: string }>;
@@ -35,8 +37,10 @@ interface SupabaseProduct {
     variant_options: {
       id: string;
       optionName: string;
-      price: number;
       currency: string;
+      unitPrice: number;
+      originalPrice?: number;
+      currentPrice?: number;
     }[];
   }[];
 }
@@ -45,6 +49,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   const { id } = use(params);
   const [product, setProduct] = useState<ProductsItem | null>(null);
   const [products, setProducts] = useState<ProductsItem[]>([]);
+  const [quantity, setQuantity] = useState(1);
   const [itemsToShow, setItemsToShow] = useState(4);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -68,8 +73,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
               variant_options (
                 id,
                 optionName,
-                price,
-                currency
+                 currency,
+                 unitPrice,
+                 originalPrice,
+                 currentPrice
               )
             )
           `
@@ -110,8 +117,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                   ): VariantOption => ({
                     id: option.id,
                     optionName: option.optionName,
-                    price: option.price,
                     currency: option.currency,
+                    unitPrice: option.unitPrice,
+                    originalPrice: option.originalPrice,
+                    currentPrice: option.currentPrice,
                   })
                 ),
               })
@@ -132,8 +141,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
             variant_options (
               id,
               optionName,
-              price,
-              currency
+              currency,
+              unitPrice,
+              originalPrice,
+              currentPrice
             )
           )
         `
@@ -180,8 +191,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                       ): VariantOption => ({
                         id: option.id,
                         optionName: option.optionName,
-                        price: option.price,
                         currency: option.currency,
+                        unitPrice: option.unitPrice,
+                        originalPrice: option.originalPrice,
+                        currentPrice: option.currentPrice,
                       })
                     ),
                   })
@@ -291,29 +304,54 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
               </div>
             </div>
           )}
+          <Stepper value={quantity} onChange={(v) => setQuantity(v)} min={1} />
+
           {selectedOption && (
             <>
-              {product.status?.isPromo && selectedOption.original ? (
+              {product.status?.isPromo && selectedOption.originalPrice ? (
                 <>
                   <p className="text-2xl sm:text-4xl text-red-500 font-semibold">
                     {product.currency}
-                    {selectedOption.current?.toFixed(2)}
+                    {selectedOption.currentPrice?.toFixed(2)}
                   </p>
                   <p className="text-neutral-400 line-through text-md">
                     {product.currency}
-                    {selectedOption.original?.toFixed(2)}
+                    {selectedOption.originalPrice?.toFixed(2)}
                   </p>
                 </>
               ) : (
                 <p className="text-2xl sm:text-4xl text-black">
                   {product.currency}
-                  {(selectedOption.current ?? selectedOption.price)?.toFixed(2)}
+                  {(
+                    selectedOption.currentPrice ?? selectedOption.unitPrice
+                  )?.toFixed(2)}
                 </p>
               )}
             </>
           )}
           <div className="flex flex-col sm:flex-row gap-4 w-full">
-            <button className="p-4 w-full rounded-lg overflow-hidden cursor-pointer border text-violet-600 bg-white border-violet-600 hover:text-white hover:bg-violet-600 hover:border-white">
+            <button
+              onClick={() => {
+                if (!selectedOption) return;
+
+                const pricePerUnit =
+                  selectedOption.currentPrice ?? selectedOption.unitPrice;
+                const originalPrice =
+                  selectedOption.originalPrice ?? selectedOption.unitPrice;
+
+                useCart.getState().addItem({
+                  id: product.id + "-" + selectedOption.id,
+                  image: product.src,
+                  name: product.name + " - " + selectedOption.optionName,
+                  unitPrice: selectedOption.unitPrice,
+                  originalPrice: originalPrice,
+                  currentPrice: selectedOption.currentPrice,
+                  totalPrice: pricePerUnit * quantity,
+                  quantity: quantity,
+                });
+              }}
+              className="p-4 w-full rounded-lg overflow-hidden cursor-pointer border text-violet-600 bg-white border-violet-600 hover:text-white hover:bg-violet-600 hover:border-white"
+            >
               ADD TO CART
             </button>
             <button className="p-4 w-full rounded-lg overflow-hidden cursor-pointer border text-white bg-violet-600 hover:text-violet-600 hover:bg-white hover:border-violet-600">
@@ -398,24 +436,29 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                     </h2>
                     <p className="text-neutral-500">
                       {item.status?.isPromo &&
-                      item.variants?.[0]?.options?.[0]?.original ? (
+                      item.variants?.[0]?.options?.[0]?.originalPrice ? (
                         <>
                           <span className="line-through text-neutral-400 mr-2">
                             {item.currency}
-                            {item.variants[0].options[0].original.toFixed(2)}
+                            {(
+                              item.variants[0].options[0].originalPrice ?? 0
+                            ).toFixed(2)}
                           </span>
                           <span className="text-red-500 font-semibold">
                             {item.currency}
-                            {item.variants[0].options[0].current?.toFixed(2) ||
-                              "N/A"}
+                            {(
+                              item.variants[0].options[0].currentPrice ??
+                              item.variants[0].options[0].unitPrice ??
+                              0
+                            ).toFixed(2)}
                           </span>
                         </>
                       ) : (
                         <>
                           {item.currency}
                           {(
-                            item.variants?.[0]?.options?.[0]?.current ??
-                            item.variants?.[0]?.options?.[0]?.price ??
+                            item.variants?.[0]?.options?.[0]?.currentPrice ??
+                            item.variants?.[0]?.options?.[0]?.unitPrice ??
                             0
                           ).toFixed(2)}
                         </>

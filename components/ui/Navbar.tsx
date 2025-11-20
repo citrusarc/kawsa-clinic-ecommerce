@@ -8,12 +8,16 @@ import clsx from "clsx";
 
 import BrandLogo from "@/components/icons/BrandLogo";
 import { siteConfig } from "@/config/site";
+import { useCart } from "../store/Cart";
 
 export default function Navbar() {
   const pathname = usePathname();
   // const [scroll, setScroll] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [openCart, setOpenCart] = useState(false);
+  const cartCount = useCart((state) => state.cartCount);
+  const cartItems = useCart((state) => state.items);
 
   const navItems = siteConfig.navItems.filter((item) => !item.status?.isHidden);
   const isHome = pathname === "/";
@@ -68,7 +72,22 @@ export default function Navbar() {
       <Link href="/">
         <BrandLogo className="w-16 sm:w-24 h-8 sm:h-12" />
       </Link>
-      <ShoppingBag className="w-6 h-6" />
+      {/* <ShoppingBag className="w-6 h-6" />
+       */}
+      <button
+        onClick={() => {
+          setOpenCart(!openCart);
+          setOpenMenu(false); // close menu if open
+        }}
+        className="relative"
+      >
+        <ShoppingBag className="w-6 h-6" />
+
+        {/* Cart count bubble */}
+        <span className="absolute -top-2 -right-2 bg-violet-600 text-white text-xs px-2 py-0.5 rounded-full">
+          {cartCount}
+        </span>
+      </button>
       {openMenu && (
         <div
           ref={menuRef}
@@ -91,6 +110,47 @@ export default function Navbar() {
               </Link>
             ))}
           </div>
+        </div>
+      )}
+
+      {openCart && (
+        <div
+          ref={menuRef}
+          className="absolute top-full right-4 p-4 w-[360px] max-w-[90vw] rounded-2xl bg-white shadow-xl text-black backdrop-blur-2xl"
+        >
+          <h3 className="text-xl font-semibold mb-4">Your Cart</h3>
+
+          {cartItems.length === 0 ? (
+            <p className="text-neutral-500">Your cart is empty.</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {cartItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={item.image}
+                      className="w-12 h-12 rounded-xl object-cover"
+                    />
+                    <div>
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-sm text-neutral-500">
+                        {item.quantity} × RM {item.unitPrice.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    className="text-red-500"
+                    onClick={() => useCart.getState().removeItem(item.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </nav>

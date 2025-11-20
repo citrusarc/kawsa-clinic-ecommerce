@@ -65,25 +65,29 @@ export default function ShopOurProductsPage() {
             </h2>
             <p className="text-neutral-500">
               {item.status?.isPromo &&
-              item.variants?.[0]?.options?.[0]?.original ? (
+              item.variants?.[0]?.options?.[0]?.originalPrice ? (
                 <>
                   <span className="line-through text-neutral-400 mr-2">
                     {item.currency}
-                    {item.variants[0].options[0].original.toFixed(2)}
+                    {(item.variants[0].options[0].originalPrice ?? 0).toFixed(
+                      2
+                    )}
                   </span>
                   <span className="text-red-500 font-semibold">
                     {item.currency}
-                    {item.variants[0].options[0].current?.toFixed(2) || "N/A"}
+                    {(
+                      item.variants[0].options[0].currentPrice ??
+                      item.variants[0].options[0].unitPrice ??
+                      0
+                    ).toFixed(2)}
                   </span>
                 </>
               ) : (
                 <>
                   {item.currency}
-                  {(
-                    item.variants?.[0]?.options?.[0]?.current ??
-                    item.variants?.[0]?.options?.[0]?.price ??
-                    0
-                  ).toFixed(2)}
+                  {(item.variants?.[0]?.options?.[0]?.unitPrice ?? 0).toFixed(
+                    2
+                  )}
                 </>
               )}
             </p>

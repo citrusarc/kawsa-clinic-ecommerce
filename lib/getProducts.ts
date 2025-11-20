@@ -17,8 +17,10 @@ interface SupabaseProduct {
     variant_options: {
       id: string;
       optionName: string;
-      price: number;
       currency: string;
+      unitPrice: number;
+      originalPrice?: number;
+      currentPrice?: number;
     }[];
   }[];
 }
@@ -32,8 +34,10 @@ export async function getProducts(): Promise<ProductsItem[]> {
         variant_options (
           id,
           optionName,
-          price,
-          currency
+          currency,
+          unitPrice,
+          originalPrice,
+          currentPrice
         )
       )
     `);
@@ -75,8 +79,10 @@ export async function getProducts(): Promise<ProductsItem[]> {
             (option): VariantOption => ({
               id: option.id,
               optionName: option.optionName,
-              price: option.price,
               currency: option.currency,
+              unitPrice: option.unitPrice,
+              originalPrice: option.originalPrice,
+              currentPrice: option.currentPrice,
             })
           ),
         })
