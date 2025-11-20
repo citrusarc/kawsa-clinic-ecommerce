@@ -25,6 +25,7 @@ export default function Navbar() {
   const startSwipe = useCart((s) => s.startSwipe);
   const moveSwipe = useCart((s) => s.moveSwipe);
   const endSwipe = useCart((s) => s.endSwipe);
+  const resetSwipe = useCart((s) => s.resetSwipe);
 
   const navItems = siteConfig.navItems.filter((item) => !item.status?.isHidden);
   const isHome = pathname === "/";
@@ -43,19 +44,29 @@ export default function Navbar() {
   }, [openMenu, openCart]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpenMenu(false);
-      }
-      if (cartRef.current && !cartRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (!cartRef.current) return;
+
+      const target = event.target as Node;
+
+      if (!cartRef.current.contains(target)) {
         setOpenCart(false);
+        resetSwipe();
+      } else {
+        const swipeable = (target as HTMLElement).closest("[data-swipe-item]");
+        if (!swipeable) resetSwipe();
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
+
+    const opts = { capture: true, passive: false };
+    document.addEventListener("mousedown", handleClickOutside, opts);
+    document.addEventListener("touchstart", handleClickOutside, opts);
+
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside, opts);
+      document.removeEventListener("touchstart", handleClickOutside, opts);
     };
-  }, []);
+  }, [resetSwipe]);
 
   useEffect(() => {
     setMounted(true);
@@ -94,6 +105,7 @@ export default function Navbar() {
         onClick={() => {
           setOpenCart(!openCart);
           setOpenMenu(false);
+          resetSwipe();
         }}
         className="relative cursor-pointer"
       >
@@ -161,8 +173,9 @@ export default function Navbar() {
                       <div
                         className={clsx(
                           "relative flex z-10 w-full items-start gap-4 bg-white p-2 transition-transform duration-200",
-                          item.swiped && "sm:-translate-x-0 -translate-x-24"
+                          item.swiped && "sm:translate-x-0 -translate-x-24"
                         )}
+                        data-swipe-item
                         onTouchStart={(e) =>
                           startSwipe(item.id, e.touches[0].clientX)
                         }
@@ -171,7 +184,7 @@ export default function Navbar() {
                         }
                         onTouchEnd={() => endSwipe(item.id)}
                       >
-                        <div className="relative flex-shrink-0 w-32 h-32 rounded-xl sm:rounded-2xl overflow-hidden">
+                        <div className="relative shrink-0 w-32 h-32 rounded-xl sm:rounded-2xl overflow-hidden">
                           <Image
                             fill
                             src={item.image}
@@ -181,7 +194,7 @@ export default function Navbar() {
                         </div>
                         <div className="flex flex-col gap-2 justify-between w-full">
                           <div>
-                            <p className="line-clamp-2 break-words font-semibold">
+                            <p className="line-clamp-2 wrap-break-words font-semibold">
                               {item.name}
                             </p>
                             <p className="text-neutral-400">
@@ -200,7 +213,7 @@ export default function Navbar() {
                         </div>
                       </div>
                       <button
-                        className="p-3 hidden sm:block flex-shrink-0 cursor-pointer rounded-full text-red-500 hover:bg-red-100"
+                        className="p-3 hidden sm:block shrink-0 cursor-pointer rounded-full text-red-500 hover:bg-red-100"
                         onClick={() => useCart.getState().clearItem(item.id)}
                       >
                         <Trash className="w-6 h-6" />

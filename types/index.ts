@@ -94,9 +94,11 @@ export type CartState = {
   clearItem: (id: string) => void;
   cartCount: number;
   _swipeStartX: number;
+  _isSwiping: boolean;
   startSwipe: (id: string, startX: number) => void;
   moveSwipe: (id: string, currentX: number) => void;
   endSwipe: (id: string) => void;
+  resetSwipe: () => void;
 };
 
 export type StepperProps = {
