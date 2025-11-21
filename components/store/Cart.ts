@@ -7,14 +7,14 @@ export const useCart = create<CartState>((set, get) => ({
     typeof window !== "undefined"
       ? (
           JSON.parse(localStorage.getItem("cartItems") || "[]") as CartItem[]
-        ).map((i) => ({ ...i, swiped: false }))
+        ).map((index) => ({ ...index, swiped: false }))
       : [],
 
   cartCount:
     typeof window !== "undefined"
       ? (
           JSON.parse(localStorage.getItem("cartItems") || "[]") as CartItem[]
-        ).reduce((acc, i) => acc + i.quantity, 0)
+        ).reduce((acc, index) => acc + index.quantity, 0)
       : 0,
 
   _swipeStartX: 0,
@@ -22,18 +22,18 @@ export const useCart = create<CartState>((set, get) => ({
 
   addItem: (item: CartItem) =>
     set((state) => {
-      const existing = state.items.find((i) => i.id === item.id);
+      const existing = state.items.find((index) => index.id === item.id);
       const updatedItems: CartItem[] = existing
-        ? state.items.map((i) =>
-            i.id === item.id
+        ? state.items.map((index) =>
+            index.id === item.id
               ? {
-                  ...i,
-                  quantity: i.quantity + item.quantity,
+                  ...index,
+                  quantity: index.quantity + item.quantity,
                   totalPrice:
-                    (i.currentPrice ?? i.unitPrice) *
-                    (i.quantity + item.quantity),
+                    (index.currentPrice ?? index.unitPrice) *
+                    (index.quantity + item.quantity),
                 }
-              : i
+              : index
           )
         : [
             ...state.items,
@@ -44,7 +44,10 @@ export const useCart = create<CartState>((set, get) => ({
             },
           ];
 
-      const cartCount = updatedItems.reduce((acc, i) => acc + i.quantity, 0);
+      const cartCount = updatedItems.reduce(
+        (acc, index) => acc + index.quantity,
+        0
+      );
 
       if (typeof window !== "undefined")
         localStorage.setItem("cartItems", JSON.stringify(updatedItems));
@@ -54,24 +57,28 @@ export const useCart = create<CartState>((set, get) => ({
 
   removeItem: (id: string) =>
     set((state) => {
-      const existing = state.items.find((i) => i.id === id);
+      const existing = state.items.find((index) => index.id === id);
       if (!existing) return state;
 
       const updatedItems: CartItem[] =
         existing.quantity > 1
-          ? state.items.map((i) =>
-              i.id === id
+          ? state.items.map((index) =>
+              index.id === id
                 ? {
-                    ...i,
-                    quantity: i.quantity - 1,
+                    ...index,
+                    quantity: index.quantity - 1,
                     totalPrice:
-                      (i.currentPrice ?? i.unitPrice) * (i.quantity - 1),
+                      (index.currentPrice ?? index.unitPrice) *
+                      (index.quantity - 1),
                   }
-                : i
+                : index
             )
-          : state.items.filter((i) => i.id !== id);
+          : state.items.filter((index) => index.id !== id);
 
-      const cartCount = updatedItems.reduce((acc, i) => acc + i.quantity, 0);
+      const cartCount = updatedItems.reduce(
+        (acc, index) => acc + index.quantity,
+        0
+      );
       if (typeof window !== "undefined")
         localStorage.setItem("cartItems", JSON.stringify(updatedItems));
 
@@ -80,8 +87,11 @@ export const useCart = create<CartState>((set, get) => ({
 
   clearItem: (id: string) =>
     set((state) => {
-      const updatedItems = state.items.filter((i) => i.id !== id);
-      const cartCount = updatedItems.reduce((acc, i) => acc + i.quantity, 0);
+      const updatedItems = state.items.filter((index) => index.id !== id);
+      const cartCount = updatedItems.reduce(
+        (acc, index) => acc + index.quantity,
+        0
+      );
       if (typeof window !== "undefined")
         localStorage.setItem("cartItems", JSON.stringify(updatedItems));
       return { items: updatedItems, cartCount };
@@ -89,17 +99,20 @@ export const useCart = create<CartState>((set, get) => ({
 
   setQuantity: (id: string, quantity: number) =>
     set((state) => {
-      const updatedItems = state.items.map((i) =>
-        i.id === id
+      const updatedItems = state.items.map((index) =>
+        index.id === id
           ? {
-              ...i,
+              ...index,
               quantity,
-              totalPrice: quantity * (i.currentPrice ?? i.unitPrice),
+              totalPrice: quantity * (index.currentPrice ?? index.unitPrice),
             }
-          : i
+          : index
       );
 
-      const cartCount = updatedItems.reduce((acc, i) => acc + i.quantity, 0);
+      const cartCount = updatedItems.reduce(
+        (acc, index) => acc + index.quantity,
+        0
+      );
       if (typeof window !== "undefined")
         localStorage.setItem("cartItems", JSON.stringify(updatedItems));
 
@@ -110,7 +123,7 @@ export const useCart = create<CartState>((set, get) => ({
     set(() => ({
       _swipeStartX: startX,
       _isSwiping: true,
-      items: get().items.map((it) => ({ ...it, swiped: false })),
+      items: get().items.map((index) => ({ ...index, swiped: false })),
     })),
 
   moveSwipe: (id: string, currentX: number) =>
@@ -123,8 +136,10 @@ export const useCart = create<CartState>((set, get) => ({
       const shouldSwipe = diff > threshold;
       const swipedNow = diff > activateDiff;
 
-      const items = state.items.map((it) =>
-        it.id === id ? { ...it, swiped: shouldSwipe ? swipedNow : false } : it
+      const items = state.items.map((index) =>
+        index.id === id
+          ? { ...index, swiped: shouldSwipe ? swipedNow : false }
+          : index
       );
 
       return { items };
@@ -134,8 +149,8 @@ export const useCart = create<CartState>((set, get) => ({
     set((state) => {
       if (!state._isSwiping) return state;
 
-      const items = state.items.map((it) =>
-        it.id === id ? { ...it, swiped: !!it.swiped } : it
+      const items = state.items.map((index) =>
+        index.id === id ? { ...index, swiped: !!index.swiped } : index
       );
 
       return {
@@ -147,7 +162,7 @@ export const useCart = create<CartState>((set, get) => ({
 
   resetSwipe: () =>
     set((state) => ({
-      items: state.items.map((it) => ({ ...it, swiped: false })),
+      items: state.items.map((index) => ({ ...index, swiped: false })),
       _isSwiping: false,
     })),
 }));

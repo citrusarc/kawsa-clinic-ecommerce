@@ -21,6 +21,9 @@ export default function Navbar() {
   const cartRef = useRef<HTMLDivElement>(null);
   const cartCount = useCart((state) => state.cartCount);
   const cartItems = useCart((state) => state.items);
+  const totalCart = useCart((state) =>
+    state.items.reduce((sum, item) => sum + item.totalPrice, 0)
+  );
   const [mounted, setMounted] = useState(false);
   const startSwipe = useCart((s) => s.startSwipe);
   const moveSwipe = useCart((s) => s.moveSwipe);
@@ -158,7 +161,7 @@ export default function Navbar() {
             {cartItems.length === 0 ? (
               <p className="text-neutral-400">Your cart is empty.</p>
             ) : (
-              <div className="flex flex-col gap-4 sm:gap-8 overflow-y-auto max-h-[calc(100%-4rem)]">
+              <div className="flex flex-1 flex-col gap-4 sm:gap-8 overflow-y-auto">
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex relative">
                     <div className="absolute flex sm:hidden inset-y-0 right-0 w-[80px] items-center justify-center">
@@ -221,6 +224,18 @@ export default function Navbar() {
                     </div>
                   </div>
                 ))}
+                <div className="absolute flex bottom-0 z-50 pt-4 w-full items-center justify-between bg-white">
+                  <div className="flex gap-2 text-xl text-neutral-500">
+                    Total: <span>RM{totalCart.toFixed(2)}</span>
+                  </div>
+                  <Link
+                    href="/checkout"
+                    onClick={() => setOpenCart(false)}
+                    className="px-4 py-2 rounded-lg cursor-pointer overflow-hidden text-md sm:text-lg border border-violet-600 text-white bg-violet-600 hover:text-violet-600 hover:bg-white"
+                  >
+                    Checkout
+                  </Link>
+                </div>
               </div>
             )}
           </div>
