@@ -439,7 +439,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                   <Link
                     key={item.id}
                     href={`/shop-our-products/${item.id}`}
-                    className="flex flex-col gap-4 w-full items-center text-center border border-transparent hover:border-violet-600"
+                    className="flex flex-col gap-4 w-full items-center text-center rounded-4xl overflow-hidden border border-transparent hover:border-violet-600"
                   >
                     <div className="relative w-full aspect-square rounded-4xl overflow-hidden">
                       <Image
@@ -491,7 +491,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
           </div>
           <button
             onClick={handleNext}
-            className="flex sm:hidden absolute right-0 z-10 p-2 rounded-full shadow text-black hover:text-white bg-white hover:bg-violet-600"
+            className="flex sm:hidden absolute right-0 z-10 p-2 rounded-full  shadow text-black hover:text-white bg-white hover:bg-violet-600"
           >
             <NavArrowRight className="w-6 h-6" />
           </button>
