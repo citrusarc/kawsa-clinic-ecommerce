@@ -66,7 +66,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
       const timer = setTimeout(() => {
         setSuccessMessage(null);
         setErrorMessage(null);
-      }, 3000); // hide after 3s
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [successMessage, errorMessage]);
@@ -498,14 +498,14 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
         </div>
       </div>
       {successMessage && (
-        <div className="fixed bottom-6 right-6 z-9999">
-          <Toast message={successMessage} />
+        <div>
+          <Toast message={successMessage} type="success" />
         </div>
       )}
 
       {errorMessage && (
-        <div className="fixed bottom-6 right-6 z-9999">
-          <Toast message={errorMessage} />
+        <div>
+          <Toast message={errorMessage} type="error" />
         </div>
       )}
     </section>

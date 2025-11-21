@@ -116,3 +116,5 @@ export type ToastProps = {
   isOpen?: boolean;
   onClose?: () => void;
 };
+
+export type ToastType = "default" | "success" | "error";

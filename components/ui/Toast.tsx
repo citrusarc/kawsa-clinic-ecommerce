@@ -1,15 +1,24 @@
 "use client";
 
-import { ToastProps } from "@/types";
+import { ToastProps, ToastType } from "@/types";
 
-export function Toast({ message }: ToastProps) {
+export function Toast({
+  message,
+  type = "default",
+}: ToastProps & { type?: ToastType }) {
+  const colors = {
+    default: "bg-neutral-100 text-neutral-800",
+    success: "bg-green-100 text-green-800",
+    error: "bg-red-100 text-red-800",
+  };
+
   return (
-    <div className="flex fixed inset-0 z-9999 p-4 items-center justify-center">
+    <div className="fixed top-12 right-0 z-9999 p-4 w-full sm:w-96 h-fit">
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex flex-col gap-4 p-4 w-full sm:w-96 rounded-2xl bg-white"
+        className={`relative p-4 rounded-2xl ${colors[type]}`}
       >
-        <p className="text-neutral-600">{message}</p>
+        <p>{message}</p>
       </div>
     </div>
   );
