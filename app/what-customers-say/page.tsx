@@ -7,41 +7,41 @@ export default function WhatCustomersSayPage() {
   const testimonial: TestimonialSet[] = [
     {
       before: {
-        src: "/Images/what-customers-say-banner-1.jpg",
+        src: "/Images/testimonial-banner-1.jpg",
         alt: "Before Testimony 1",
       },
       after: {
-        src: "/Images/what-customers-say-banner-2.jpg",
+        src: "/Images/testimonial-banner-2.jpg",
         alt: "After Testimony 1",
       },
     },
     {
       before: {
-        src: "/Images/what-customers-say-banner-3.jpg",
+        src: "/Images/testimonial-banner-3.jpg",
         alt: "Before Testimony 2",
       },
       after: {
-        src: "/Images/what-customers-say-banner-4.jpg",
+        src: "/Images/testimonial-banner-4.jpg",
         alt: "After Testimony 2",
       },
     },
     {
       before: {
-        src: "/Images/what-customers-say-banner-5.jpg",
+        src: "/Images/testimonial-banner-5.jpg",
         alt: "Before Testimony 3",
       },
       after: {
-        src: "/Images/what-customers-say-banner-6.jpg",
+        src: "/Images/testimonial-banner-6.jpg",
         alt: "After Testimony 3",
       },
     },
     {
       before: {
-        src: "/Images/what-customers-say-banner-7.jpg",
+        src: "/Images/testimonial-banner-7.jpg",
         alt: "Before Testimony 4",
       },
       after: {
-        src: "/Images/what-customers-say-banner-8.jpg",
+        src: "/Images/testimonial-banner-8.jpg",
         alt: "After Testimony 4",
       },
     },
@@ -51,7 +51,7 @@ export default function WhatCustomersSayPage() {
       <div className="relative w-screen h-[640px] sm:h-[960px]">
         <Image
           fill
-          src="/Images/what-customers-say-hero-banner.jpg"
+          src="/Images/testimonial-hero-banner.jpg"
           alt="What Customers Say Hero Banner"
           className="object-cover"
         />

@@ -158,7 +158,7 @@ export default function Navbar() {
             {cartItems.length === 0 ? (
               <p className="text-neutral-400">Your cart is empty.</p>
             ) : (
-              <div className="flex flex-col gap-8 overflow-y-auto max-h-[calc(100%-4rem)]">
+              <div className="flex flex-col gap-4 sm:gap-8 overflow-y-auto max-h-[calc(100%-4rem)]">
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex relative">
                     <div className="absolute flex sm:hidden inset-y-0 right-0 w-[80px] items-center justify-center">
