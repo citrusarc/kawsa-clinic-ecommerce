@@ -51,7 +51,7 @@ export default function WhatCustomersSayPage() {
       <div className="relative w-screen h-[640px] sm:h-[960px]">
         <Image
           fill
-          src="/Images/testimonial-hero-banner.jpg"
+          src="/Images/what-customers-say-hero-banner.jpg"
           alt="What Customers Say Hero Banner"
           className="object-cover"
         />
