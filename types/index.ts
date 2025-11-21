@@ -107,3 +107,12 @@ export type StepperProps = {
   min?: number;
   max?: number;
 };
+
+export type ToastProps = {
+  title?: string;
+  message: string;
+  href?: string;
+  CTA?: string;
+  isOpen?: boolean;
+  onClose?: () => void;
+};

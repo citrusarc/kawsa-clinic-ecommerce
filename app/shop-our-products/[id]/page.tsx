@@ -10,6 +10,7 @@ import { spectral } from "@/config/font";
 import { ProductsItem, ProductVariant, VariantOption } from "@/types";
 import { useCart } from "@/components/store/Cart";
 import { Stepper } from "@/components/ui/Stepper";
+import { Toast } from "@/components/ui/Toast";
 
 interface ProductDetailsProps {
   params: Promise<{ id: string }>;
@@ -50,6 +51,8 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   const [product, setProduct] = useState<ProductsItem | null>(null);
   const [products, setProducts] = useState<ProductsItem[]>([]);
   const [quantity, setQuantity] = useState(1);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [itemsToShow, setItemsToShow] = useState(4);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -57,6 +60,16 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   const [selectedOption, setSelectedOption] = useState<VariantOption | null>(
     null
   );
+
+  useEffect(() => {
+    if (successMessage || errorMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+        setErrorMessage(null);
+      }, 3000); // hide after 3s
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage, errorMessage]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -332,23 +345,30 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
           <div className="flex flex-col sm:flex-row gap-4 w-full">
             <button
               onClick={() => {
-                if (!selectedOption) return;
+                if (!selectedOption) {
+                  setErrorMessage("Please select a variant");
+                  return;
+                }
+                try {
+                  const pricePerUnit =
+                    selectedOption.currentPrice ?? selectedOption.unitPrice;
+                  const originalPrice =
+                    selectedOption.originalPrice ?? selectedOption.unitPrice;
 
-                const pricePerUnit =
-                  selectedOption.currentPrice ?? selectedOption.unitPrice;
-                const originalPrice =
-                  selectedOption.originalPrice ?? selectedOption.unitPrice;
-
-                useCart.getState().addItem({
-                  id: product.id + "-" + selectedOption.id,
-                  image: product.src,
-                  name: product.name + " - " + selectedOption.optionName,
-                  unitPrice: selectedOption.unitPrice,
-                  originalPrice: originalPrice,
-                  currentPrice: selectedOption.currentPrice,
-                  totalPrice: pricePerUnit * quantity,
-                  quantity: quantity,
-                });
+                  useCart.getState().addItem({
+                    id: product.id + "-" + selectedOption.id,
+                    image: product.src,
+                    name: product.name + " - " + selectedOption.optionName,
+                    unitPrice: selectedOption.unitPrice,
+                    originalPrice: originalPrice,
+                    currentPrice: selectedOption.currentPrice,
+                    totalPrice: pricePerUnit * quantity,
+                    quantity: quantity,
+                  });
+                  setSuccessMessage("Added to cart");
+                } catch (err) {
+                  setErrorMessage("Something went wrong");
+                }
               }}
               className="p-4 w-full rounded-lg overflow-hidden cursor-pointer border text-violet-600 bg-white border-violet-600 hover:text-white hover:bg-violet-600 hover:border-white"
             >
@@ -406,7 +426,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
               {products.map((item, index) => (
                 <div
                   key={index}
-                  className={`flex flex-col flex-shrink-0 gap-4 items-center text-center`}
+                  className={`flex flex-col shrink-0 gap-4 items-center text-center`}
                   style={{
                     flex:
                       itemsToShow === 1
@@ -477,6 +497,17 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
           </button>
         </div>
       </div>
+      {successMessage && (
+        <div className="fixed bottom-6 right-6 z-9999">
+          <Toast message={successMessage} />
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="fixed bottom-6 right-6 z-9999">
+          <Toast message={errorMessage} />
+        </div>
+      )}
     </section>
   );
 }
