@@ -87,7 +87,7 @@ export default function ProductsSection() {
               return (
                 <div
                   key={index}
-                  className={`flex flex-col flex-shrink-0 items-center text-center`}
+                  className={`flex flex-col shrink-0 items-center text-center`}
                   style={{
                     flex:
                       itemsToShow === 1
