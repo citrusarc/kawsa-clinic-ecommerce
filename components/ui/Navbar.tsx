@@ -224,19 +224,19 @@ export default function Navbar() {
                     </div>
                   </div>
                 ))}
-
-                {/* how to make full width to screen as cointainer has padding p-4 */}
-                <div className="absolute flex bottom-0 z-50 pt-4 w-full items-center justify-between shadow-md border-t border-neutral-200 bg-white">
-                  <div className="flex gap-2 text-xl text-neutral-500">
-                    Total: <span>RM{totalCart.toFixed(2)}</span>
+                <div className="fixed left-0 right-0  bottom-0 z-50 p-4 sm:p-8 shadow-md border-t border-neutral-200 bg-white">
+                  <div className="flex w-full items-center justify-between">
+                    <div className="flex gap-2 text-xl text-neutral-500">
+                      Total: <span>RM{totalCart.toFixed(2)}</span>
+                    </div>
+                    <Link
+                      href="/checkout"
+                      onClick={() => setOpenCart(false)}
+                      className="px-5 py-2.5 rounded-lg cursor-pointer overflow-hidden text-md sm:text-lg border border-violet-600 text-white bg-violet-600 hover:text-violet-600 hover:bg-white"
+                    >
+                      Checkout
+                    </Link>
                   </div>
-                  <Link
-                    href="/checkout"
-                    onClick={() => setOpenCart(false)}
-                    className="px-4 py-2 rounded-lg cursor-pointer overflow-hidden text-md sm:text-lg border border-violet-600 text-white bg-violet-600 hover:text-violet-600 hover:bg-white"
-                  >
-                    Checkout
-                  </Link>
                 </div>
               </div>
             )}
