@@ -146,7 +146,7 @@ export default function Navbar() {
         <div
           ref={cartRef}
           className={clsx(
-            "absolute top-0 right-0 z-50 p-4 sm:p-8 w-full sm:w-[30vw] h-screen transform transition-transform duration-300 shadow-md backdrop-blur-2xl text-violet-600 bg-white",
+            "absolute top-0 right-0 z-50 p-4 sm:p-8 w-full sm:w-[30vw] h-dvh transform transition-transform duration-300 shadow-md backdrop-blur-2xl text-violet-600 bg-white",
             openCart ? "translate-x-0" : "translate-x-full"
           )}
         >
@@ -224,7 +224,9 @@ export default function Navbar() {
                     </div>
                   </div>
                 ))}
-                <div className="absolute flex bottom-0 z-50 pt-4 w-full items-center justify-between bg-white">
+
+                {/* how to make full width to screen as cointainer has padding p-4 */}
+                <div className="absolute flex bottom-0 z-50 pt-4 w-full items-center justify-between shadow-md border-t border-neutral-200 bg-white">
                   <div className="flex gap-2 text-xl text-neutral-500">
                     Total: <span>RM{totalCart.toFixed(2)}</span>
                   </div>

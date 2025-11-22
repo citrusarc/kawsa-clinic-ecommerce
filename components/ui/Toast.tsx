@@ -13,7 +13,7 @@ export function Toast({
   };
 
   return (
-    <div className="fixed top-12 right-0 z-9999 p-4 w-full sm:w-96 h-fit">
+    <div className="fixed top-12 right-0 z-9999 p-4 w-full sm:w-96 h-fit shadow-md">
       <div
         onClick={(e) => e.stopPropagation()}
         className={`relative p-4 rounded-2xl ${colors[type]}`}
