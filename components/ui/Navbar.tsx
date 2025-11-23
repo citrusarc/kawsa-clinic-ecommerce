@@ -8,6 +8,7 @@ import { Menu, Xmark, ShoppingBag, Trash } from "iconoir-react";
 import clsx from "clsx";
 
 import { siteConfig } from "@/config/site";
+import { useCheckout } from "@/components/store/Checkout";
 import BrandLogo from "@/components/icons/BrandLogo";
 import { useCart } from "@/components/store/Cart";
 import { Stepper } from "@/components/ui/Stepper";
@@ -42,9 +43,9 @@ export default function Navbar() {
   //   return () => window.removeEventListener("scroll", handleScroll);
   // }, []);
 
-  useEffect(() => {
-    document.body.style.overflow = openMenu || openCart ? "hidden" : "";
-  }, [openMenu, openCart]);
+  // useEffect(() => {
+  //   document.body.style.overflow = openMenu || openCart ? "hidden" : "";
+  // }, [openMenu, openCart]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
@@ -231,7 +232,12 @@ export default function Navbar() {
                     </div>
                     <Link
                       href="/checkout"
-                      onClick={() => setOpenCart(false)}
+                      onClick={() => {
+                        useCheckout
+                          .getState()
+                          .setCheckoutData(cartItems, totalCart);
+                        setOpenCart(false);
+                      }}
                       className="px-5 py-2.5 rounded-lg cursor-pointer overflow-hidden text-md sm:text-lg border border-violet-600 text-white bg-violet-600 hover:text-violet-600 hover:bg-white"
                     >
                       Checkout
