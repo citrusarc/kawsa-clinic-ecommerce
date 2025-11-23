@@ -224,7 +224,7 @@ export default function Navbar() {
                     </div>
                   </div>
                 ))}
-                <div className="fixed left-0 right-0  bottom-0 z-50 p-4 sm:p-8 shadow-md border-t border-neutral-200 bg-white">
+                <div className="sticky bottom-0 left-0 right-0 z-50 pt-4 sm:pt-8 shadow-md border-t border-neutral-200 bg-white">
                   <div className="flex w-full items-center justify-between">
                     <div className="flex gap-2 text-xl text-neutral-500">
                       Total: <span>RM{totalCart.toFixed(2)}</span>
