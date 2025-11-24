@@ -357,7 +357,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
 
                   useCart.getState().addItem({
                     id: product.id + "-" + selectedOption.id,
-                    image: product.src,
+                    src: product.src,
                     name: product.name + " - " + selectedOption.optionName,
                     unitPrice: selectedOption.unitPrice,
                     originalPrice: originalPrice,

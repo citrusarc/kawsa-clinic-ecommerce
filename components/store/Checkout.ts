@@ -1,11 +1,6 @@
 import { create } from "zustand";
 
-interface CheckoutStore {
-  items: any[];
-  total: number;
-  setCheckoutData: (items: any[], total: number) => void;
-  clearCheckout: () => void;
-}
+import { CheckoutStore } from "@/types";
 
 export const useCheckout = create<CheckoutStore>((set) => ({
   items: [],

@@ -191,7 +191,7 @@ export default function Navbar() {
                         <div className="relative shrink-0 w-32 h-32 rounded-xl sm:rounded-2xl overflow-hidden">
                           <Image
                             fill
-                            src={item.image}
+                            src={item.src}
                             alt={item.name}
                             className="object-cover"
                           />

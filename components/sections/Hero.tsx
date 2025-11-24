@@ -47,7 +47,7 @@ export default function HeroSection() {
           {slides.map((item, index) => (
             <div
               key={index}
-              className="relative w-full h-[640px] sm:h-[960px] flex-shrink-0"
+              className="relative w-full h-[640px] sm:h-[960px] shrink-0"
             >
               <Image
                 fill

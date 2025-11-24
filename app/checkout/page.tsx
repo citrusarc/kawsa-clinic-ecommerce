@@ -19,7 +19,7 @@ export default function CheckoutPage() {
                 <div className="relative w-20 h-20 rounded-xl overflow-hidden">
                   <Image
                     fill
-                    src={item.image}
+                    src={item.src}
                     alt={item.name}
                     className="object-cover"
                   />

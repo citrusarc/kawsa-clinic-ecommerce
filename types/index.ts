@@ -76,8 +76,8 @@ export type TestimonialItem = {
 
 export type CartItem = {
   id: string;
-  image: string;
   name: string;
+  src: string;
   unitPrice: number;
   originalPrice?: number;
   currentPrice?: number;
@@ -99,6 +99,13 @@ export type CartState = {
   moveSwipe: (id: string, currentX: number) => void;
   endSwipe: (id: string) => void;
   resetSwipe: () => void;
+};
+
+export type CheckoutStore = {
+  items: CartItem[];
+  total: number;
+  setCheckoutData: (items: CartItem[], total: number) => void;
+  clearCheckout: () => void;
 };
 
 export type StepperProps = {
