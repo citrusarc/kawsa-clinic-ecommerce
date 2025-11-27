@@ -97,6 +97,8 @@ export const useCart = create<CartState>((set, get) => ({
       return { items: updatedItems, cartCount };
     }),
 
+  clearCart: () => set({ items: [] }),
+
   setQuantity: (id: string, quantity: number) =>
     set((state) => {
       const updatedItems = state.items.map((index) =>

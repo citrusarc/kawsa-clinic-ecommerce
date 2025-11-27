@@ -92,6 +92,7 @@ export type CartState = {
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
   clearItem: (id: string) => void;
+  clearCart: () => void;
   cartCount: number;
   _swipeStartX: number;
   _isSwiping: boolean;

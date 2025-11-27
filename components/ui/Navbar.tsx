@@ -160,7 +160,9 @@ export default function Navbar() {
             </button>
             <h2 className="text-xl font-semibold">Your Cart</h2>
             {cartItems.length === 0 ? (
-              <p className="text-neutral-400">Your cart is empty.</p>
+              <p className="text-neutral-400">
+                You currently have no items in your cart.
+              </p>
             ) : (
               <div className="flex flex-1 flex-col gap-4 sm:gap-8 overflow-y-auto">
                 {cartItems.map((item) => (
@@ -238,7 +240,7 @@ export default function Navbar() {
                           .setCheckoutData(cartItems, totalCart);
                         setOpenCart(false);
                       }}
-                      className="px-5 py-2.5 rounded-lg cursor-pointer overflow-hidden text-md sm:text-lg border border-violet-600 text-white bg-violet-600 hover:text-violet-600 hover:bg-white"
+                      className="block p-4 rounded-lg overflow-hidden cursor-pointer border border-violet-600 text-white bg-violet-600 hover:text-violet-600 hover:bg-white"
                     >
                       Checkout
                     </Link>
