@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ReactCountryFlag from "react-country-flag";
 import { Country, State, City } from "country-state-city";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,7 +26,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useCheckout } from "@/components/store/Checkout";
-import { useCart } from "@/components/store/Cart";
 
 const formSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
@@ -46,7 +45,6 @@ const formSchema = z.object({
 
 export default function CheckoutPage() {
   const { items, total } = useCheckout();
-  const clearCart = useCart((s) => s.clearCart);
   const [submitting, setSubmitting] = useState(false);
   const [country, setCountry] = useState("Malaysia");
   const [selectedState, setSelectedState] = useState("");
@@ -84,26 +82,6 @@ export default function CheckoutPage() {
     formState: { errors },
   } = form;
 
-  // SAVE STATE IF FAIL
-  useEffect(() => {
-    const savedData = localStorage.getItem("checkoutData");
-    if (savedData) {
-      const parsed = JSON.parse(savedData);
-      form.reset({
-        fullName: parsed.fullName,
-        email: parsed.email,
-        countryCode: parsed.phoneNumber.slice(0, 3),
-        phoneNumber: parsed.phoneNumber.slice(3),
-        addressLine1: parsed.address.split(",")[0] || "",
-        addressLine2: parsed.address.split(",")[1]?.trim() || "",
-        postcode: parsed.address.split(",")[2]?.trim() || "",
-        city: parsed.address.split(",")[3]?.trim() || "",
-        state: parsed.address.split(",")[4]?.trim() || "",
-        country: parsed.address.split(",")[5]?.trim() || "Malaysia",
-      });
-    }
-  }, []);
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setSubmitting(true);
     try {
@@ -117,9 +95,6 @@ export default function CheckoutPage() {
           values.country
         }`,
         totalPrice: total,
-        shippingFee: 10, //
-        paymentMethod: "fpx", //
-        courierName: "J&T", //
         items: items.map((item) => ({
           productId: item.productId,
           variantId: item.variantId || null,
@@ -142,20 +117,13 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        localStorage.setItem("checkoutData", JSON.stringify(payload));
-        throw new Error(data.error || "Failed to submit order");
+        throw new Error(data.error || "Payment failed");
       }
-
-      if (typeof clearCart === "function") clearCart();
-      localStorage.removeItem("cartItems");
-      localStorage.removeItem("checkoutData");
 
       window.location.href = data.checkout_url;
       form.reset();
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Error submitting booking";
-      console.log(message);
+    } catch (error: unknown) {
+      console.error("Checkout failed:", error);
     } finally {
       setSubmitting(false);
     }
@@ -603,7 +571,7 @@ export default function CheckoutPage() {
                   disabled={submitting}
                   className="p-4 w-full sm:w-fit rounded-lg overflow-hidden cursor-pointer border border-violet-600 text-white bg-violet-600 hover:text-violet-600 hover:bg-white"
                 >
-                  {submitting ? "Submitting..." : "Place Order"}
+                  {submitting ? "Sending your order..." : "Place Order"}
                 </button>
               </form>
             </Form>

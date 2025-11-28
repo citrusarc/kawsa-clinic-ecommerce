@@ -24,9 +24,9 @@ export async function POST(req: NextRequest) {
         phoneNumber: body.phoneNumber,
         address: body.address,
         totalPrice: body.totalPrice,
-        shippingFee: body.shippingFee ?? 10,
-        courierName: body.courierName ?? "J&T",
-        paymentMethod: body.paymentMethod ?? "COD",
+        shippingFee: 10,
+        courierName: "J&T",
+        paymentMethod: null,
         paymentStatus: "pending",
         orderStatus: "pending",
       })
@@ -74,12 +74,9 @@ export async function POST(req: NextRequest) {
     }
 
     const SUCCESS_REDIRECT = `${process.env.NEXT_PUBLIC_SITE_URL}/order-success?status=success`;
-    const FAILURE_REDIRECT = `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?status=failed`;
+    const FAILURE_REDIRECT = `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?status=error`;
 
-    // ------------------------------------
-    // 3. FIX: CLEAN AND SAFE CHIP PAYLOAD
-    // ------------------------------------
-
+    // 3. Create CHIP payload
     const chipPayload = {
       client: {
         email: body.email,
@@ -99,13 +96,8 @@ export async function POST(req: NextRequest) {
       platform: "web",
       success_redirect: SUCCESS_REDIRECT,
       failure_redirect: FAILURE_REDIRECT,
-
-      // ✅ FPX only
       payment_method_whitelist: ["fpx"],
     };
-
-    // For debugging:
-    console.log("CHIP Payload Sent:", chipPayload); // FIXED
 
     // 4. Call CHIP
     const chipResponse = await fetch(CHIP_API_URL, {
@@ -122,12 +114,11 @@ export async function POST(req: NextRequest) {
     if (!chipResponse.ok) {
       console.error("Chip API error:", chipData);
 
-      // Mark order as failed
       await supabase
         .from("orders")
         .update({
-          paymentStatus: "error",
-          orderStatus: "failed",
+          paymentStatus: "failed",
+          orderStatus: "cancelled_due_to_payment",
         })
         .eq("id", orderId);
 
@@ -138,14 +129,16 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Save CHIP purchase_id
-    await supabase
+    const { data: updatedOrder, error: updateError } = await supabase
       .from("orders")
       .update({
         chipPurchaseId: chipData.id,
-        paymentStatus: "created",
-        orderStatus: "pending",
+        paymentStatus: "pending",
+        orderStatus: "awaiting_payment",
       })
-      .eq("id", orderId);
+      .eq("id", orderId)
+      .select()
+      .single();
 
     return NextResponse.json({
       message: "Order created successfully!",
