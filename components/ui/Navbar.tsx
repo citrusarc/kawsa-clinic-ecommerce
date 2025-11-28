@@ -43,9 +43,9 @@ export default function Navbar() {
   //   return () => window.removeEventListener("scroll", handleScroll);
   // }, []);
 
-  // useEffect(() => {
-  //   document.body.style.overflow = openMenu || openCart ? "hidden" : "";
-  // }, [openMenu, openCart]);
+  useEffect(() => {
+    document.body.style.overflow = openMenu || openCart ? "hidden" : "";
+  }, [openMenu, openCart]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
@@ -164,7 +164,7 @@ export default function Navbar() {
                 You currently have no items in your cart.
               </p>
             ) : (
-              <div className="flex flex-1 flex-col gap-4 sm:gap-8 overflow-y-auto">
+              <div className="flex flex-1 flex-col gap-4 sm:gap-8 pb-[calc(env(safe-area-inset-bottom)+12dvh)] overflow-y-auto">
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex relative">
                     <div className="absolute flex sm:hidden inset-y-0 right-0 w-[80px] items-center justify-center">

@@ -356,7 +356,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                     selectedOption.originalPrice ?? selectedOption.unitPrice;
 
                   useCart.getState().addItem({
-                    id: product.id + "-" + selectedOption.id,
+                    id: `${product.id}-${selectedOption.id}`,
+                    productId: product.id,
+                    variantId: product.variants[0].id,
+                    variantOptionId: selectedOption.id,
                     src: product.src,
                     name: product.name + " - " + selectedOption.optionName,
                     unitPrice: selectedOption.unitPrice,
@@ -367,7 +370,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                   });
                   setSuccessMessage("Added to cart");
                 } catch (err) {
-                  setErrorMessage("Something went wrong");
+                  const errorMessage =
+                    "An error occurred while fetching products.";
+                  setError(errorMessage);
+                  console.error("Fetch error:", err);
                 }
               }}
               className="p-4 w-full rounded-lg overflow-hidden cursor-pointer border text-violet-600 bg-white border-violet-600 hover:text-white hover:bg-violet-600 hover:border-white"

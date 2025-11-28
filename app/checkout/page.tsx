@@ -4,13 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ReactCountryFlag from "react-country-flag";
 import { Country, State, City } from "country-state-city";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -85,6 +84,26 @@ export default function CheckoutPage() {
     formState: { errors },
   } = form;
 
+  // SAVE STATE IF FAIL
+  useEffect(() => {
+    const savedData = localStorage.getItem("checkoutData");
+    if (savedData) {
+      const parsed = JSON.parse(savedData);
+      form.reset({
+        fullName: parsed.fullName,
+        email: parsed.email,
+        countryCode: parsed.phoneNumber.slice(0, 3),
+        phoneNumber: parsed.phoneNumber.slice(3),
+        addressLine1: parsed.address.split(",")[0] || "",
+        addressLine2: parsed.address.split(",")[1]?.trim() || "",
+        postcode: parsed.address.split(",")[2]?.trim() || "",
+        city: parsed.address.split(",")[3]?.trim() || "",
+        state: parsed.address.split(",")[4]?.trim() || "",
+        country: parsed.address.split(",")[5]?.trim() || "Malaysia",
+      });
+    }
+  }, []);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setSubmitting(true);
     try {
@@ -92,19 +111,23 @@ export default function CheckoutPage() {
         fullName: values.fullName,
         email: values.email,
         phoneNumber: `${values.countryCode}${values.phoneNumber}`,
-        address: `${values.addressLine1}, ${values.addressLine2 || ""},
-        ${values.postcode}, ${values.city}, ${values.state}, ${values.country}`,
+        address: `${values.addressLine1}${
+          values.addressLine2 ? ", " + values.addressLine2 : ""
+        }, ${values.postcode}, ${values.city}, ${values.state}, ${
+          values.country
+        }`,
         totalPrice: total,
         shippingFee: 10, //
-        paymentMethod: "COD", //
+        paymentMethod: "fpx", //
         courierName: "J&T", //
         items: items.map((item) => ({
-          productId: item.id,
+          productId: item.productId,
           variantId: item.variantId || null,
           variantOptionId: item.variantOptionId || null,
           itemName: item.name,
+          itemCurrency: "RM",
+          itemUnitPrice: item.currentPrice ?? item.unitPrice,
           itemQuantity: item.quantity,
-          itemUnitPrice: item.unitPrice,
         })),
       };
 
@@ -119,16 +142,20 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        localStorage.setItem("checkoutData", JSON.stringify(payload));
         throw new Error(data.error || "Failed to submit order");
       }
 
-      if (typeof clearCart === "function") {
-        clearCart(); // ✅ Only call if it exists
-      }
+      if (typeof clearCart === "function") clearCart();
+      localStorage.removeItem("cartItems");
+      localStorage.removeItem("checkoutData");
+
+      window.location.href = data.checkout_url;
+      form.reset();
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Error submitting booking";
-      alert(message);
+      console.log(message);
     } finally {
       setSubmitting(false);
     }
@@ -186,7 +213,7 @@ export default function CheckoutPage() {
               </p>
             </div>
           </div>
-          <div className="order-1 sm:order-2 p-6 sm:p-8 w-full rounded-2xl sm:rounded-4xl overflow-hidden shadow-md border border-neutral-200 text-neutral-600 bg-white">
+          <div className="order-1 sm:order-2 p-6 sm:p-8 w-full h-fit rounded-2xl sm:rounded-4xl overflow-hidden shadow-md border border-neutral-200 text-neutral-600 bg-white">
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
@@ -417,7 +444,13 @@ export default function CheckoutPage() {
                                 }}
                                 value={selectedState}
                               >
-                                <SelectTrigger className="w-full h-12! rounded-xl sm:rounded-2xl">
+                                <SelectTrigger
+                                  className={`w-full h-12! rounded-xl sm:rounded-2xl border ${
+                                    errors.state
+                                      ? "border-red-600"
+                                      : "border-neutral-200"
+                                  }`}
+                                >
                                   <SelectValue placeholder="Select state...">
                                     {field.value}
                                   </SelectValue>
@@ -455,7 +488,13 @@ export default function CheckoutPage() {
                                 }}
                                 value={selectedCity}
                               >
-                                <SelectTrigger className="w-full h-12! rounded-xl sm:rounded-2xl">
+                                <SelectTrigger
+                                  className={`w-full h-12! rounded-xl sm:rounded-2xl border ${
+                                    errors.state
+                                      ? "border-red-600"
+                                      : "border-neutral-200"
+                                  }`}
+                                >
                                   <SelectValue placeholder="Select city...">
                                     {field.value}
                                   </SelectValue>

@@ -76,6 +76,9 @@ export type TestimonialItem = {
 
 export type CartItem = {
   id: string;
+  productId: string;
+  variantId?: string;
+  variantOptionId?: string;
   name: string;
   src: string;
   unitPrice: number;
@@ -107,6 +110,31 @@ export type CheckoutStore = {
   total: number;
   setCheckoutData: (items: CartItem[], total: number) => void;
   clearCheckout: () => void;
+};
+
+export type CheckoutItem = {
+  productId: string;
+  variantId?: string | null;
+  variantOptionId?: string | null;
+  itemName?: string;
+  name?: string;
+  itemUnitPrice?: number | string;
+  currentPrice?: number;
+  unitPrice?: number;
+  itemQuantity?: number;
+  quantity?: number;
+};
+
+export type CheckoutBody = {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+  totalPrice: number;
+  shippingFee?: number;
+  courierName?: string;
+  paymentMethod?: string;
+  items: CheckoutItem[];
 };
 
 export type StepperProps = {
