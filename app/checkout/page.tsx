@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { z } from "zod";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
@@ -36,7 +37,7 @@ const formSchema = z.object({
   addressLine1: z.string().min(1, "Address line 1 is required"),
   addressLine2: z.string().optional(),
   state: z.string().min(1, "Please select your state"),
-  city: z.string().min(1, "Please select your city"),
+  city: z.string().optional(),
   postcode: z
     .string()
     .regex(/^[0-9]+$/, "Postcode must be numeric")
@@ -44,7 +45,7 @@ const formSchema = z.object({
   country: z.string().min(1, "Please select your country"),
 });
 
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   const { items, total } = useCheckout();
   const params = useSearchParams();
   const error = params.get("status") === "error";
@@ -82,14 +83,6 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    form.setValue("state", selectedState);
-  }, [selectedState]);
-
-  useEffect(() => {
-    form.setValue("city", selectedCity);
-  }, [selectedCity]);
-
-  useEffect(() => {
     const countryData = Country.getAllCountries().find(
       (c) => c.name === country
     );
@@ -113,7 +106,7 @@ export default function CheckoutPage() {
 
     const list = City.getCitiesOfState(countryData.isoCode, stateData.isoCode);
     setCities(list);
-  }, [country, selectedState, states]);
+  }, [country, selectedState, states, form]);
 
   useEffect(() => {
     if (error) {
@@ -239,7 +232,7 @@ export default function CheckoutPage() {
                           errors.fullName ? "text-red-600" : "text-neutral-400"
                         }`}
                       >
-                        Full Name
+                        Full Name<span className="-ml-1 text-red-600">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -265,7 +258,7 @@ export default function CheckoutPage() {
                             errors.email ? "text-red-600" : "text-neutral-400"
                           }`}
                         >
-                          Email
+                          Email<span className="-ml-1 text-red-600">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -289,7 +282,7 @@ export default function CheckoutPage() {
                           : "text-neutral-400"
                       }`}
                     >
-                      Phone Number
+                      Phone Number<span className="ml-1 text-red-600">*</span>
                     </h2>
                     <div className="flex w-full gap-2">
                       <FormField
@@ -398,7 +391,7 @@ export default function CheckoutPage() {
                         : "text-neutral-400"
                     }`}
                   >
-                    Address
+                    Address<span className="ml-1 text-red-600">*</span>
                   </h2>
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
@@ -448,7 +441,6 @@ export default function CheckoutPage() {
                               <Select
                                 onValueChange={(value) => {
                                   setSelectedState(value);
-                                  setSelectedCity("");
                                   form.setValue("state", value);
                                 }}
                                 value={selectedState}
@@ -620,5 +612,13 @@ export default function CheckoutPage() {
         </div>
       )}
     </section>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={null}>
+      <CheckoutPageContent />
+    </Suspense>
   );
 }
