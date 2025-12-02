@@ -9,6 +9,7 @@ import { supabase } from "@/utils/supabase/client";
 import { spectral } from "@/config/font";
 import { ProductsItem, ProductVariant, VariantOption } from "@/types";
 import { useCart } from "@/components/store/Cart";
+import { useCheckout } from "@/components/store/Checkout";
 import { Stepper } from "@/components/ui/Stepper";
 import { Toast } from "@/components/ui/Toast";
 
@@ -380,7 +381,42 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
             >
               ADD TO CART
             </button>
-            <button className="p-4 w-full rounded-lg overflow-hidden cursor-pointer border text-white bg-violet-600 hover:text-violet-600 hover:bg-white hover:border-violet-600">
+            <button
+              onClick={() => {
+                if (!selectedOption) {
+                  setErrorMessage("Please select a variant");
+                  return;
+                }
+
+                // Create item object
+                const pricePerUnit =
+                  selectedOption.currentPrice ?? selectedOption.unitPrice;
+                const originalPrice =
+                  selectedOption.originalPrice ?? selectedOption.unitPrice;
+
+                const checkoutItem = {
+                  id: `${product.id}-${selectedOption.id}`,
+                  productId: product.id,
+                  variantId: product.variants[0].id,
+                  variantOptionId: selectedOption.id,
+                  src: product.src,
+                  name: product.name + " - " + selectedOption.optionName,
+                  unitPrice: selectedOption.unitPrice,
+                  originalPrice: originalPrice,
+                  currentPrice: selectedOption.currentPrice,
+                  totalPrice: pricePerUnit * quantity,
+                  quantity: quantity,
+                };
+
+                // Save to checkout store
+                useCheckout
+                  .getState()
+                  .setCheckoutData([checkoutItem], pricePerUnit * quantity);
+
+                window.location.href = "/checkout";
+              }}
+              className="p-4 w-full rounded-lg overflow-hidden cursor-pointer border text-white bg-violet-600 hover:text-violet-600 hover:bg-white hover:border-violet-600"
+            >
               BUY NOW
             </button>
           </div>
