@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
-import { CheckoutItem, CheckoutBody } from "@/types";
+import { CheckoutBody, CheckoutItem } from "@/types";
 
 const CHIP_API_URL = "https://gate.chip-in.asia/api/v1/purchases/";
 const CHIP_BRAND_ID = process.env.CHIP_BRAND_ID!;
@@ -10,7 +10,17 @@ export async function POST(req: NextRequest) {
   try {
     const body: CheckoutBody = await req.json();
 
-    if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
+    const {
+      items,
+      fullName,
+      email,
+      phoneNumber,
+      address,
+      totalPrice,
+      paymentMethod,
+    } = body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
     }
 
@@ -19,14 +29,14 @@ export async function POST(req: NextRequest) {
       .from("orders")
       .insert({
         orderNumber: "ORD-" + Date.now(),
-        fullName: body.fullName,
-        email: body.email,
-        phoneNumber: body.phoneNumber,
-        address: body.address,
-        totalPrice: body.totalPrice,
+        fullName,
+        email,
+        phoneNumber,
+        address,
+        totalPrice,
         shippingFee: 10,
         courierName: "J&T",
-        paymentMethod: null,
+        paymentMethod,
         paymentStatus: "pending",
         orderStatus: "pending",
       })
@@ -44,9 +54,9 @@ export async function POST(req: NextRequest) {
     const orderId = orderData.id;
 
     // 2. Insert order items
-    const orderItems = body.items.map((item: CheckoutItem) => {
-      const safeUnitPrice = Number(item.itemUnitPrice) || 0; // FIXED
-      const safeQuantity = Number(item.itemQuantity) || 1;
+    const orderItems = items.map((item: CheckoutItem) => {
+      const unitPrice = Number(item.itemUnitPrice) || 0;
+      const quantity = Number(item.itemQuantity) || 1;
 
       return {
         orderId,
@@ -55,9 +65,9 @@ export async function POST(req: NextRequest) {
         variantOptionId: item.variantOptionId || null,
         itemName: item.itemName || item.name || "Unknown Product",
         itemCurrency: "RM",
-        itemUnitPrice: safeUnitPrice,
-        itemQuantity: safeQuantity,
-        itemTotalPrice: safeUnitPrice * safeQuantity,
+        itemUnitPrice: unitPrice,
+        itemQuantity: quantity,
+        itemTotalPrice: unitPrice * quantity,
       };
     });
 
@@ -79,12 +89,12 @@ export async function POST(req: NextRequest) {
     // 3. Create CHIP payload
     const chipPayload = {
       client: {
-        email: body.email,
-        full_name: body.fullName,
-        phone: body.phoneNumber,
+        email,
+        full_name: fullName,
+        phone: phoneNumber,
       },
       purchase: {
-        products: body.items.map((item: CheckoutItem) => ({
+        products: items.map((item: CheckoutItem) => ({
           name: item.itemName || item.name || "Product",
           price: Math.round(Number(item.itemUnitPrice || 0) * 100),
         })),
@@ -96,7 +106,7 @@ export async function POST(req: NextRequest) {
       platform: "web",
       success_redirect: SUCCESS_REDIRECT,
       failure_redirect: FAILURE_REDIRECT,
-      payment_method_whitelist: ["fpx"],
+      ...(paymentMethod ? { payment_method_whitelist: [paymentMethod] } : {}),
     };
 
     // 4. Call CHIP
@@ -128,17 +138,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Save CHIP purchase_id
-    const { data: updatedOrder, error: updateError } = await supabase
+    // 5. Update orders with CHIP purchase_id
+    await supabase
       .from("orders")
       .update({
         chipPurchaseId: chipData.id,
         paymentStatus: "pending",
         orderStatus: "awaiting_payment",
       })
-      .eq("id", orderId)
-      .select()
-      .single();
+      .eq("id", orderId);
 
     return NextResponse.json({
       message: "Order created successfully!",

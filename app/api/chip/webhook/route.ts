@@ -6,11 +6,7 @@ export async function POST(req: NextRequest) {
     const payload = await req.json();
     console.log("CHIP Webhook Received:", payload);
 
-    const {
-      id: chipPurchaseId,
-      reference, // this is your orderNumber
-      status, // paid | failed | cancelled | pending
-    } = payload;
+    const { id: chipPurchaseId, reference, status } = payload;
 
     if (!reference) {
       console.error("Missing CHIP reference");
@@ -39,10 +35,13 @@ export async function POST(req: NextRequest) {
       await supabase
         .from("orders")
         .update({
-          paymentStatus: "paid", // //
-          orderStatus: "processing", // //
-          paymentMethod: payload.payment_method,
-          chipPurchaseId, // //
+          paymentMethod:
+            payload.transaction_data?.payment_method ||
+            payload.transaction_data?.attempts?.[0]?.payment_method ||
+            null,
+          paymentStatus: "paid",
+          orderStatus: "processing",
+          chipPurchaseId,
         })
         .eq("id", order.id);
     }
@@ -54,8 +53,8 @@ export async function POST(req: NextRequest) {
       await supabase
         .from("orders")
         .update({
-          paymentStatus: "failed", // //
-          orderStatus: "cancelled_due_to_payment", // //
+          paymentStatus: "failed",
+          orderStatus: "cancelled_due_to_payment",
         })
         .eq("id", order.id);
     }
@@ -67,8 +66,8 @@ export async function POST(req: NextRequest) {
       await supabase
         .from("orders")
         .update({
-          paymentStatus: "pending", // //
-          orderStatus: "awaiting_payment", // //
+          paymentStatus: "pending",
+          orderStatus: "awaiting_payment",
         })
         .eq("id", order.id);
     }

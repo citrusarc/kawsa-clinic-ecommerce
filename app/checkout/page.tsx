@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { z } from "zod";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ReactCountryFlag from "react-country-flag";
-import { Country, State, City } from "country-state-city";
+import { Country, State, City, IState, ICity } from "country-state-city";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Input } from "@/components/ui/input";
@@ -35,7 +36,7 @@ const formSchema = z.object({
   addressLine1: z.string().min(1, "Address line 1 is required"),
   addressLine2: z.string().optional(),
   state: z.string().min(1, "Please select your state"),
-  city: z.string().min(1, "Please select your state"),
+  city: z.string().min(1, "Please select your city"),
   postcode: z
     .string()
     .min(5, "Postcode must be 5 digits")
@@ -45,22 +46,15 @@ const formSchema = z.object({
 
 export default function CheckoutPage() {
   const { items, total } = useCheckout();
+  const params = useSearchParams();
+  const error = params.get("status") === "error";
   const [submitting, setSubmitting] = useState(false);
+  const [states, setStates] = useState<IState[]>([]);
+  const [cities, setCities] = useState<ICity[]>([]);
+  const [postcode, setPostcode] = useState("");
   const [country, setCountry] = useState("Malaysia");
   const [selectedState, setSelectedState] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
-  const [postcode, setPostcode] = useState("");
-
-  const states = State.getStatesOfCountry(
-    Country.getAllCountries().find((c) => c.name === country)?.isoCode || "MY"
-  );
-
-  const cities =
-    City.getCitiesOfState(
-      Country.getAllCountries().find((c) => c.name === country)?.isoCode ||
-        "MY",
-      states.find((s) => s.name === selectedState)?.isoCode || ""
-    ) || [];
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -81,6 +75,38 @@ export default function CheckoutPage() {
   const {
     formState: { errors },
   } = form;
+
+  useEffect(() => {
+    const countryData = Country.getAllCountries().find(
+      (c) => c.name === country
+    );
+    if (!countryData) return;
+
+    const list = State.getStatesOfCountry(countryData.isoCode);
+    setStates(list);
+  }, [country]);
+
+  useEffect(() => {
+    const countryData = Country.getAllCountries().find(
+      (c) => c.name === country
+    );
+    const stateData = states.find((s) => s.name === selectedState);
+
+    if (!countryData || !stateData) {
+      setCities([]);
+      form.setValue("city", "");
+      return;
+    }
+
+    const list = City.getCitiesOfState(countryData.isoCode, stateData.isoCode);
+    setCities(list);
+  }, [country, selectedState, states]);
+
+  useEffect(() => {
+    if (error) {
+      console.log("Payment failed → checkout restored");
+    }
+  }, [error]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setSubmitting(true);
