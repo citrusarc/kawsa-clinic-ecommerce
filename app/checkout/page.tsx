@@ -48,6 +48,7 @@ export default function CheckoutPage() {
   const { items, total } = useCheckout();
   const params = useSearchParams();
   const error = params.get("status") === "error";
+  const [hydrated, setHydrated] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [states, setStates] = useState<IState[]>([]);
   const [cities, setCities] = useState<ICity[]>([]);
@@ -75,6 +76,10 @@ export default function CheckoutPage() {
   const {
     formState: { errors },
   } = form;
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     const countryData = Country.getAllCountries().find(
@@ -154,6 +159,8 @@ export default function CheckoutPage() {
       setSubmitting(false);
     }
   }
+
+  if (!hydrated) return null;
 
   return (
     <section className="flex flex-col gap-8 py-8 p-4 sm:p-24">
