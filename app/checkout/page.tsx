@@ -39,8 +39,8 @@ const formSchema = z.object({
   city: z.string().min(1, "Please select your city"),
   postcode: z
     .string()
-    .min(5, "Postcode must be 5 digits")
-    .max(5, "Postcode must be 5 digits"),
+    .regex(/^[0-9]+$/, "Postcode must be numeric")
+    .length(5, "Postcode must be 5 digits"),
   country: z.string().min(1, "Please select your country"),
 });
 
@@ -80,6 +80,14 @@ export default function CheckoutPage() {
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    form.setValue("state", selectedState);
+  }, [selectedState]);
+
+  useEffect(() => {
+    form.setValue("city", selectedCity);
+  }, [selectedCity]);
 
   useEffect(() => {
     const countryData = Country.getAllCountries().find(
