@@ -29,21 +29,46 @@ import {
 } from "@/components/ui/form";
 import { useCheckout } from "@/components/store/Checkout";
 
-const formSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
-  email: z.string().email("Invalid email address"),
-  countryCode: z.string().min(1, "Select country code"),
-  phoneNumber: z.string().min(6, "Enter valid phone number"),
-  addressLine1: z.string().min(1, "Address line 1 is required"),
-  addressLine2: z.string().optional(),
-  state: z.string().min(1, "Please select your state"),
-  city: z.string().optional(),
-  postcode: z
-    .string()
-    .regex(/^[0-9]+$/, "Postcode must be numeric")
-    .length(5, "Postcode must be 5 digits"),
-  country: z.string().min(1, "Please select your country"),
-});
+const formSchema = z
+  .object({
+    fullName: z.string().min(1, "Full name is required"),
+    email: z.string().email("Invalid email address"),
+    countryCode: z.string().min(1, "Select country code"),
+    phoneNumber: z.string().min(6, "Enter valid phone number"),
+    addressLine1: z.string().min(1, "Address line 1 is required"),
+    addressLine2: z.string().optional(),
+    state: z.string().min(1, "Please select your state"),
+    city: z.string().optional(),
+    postcode: z
+      .string()
+      .regex(/^[0-9]+$/, "Postcode must be numeric")
+      .length(5, "Postcode must be 5 digits"),
+    country: z.string().min(1, "Please select your country"),
+  })
+  .refine(
+    (data) => {
+      const countryData = Country.getAllCountries().find(
+        (c) => c.name === data.country
+      );
+      const stateData = countryData
+        ? State.getStatesOfCountry(countryData.isoCode).find(
+            (s) => s.name === data.state
+          )
+        : null;
+      const cities =
+        countryData && stateData
+          ? City.getCitiesOfState(countryData.isoCode, stateData.isoCode)
+          : [];
+
+      // If there are cities, city must be selected
+      if (cities.length > 0 && !data.city) return false;
+      return true;
+    },
+    {
+      path: ["city"],
+      message: "Please select your city",
+    }
+  );
 
 function CheckoutPageContent() {
   const { items, total } = useCheckout();
@@ -232,7 +257,7 @@ function CheckoutPageContent() {
                           errors.fullName ? "text-red-600" : "text-neutral-400"
                         }`}
                       >
-                        Full Name<span className="-ml-1 text-red-600">*</span>
+                        Full Name<span className="-ml-1.5 text-red-400">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -258,7 +283,7 @@ function CheckoutPageContent() {
                             errors.email ? "text-red-600" : "text-neutral-400"
                           }`}
                         >
-                          Email<span className="-ml-1 text-red-600">*</span>
+                          Email<span className="-ml-1.5 text-red-400">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -282,7 +307,7 @@ function CheckoutPageContent() {
                           : "text-neutral-400"
                       }`}
                     >
-                      Phone Number<span className="ml-1 text-red-600">*</span>
+                      Phone Number<span className="ml-0.5 text-red-400">*</span>
                     </h2>
                     <div className="flex w-full gap-2">
                       <FormField
@@ -391,7 +416,7 @@ function CheckoutPageContent() {
                         : "text-neutral-400"
                     }`}
                   >
-                    Address<span className="ml-1 text-red-600">*</span>
+                    Address<span className="ml-0.5 text-red-400">*</span>
                   </h2>
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
@@ -488,6 +513,7 @@ function CheckoutPageContent() {
                                   form.setValue("city", value);
                                 }}
                                 value={selectedCity}
+                                disabled={cities.length === 0}
                               >
                                 <SelectTrigger
                                   className={`w-full h-12! rounded-xl sm:rounded-2xl border ${
@@ -496,7 +522,13 @@ function CheckoutPageContent() {
                                       : "border-neutral-200"
                                   }`}
                                 >
-                                  <SelectValue placeholder="Select city...">
+                                  <SelectValue
+                                    placeholder={
+                                      cities.length === 0
+                                        ? "No city available"
+                                        : "Select city..."
+                                    }
+                                  >
                                     {field.value}
                                   </SelectValue>
                                 </SelectTrigger>
