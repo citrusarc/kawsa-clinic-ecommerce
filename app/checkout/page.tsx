@@ -76,7 +76,7 @@ function CheckoutPageContent() {
   const [hydrated, setHydrated] = useState(false); // //
   const [states, setStates] = useState<IState[]>([]);
   const [cities, setCities] = useState<ICity[]>([]);
-  const [postcode, setPostcode] = useState("");
+  const [postcode, setPostcode] = useState(""); // //
   const [country, setCountry] = useState("Malaysia");
   const [selectedState, setSelectedState] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
@@ -573,13 +573,8 @@ function CheckoutPageContent() {
                           <FormItem className="flex-1">
                             <FormControl>
                               <Input
-                                {...field}
+                                {...field} // //
                                 placeholder="12345"
-                                value={postcode}
-                                onChange={(e) => {
-                                  setPostcode(e.target.value);
-                                  field.onChange(e.target.value);
-                                }}
                                 className="w-full h-12 items-center justify-start text-left rounded-xl sm:rounded-2xl"
                               />
                             </FormControl>

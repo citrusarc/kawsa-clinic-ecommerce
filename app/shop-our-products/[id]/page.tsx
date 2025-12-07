@@ -366,6 +366,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                     unitPrice: selectedOption.unitPrice,
                     originalPrice: originalPrice,
                     currentPrice: selectedOption.currentPrice,
+                    subTotalPrice: pricePerUnit * quantity,
                     totalPrice: pricePerUnit * quantity,
                     quantity: quantity,
                   });
@@ -404,6 +405,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                   unitPrice: selectedOption.unitPrice,
                   originalPrice: originalPrice,
                   currentPrice: selectedOption.currentPrice,
+                  subTotalPrice: pricePerUnit * quantity,
                   totalPrice: pricePerUnit * quantity,
                   quantity: quantity,
                 };

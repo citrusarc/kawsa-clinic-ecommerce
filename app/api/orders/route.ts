@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
         products: items.map((item: OrderItem) => ({
           name: item.itemName,
           price: Math.round(Number(item.itemUnitPrice || 0) * 100),
-          // quantity: item.itemQuantity,
+          quantity: item.itemQuantity,
         })),
         currency: "MYR",
       },

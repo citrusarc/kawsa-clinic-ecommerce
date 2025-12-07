@@ -2,172 +2,150 @@
 import { create } from "zustand";
 import { CartState, CartItem } from "@/types";
 
-export const useCart = create<CartState>((set, get) => ({
-  items:
+export const useCart = create<CartState>((set, get) => {
+  const savedItems: CartItem[] =
     typeof window !== "undefined"
-      ? (
-          JSON.parse(localStorage.getItem("cartItems") || "[]") as CartItem[]
-        ).map((index) => ({ ...index, swiped: false }))
-      : [],
+      ? JSON.parse(localStorage.getItem("cartItems") || "[]")
+      : [];
 
-  cartCount:
-    typeof window !== "undefined"
-      ? (
-          JSON.parse(localStorage.getItem("cartItems") || "[]") as CartItem[]
-        ).reduce((acc, index) => acc + index.quantity, 0)
-      : 0,
+  return {
+    items: savedItems.map((i) => ({ ...i, swiped: false })),
+    cartCount: savedItems.reduce((acc, i) => acc + i.quantity, 0),
 
-  _swipeStartX: 0,
-  _isSwiping: false,
+    _swipeStartX: 0,
+    _isSwiping: false,
 
-  addItem: (item: CartItem) =>
-    set((state) => {
-      const existing = state.items.find((index) => index.id === item.id);
-      const updatedItems: CartItem[] = existing
-        ? state.items.map((index) =>
-            index.id === item.id
-              ? {
-                  ...index,
-                  quantity: index.quantity + item.quantity,
-                  totalPrice:
-                    (index.currentPrice ?? index.unitPrice) *
-                    (index.quantity + item.quantity),
-                }
-              : index
-          )
-        : [
-            ...state.items,
-            {
-              ...item,
-              totalPrice: (item.currentPrice ?? item.unitPrice) * item.quantity,
-              swiped: false,
-            },
-          ];
-
-      const cartCount = updatedItems.reduce(
-        (acc, index) => acc + index.quantity,
-        0
-      );
-
-      if (typeof window !== "undefined")
-        localStorage.setItem("cartItems", JSON.stringify(updatedItems));
-
-      return { items: updatedItems, cartCount };
-    }),
-
-  removeItem: (id: string) =>
-    set((state) => {
-      const existing = state.items.find((index) => index.id === id);
-      if (!existing) return state;
-
-      const updatedItems: CartItem[] =
-        existing.quantity > 1
-          ? state.items.map((index) =>
-              index.id === id
+    addItem: (item: CartItem) =>
+      set((state) => {
+        const existing = state.items.find((i) => i.id === item.id);
+        const updatedItems: CartItem[] = existing
+          ? state.items.map((i) =>
+              i.id === item.id
                 ? {
-                    ...index,
-                    quantity: index.quantity - 1,
+                    ...i,
+                    quantity: i.quantity + item.quantity,
+                    subTotalPrice:
+                      (i.currentPrice ?? i.unitPrice) *
+                      (i.quantity + item.quantity),
                     totalPrice:
-                      (index.currentPrice ?? index.unitPrice) *
-                      (index.quantity - 1),
+                      (i.currentPrice ?? i.unitPrice) *
+                      (i.quantity + item.quantity),
                   }
-                : index
+                : i
             )
-          : state.items.filter((index) => index.id !== id);
+          : [
+              ...state.items,
+              {
+                ...item,
+                subTotalPrice:
+                  (item.currentPrice ?? item.unitPrice) * item.quantity,
+                totalPrice:
+                  (item.currentPrice ?? item.unitPrice) * item.quantity,
+                swiped: false,
+              },
+            ];
 
-      const cartCount = updatedItems.reduce(
-        (acc, index) => acc + index.quantity,
-        0
-      );
-      if (typeof window !== "undefined")
-        localStorage.setItem("cartItems", JSON.stringify(updatedItems));
+        const cartCount = updatedItems.reduce((acc, i) => acc + i.quantity, 0);
 
-      return { items: updatedItems, cartCount };
-    }),
+        if (typeof window !== "undefined")
+          localStorage.setItem("cartItems", JSON.stringify(updatedItems));
 
-  clearItem: (id: string) =>
-    set((state) => {
-      const updatedItems = state.items.filter((index) => index.id !== id);
-      const cartCount = updatedItems.reduce(
-        (acc, index) => acc + index.quantity,
-        0
-      );
-      if (typeof window !== "undefined")
-        localStorage.setItem("cartItems", JSON.stringify(updatedItems));
-      return { items: updatedItems, cartCount };
-    }),
+        return { items: updatedItems, cartCount };
+      }),
 
-  clearCart: () => {
-    if (typeof window !== "undefined") localStorage.removeItem("cartItems");
-    return set({ items: [], cartCount: 0 });
-  },
+    removeItem: (id: string) =>
+      set((state) => {
+        const existing = state.items.find((i) => i.id === id);
+        if (!existing) return state;
 
-  setQuantity: (id: string, quantity: number) =>
-    set((state) => {
-      const updatedItems = state.items.map((index) =>
-        index.id === id
-          ? {
-              ...index,
-              quantity,
-              totalPrice: quantity * (index.currentPrice ?? index.unitPrice),
-            }
-          : index
-      );
+        const updatedItems: CartItem[] =
+          existing.quantity > 1
+            ? state.items.map((i) =>
+                i.id === id
+                  ? {
+                      ...i,
+                      quantity: i.quantity - 1,
+                      totalPrice:
+                        (i.currentPrice ?? i.unitPrice) * (i.quantity - 1),
+                    }
+                  : i
+              )
+            : state.items.filter((i) => i.id !== id);
 
-      const cartCount = updatedItems.reduce(
-        (acc, index) => acc + index.quantity,
-        0
-      );
-      if (typeof window !== "undefined")
-        localStorage.setItem("cartItems", JSON.stringify(updatedItems));
+        const cartCount = updatedItems.reduce((acc, i) => acc + i.quantity, 0);
 
-      return { items: updatedItems, cartCount };
-    }),
+        if (typeof window !== "undefined")
+          localStorage.setItem("cartItems", JSON.stringify(updatedItems));
 
-  startSwipe: (id: string, startX: number) =>
-    set(() => ({
-      _swipeStartX: startX,
-      _isSwiping: true,
-      items: get().items.map((index) => ({ ...index, swiped: false })),
-    })),
+        return { items: updatedItems, cartCount };
+      }),
 
-  moveSwipe: (id: string, currentX: number) =>
-    set((state) => {
-      if (!get()._isSwiping) return state;
+    clearItem: (id: string) =>
+      set((state) => {
+        const updatedItems = state.items.filter((i) => i.id !== id);
+        const cartCount = updatedItems.reduce((acc, i) => acc + i.quantity, 0);
+        if (typeof window !== "undefined")
+          localStorage.setItem("cartItems", JSON.stringify(updatedItems));
+        return { items: updatedItems, cartCount };
+      }),
 
-      const diff = (get()._swipeStartX || 0) - currentX;
-      const threshold = 20;
-      const activateDiff = 60;
-      const shouldSwipe = diff > threshold;
-      const swipedNow = diff > activateDiff;
+    clearCart: () => {
+      if (typeof window !== "undefined") localStorage.removeItem("cartItems");
+      return set({ items: [], cartCount: 0 });
+    },
 
-      const items = state.items.map((index) =>
-        index.id === id
-          ? { ...index, swiped: shouldSwipe ? swipedNow : false }
-          : index
-      );
+    setQuantity: (id: string, quantity: number) =>
+      set((state) => {
+        const updatedItems = state.items.map((i) =>
+          i.id === id
+            ? {
+                ...i,
+                quantity,
+                totalPrice: quantity * (i.currentPrice ?? i.unitPrice),
+              }
+            : i
+        );
+        const cartCount = updatedItems.reduce((acc, i) => acc + i.quantity, 0);
+        if (typeof window !== "undefined")
+          localStorage.setItem("cartItems", JSON.stringify(updatedItems));
+        return { items: updatedItems, cartCount };
+      }),
 
-      return { items };
-    }),
+    startSwipe: (id: string, startX: number) =>
+      set(() => ({
+        _swipeStartX: startX,
+        _isSwiping: true,
+        items: get().items.map((i) => ({ ...i, swiped: false })),
+      })),
 
-  endSwipe: (id: string) =>
-    set((state) => {
-      if (!state._isSwiping) return state;
+    moveSwipe: (id: string, currentX: number) =>
+      set((state) => {
+        if (!get()._isSwiping) return state;
+        const diff = (get()._swipeStartX || 0) - currentX;
+        const threshold = 20;
+        const activateDiff = 60;
+        const shouldSwipe = diff > threshold;
+        const swipedNow = diff > activateDiff;
 
-      const items = state.items.map((index) =>
-        index.id === id ? { ...index, swiped: !!index.swiped } : index
-      );
+        const items = state.items.map((i) =>
+          i.id === id ? { ...i, swiped: shouldSwipe ? swipedNow : false } : i
+        );
+        return { items };
+      }),
 
-      return {
-        items,
-        _swipeStartX: 0,
+    endSwipe: (id: string) =>
+      set((state) => {
+        if (!state._isSwiping) return state;
+        const items = state.items.map((i) =>
+          i.id === id ? { ...i, swiped: !!i.swiped } : i
+        );
+        return { items, _swipeStartX: 0, _isSwiping: false };
+      }),
+
+    resetSwipe: () =>
+      set((state) => ({
+        items: state.items.map((i) => ({ ...i, swiped: false })),
         _isSwiping: false,
-      };
-    }),
-
-  resetSwipe: () =>
-    set((state) => ({
-      items: state.items.map((index) => ({ ...index, swiped: false })),
-      _isSwiping: false,
-    })),
-}));
+      })),
+  };
+});

@@ -12,43 +12,44 @@ const safeCheckout = () => {
   }
 };
 
-export const useCheckout = create<CheckoutStore>((set) => ({
-  items: typeof window !== "undefined" ? safeCheckout()?.items || [] : [],
+export const useCheckout = create<CheckoutStore>((set) => {
+  const initData = typeof window !== "undefined" ? safeCheckout() : null;
 
-  subTotalPrice:
-    typeof window !== "undefined" ? safeCheckout()?.subTotalPrice || 0 : 0,
+  return {
+    items: initData?.items || [],
+    subTotalPrice: initData?.subTotalPrice || 0,
+    shippingFee: 0,
+    totalPrice: initData?.totalPrice || 0,
 
-  shippingFee: 0,
+    setCheckoutData: (items) => {
+      const subTotalPrice = items.reduce(
+        (sum, item) => sum + item.subTotalPrice,
+        0
+      );
+      const shippingFee = 0;
+      const totalPrice = subTotalPrice + shippingFee;
 
-  totalPrice:
-    typeof window !== "undefined" ? safeCheckout()?.totalPrice || 0 : 0,
+      const data = {
+        items,
+        subTotalPrice,
+        shippingFee,
+        totalPrice,
+      };
 
-  setCheckoutData: (items, totalPrice) => {
-    const subTotalPrice = items.reduce(
-      (sum, item) => sum + item.unitPrice * item.quantity,
-      0
-    );
+      if (typeof window !== "undefined")
+        sessionStorage.setItem("checkoutData", JSON.stringify(data));
+      set(data);
+    },
 
-    const shippingFee = 0;
-
-    const data = {
-      items: items,
-      subTotalPrice,
-      shippingFee,
-      totalPrice,
-    };
-
-    sessionStorage.setItem("checkoutData", JSON.stringify(data));
-    set(data);
-  },
-
-  clearCheckout: () => {
-    sessionStorage.removeItem("checkoutData");
-    set({
-      items: [],
-      subTotalPrice: 0,
-      shippingFee: 0,
-      totalPrice: 0,
-    });
-  },
-}));
+    clearCheckout: () => {
+      if (typeof window !== "undefined")
+        sessionStorage.removeItem("checkoutData");
+      set({
+        items: [],
+        subTotalPrice: 0,
+        shippingFee: 0,
+        totalPrice: 0,
+      });
+    },
+  };
+});
