@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
-import { CheckoutBody, CheckoutItem } from "@/types";
+import { OrderItem, OrderBody } from "@/types";
 
 const CHIP_API_URL = "https://gate.chip-in.asia/api/v1/purchases/";
 const CHIP_BRAND_ID = process.env.CHIP_BRAND_ID!;
@@ -8,16 +8,18 @@ const CHIP_TOKEN = process.env.CHIP_TEST_API_TOKEN!;
 
 export async function POST(req: NextRequest) {
   try {
-    const body: CheckoutBody = await req.json();
+    const body: OrderBody = await req.json();
 
     const {
-      items,
       fullName,
       email,
       phoneNumber,
       address,
+      subTotalPrice,
+      shippingFee,
       totalPrice,
       paymentMethod,
+      items,
     } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -33,15 +35,20 @@ export async function POST(req: NextRequest) {
         email,
         phoneNumber,
         address,
+        subTotalPrice,
+        shippingFee,
         totalPrice,
-        shippingFee: 10,
-        courierName: "J&T",
         paymentMethod,
         paymentStatus: "pending",
+        courierName: "J&T",
+        trackingNumber: "ABC12345",
+        deliveryStatus: "pending",
         orderStatus: "pending",
       })
       .select()
       .single();
+
+    console.log("Order Data:", orderData); // //
 
     if (orderError || !orderData) {
       console.error("Order insert error:", orderError);
@@ -54,22 +61,17 @@ export async function POST(req: NextRequest) {
     const orderId = orderData.id;
 
     // 2. Insert order items
-    const orderItems = items.map((item: CheckoutItem) => {
-      const unitPrice = Number(item.itemUnitPrice) || 0;
-      const quantity = Number(item.itemQuantity) || 1;
-
-      return {
-        orderId,
-        productId: item.productId || null,
-        variantId: item.variantId || null,
-        variantOptionId: item.variantOptionId || null,
-        itemName: item.itemName || item.name || "Unknown Product",
-        itemCurrency: "RM",
-        itemUnitPrice: unitPrice,
-        itemQuantity: quantity,
-        itemTotalPrice: unitPrice * quantity,
-      };
-    });
+    const orderItems = items.map((item: OrderItem) => ({
+      orderId,
+      productId: item.productId || null,
+      variantId: item.variantId || null,
+      variantOptionId: item.variantOptionId || null,
+      itemName: item.itemName,
+      itemCurrency: item.itemCurrency,
+      itemUnitPrice: item.itemUnitPrice,
+      itemQuantity: item.itemQuantity,
+      itemTotalPrice: item.itemUnitPrice * item.itemQuantity,
+    }));
 
     const { error: itemsError } = await supabase
       .from("order_items")
@@ -83,6 +85,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log("Order Items:", orderItems); // //
+
     const SUCCESS_REDIRECT = `${process.env.NEXT_PUBLIC_SITE_URL}/order-success?status=success`;
     const FAILURE_REDIRECT = `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?status=error`;
 
@@ -94,9 +98,10 @@ export async function POST(req: NextRequest) {
         phone: phoneNumber,
       },
       purchase: {
-        products: items.map((item: CheckoutItem) => ({
-          name: item.itemName || item.name || "Product",
+        products: items.map((item: OrderItem) => ({
+          name: item.itemName,
           price: Math.round(Number(item.itemUnitPrice || 0) * 100),
+          // quantity: item.itemQuantity,
         })),
         currency: "MYR",
       },
@@ -108,6 +113,8 @@ export async function POST(req: NextRequest) {
       failure_redirect: FAILURE_REDIRECT,
       ...(paymentMethod ? { payment_method_whitelist: [paymentMethod] } : {}),
     };
+
+    console.log("CHIP:", chipPayload); // //
 
     // 4. Call CHIP
     const chipResponse = await fetch(CHIP_API_URL, {

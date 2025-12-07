@@ -23,7 +23,11 @@ export default function Navbar() {
   const cartCount = useCart((state) => state.cartCount);
   const cartItems = useCart((state) => state.items);
   const totalCart = useCart((state) =>
-    state.items.reduce((sum, item) => sum + item.totalPrice, 0)
+    state.items.reduce(
+      (sum, item) =>
+        sum + (item.currentPrice ?? item.unitPrice) * item.quantity,
+      0
+    )
   );
   const [mounted, setMounted] = useState(false);
   const startSwipe = useCart((s) => s.startSwipe);
@@ -204,7 +208,9 @@ export default function Navbar() {
                               {item.name}
                             </p>
                             <p className="text-neutral-400">
-                              RM{item.totalPrice}
+                              RM
+                              {(item.currentPrice ?? item.unitPrice) *
+                                item.quantity}
                             </p>
                           </div>
                           <Stepper

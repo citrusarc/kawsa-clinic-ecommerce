@@ -60,7 +60,6 @@ const formSchema = z
           ? City.getCitiesOfState(countryData.isoCode, stateData.isoCode)
           : [];
 
-      // If there are cities, city must be selected
       if (cities.length > 0 && !data.city) return false;
       return true;
     },
@@ -71,17 +70,17 @@ const formSchema = z
   );
 
 function CheckoutPageContent() {
-  const { items, total } = useCheckout();
+  const { items, subTotalPrice, shippingFee, totalPrice } = useCheckout();
   const params = useSearchParams();
   const error = params.get("status") === "error";
-  const [hydrated, setHydrated] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [hydrated, setHydrated] = useState(false); // //
   const [states, setStates] = useState<IState[]>([]);
   const [cities, setCities] = useState<ICity[]>([]);
   const [postcode, setPostcode] = useState("");
   const [country, setCountry] = useState("Malaysia");
   const [selectedState, setSelectedState] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -151,7 +150,9 @@ function CheckoutPageContent() {
         }, ${values.postcode}, ${values.city}, ${values.state}, ${
           values.country
         }`,
-        totalPrice: total,
+        subTotalPrice: subTotalPrice,
+        shippingFee: shippingFee,
+        totalPrice: totalPrice,
         items: items.map((item) => ({
           productId: item.productId,
           variantId: item.variantId || null,
@@ -160,6 +161,7 @@ function CheckoutPageContent() {
           itemCurrency: "RM",
           itemUnitPrice: item.currentPrice ?? item.unitPrice,
           itemQuantity: item.quantity,
+          itemTotalPrice: (item.currentPrice ?? item.unitPrice) * item.quantity,
         })),
       };
 
@@ -186,7 +188,9 @@ function CheckoutPageContent() {
     }
   }
 
-  if (!hydrated) return null;
+  if (!hydrated) {
+    return <div className="p-8">Loading your items...</div>;
+  }
 
   return (
     <section className="flex flex-col gap-8 py-8 p-4 sm:p-24">
@@ -230,14 +234,22 @@ function CheckoutPageContent() {
                       Quantity: {item.quantity}
                     </p>
                     <p className="text-violet-600 font-semibold">
-                      RM {item.totalPrice}
+                      RM{(item.currentPrice ?? item.unitPrice) * item.quantity}
                     </p>
                   </div>
                 </div>
               ))}
-              <p className="text-xl font-semibold">
-                Total: RM{total.toFixed(2)}
-              </p>
+              <div>
+                <p className="text-neutral-400">
+                  Sub Total: RM{subTotalPrice.toFixed(2)}
+                </p>
+                <p className="text-neutral-400">
+                  Shipping Fee: RM{shippingFee.toFixed(2)}
+                </p>
+                <p className="mt-4 sm:mt-8 text-xl font-semibold">
+                  Total: RM{totalPrice.toFixed(2)}
+                </p>
+              </div>
             </div>
           </div>
           <div className="order-1 sm:order-2 p-6 sm:p-8 w-full h-fit rounded-2xl sm:rounded-4xl overflow-hidden shadow-md border border-neutral-200 text-neutral-600 bg-white">
@@ -517,7 +529,7 @@ function CheckoutPageContent() {
                               >
                                 <SelectTrigger
                                   className={`w-full h-12! rounded-xl sm:rounded-2xl border ${
-                                    errors.state
+                                    errors.city
                                       ? "border-red-600"
                                       : "border-neutral-200"
                                   }`}

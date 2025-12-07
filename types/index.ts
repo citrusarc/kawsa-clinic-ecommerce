@@ -77,15 +77,16 @@ export type TestimonialItem = {
 export type CartItem = {
   id: string;
   productId: string;
-  variantId?: string;
-  variantOptionId?: string;
+  variantId: string;
+  variantOptionId: string;
   name: string;
   src: string;
   unitPrice: number;
   originalPrice?: number;
   currentPrice?: number;
-  totalPrice: number;
   quantity: number;
+  subTotalPrice: number;
+  totalPrice: number;
   swiped?: boolean;
 };
 
@@ -107,34 +108,50 @@ export type CartState = {
 
 export type CheckoutStore = {
   items: CartItem[];
-  total: number;
-  setCheckoutData: (items: CartItem[], total: number) => void;
+  subTotalPrice: number;
+  shippingFee: number;
+  totalPrice: number;
+  setCheckoutData: (items: CartItem[], totalPrice: number) => void;
   clearCheckout: () => void;
 };
 
-export type CheckoutItem = {
+export type OrderItem = {
+  orderId: string;
   productId: string;
-  variantId?: string | null;
-  variantOptionId?: string | null;
-  itemName?: string;
-  name?: string;
-  itemUnitPrice?: number | string;
-  currentPrice?: number;
-  unitPrice?: number;
-  itemQuantity?: number;
-  quantity?: number;
+  variantId: string;
+  variantOptionId: string;
+  itemName: string;
+  itemCurrency: string;
+  itemUnitPrice: number;
+  itemQuantity: number;
+  itemTotalPrice: number;
 };
 
-export type CheckoutBody = {
+export type OrderBody = {
   fullName: string;
   email: string;
   phoneNumber: string;
   address: string;
+  subTotalPrice: number;
+  shippingFee: number;
   totalPrice: number;
-  shippingFee?: number;
-  courierName?: string;
-  paymentMethod?: string;
-  items: CheckoutItem[];
+  paymentMethod: string;
+  items: OrderItem[];
+};
+
+export type OrderEmailTemplateProps = {
+  orderNumber: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  courierName: string;
+  trackingNumber: string;
+  deliveryStatus: string;
+  orderStatus: string;
+  items: CartItem[];
 };
 
 export type StepperProps = {
