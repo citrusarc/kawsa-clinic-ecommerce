@@ -48,8 +48,6 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
 
-    console.log("Order Data:", orderData); // //
-
     if (orderError || !orderData) {
       console.error("Order insert error:", orderError);
       return NextResponse.json(
@@ -85,8 +83,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log("Order Items:", orderItems); // //
-
     const SUCCESS_REDIRECT = `${process.env.NEXT_PUBLIC_SITE_URL}/order-success?status=success`;
     const FAILURE_REDIRECT = `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?status=error`;
 
@@ -114,23 +110,36 @@ export async function POST(req: NextRequest) {
       ...(paymentMethod ? { payment_method_whitelist: [paymentMethod] } : {}),
     };
 
-    console.log("CHIP:", chipPayload); // //
-
     // 4. Call CHIP
-    const chipResponse = await fetch(CHIP_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${CHIP_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(chipPayload),
-    });
+    let chipData;
+    try {
+      const chipResponse = await fetch(CHIP_API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${CHIP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(chipPayload),
+      });
 
-    const chipData = await chipResponse.json();
+      chipData = await chipResponse.json();
 
-    if (!chipResponse.ok) {
-      console.error("Chip API error:", chipData);
+      if (!chipResponse.ok) {
+        await supabase
+          .from("orders")
+          .update({
+            paymentStatus: "failed",
+            orderStatus: "cancelled_due_to_payment",
+          })
+          .eq("id", orderId);
 
+        return NextResponse.json(
+          { error: chipData.message || "Failed to create Chip purchase." },
+          { status: chipResponse.status }
+        );
+      }
+    } catch (err) {
+      console.error("CHIP API error:", err);
       await supabase
         .from("orders")
         .update({
@@ -140,8 +149,8 @@ export async function POST(req: NextRequest) {
         .eq("id", orderId);
 
       return NextResponse.json(
-        { error: chipData.message || "Failed to create Chip purchase." },
-        { status: chipResponse.status }
+        { error: "Failed to call CHIP API" },
+        { status: 500 }
       );
     }
 
@@ -149,18 +158,21 @@ export async function POST(req: NextRequest) {
     await supabase
       .from("orders")
       .update({
-        chipPurchaseId: chipData.id,
+        chipPurchaseId: chipData?.id || null,
         paymentStatus: "pending",
         orderStatus: "awaiting_payment",
+        paymentMethod: paymentMethod,
       })
-      .eq("id", orderId);
+      .eq("id", orderId)
+      .select()
+      .single();
 
     return NextResponse.json({
-      message: "Order created successfully!",
       orderId,
       orderNumber: orderData.orderNumber,
       success: true,
-      checkout_url: chipData.checkout_url,
+      checkout_url: chipData?.checkout_url || null,
+      message: "Order created successfully!",
     });
   } catch (err: unknown) {
     const errorMessage =
