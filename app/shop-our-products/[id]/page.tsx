@@ -394,6 +394,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                     totalPrice: pricePerUnit * quantity,
                     quantity: quantity,
                   });
+
                   setSuccessMessage("Added to cart");
                 } catch (error) {
                   const errorMessage =

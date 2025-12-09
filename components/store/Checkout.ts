@@ -47,7 +47,7 @@ export const useCheckout = create<CheckoutStore>((set) => {
       set({
         items: [],
         subTotalPrice: 0,
-        shippingFee: 0, // // Is this correct to put here?
+        shippingFee: 0,
         totalPrice: 0,
       });
     },
