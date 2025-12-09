@@ -28,6 +28,10 @@ export type FooterItem = {
 export type VariantOption = {
   id: string;
   optionName: string;
+  weight: number;
+  width?: number;
+  length?: number;
+  height?: number;
   currency: string;
   unitPrice: number;
   originalPrice?: number;
@@ -81,6 +85,10 @@ export type CartItem = {
   variantOptionId: string;
   name: string;
   src: string;
+  weight: number;
+  width?: number;
+  length?: number;
+  height?: number;
   unitPrice: number;
   originalPrice?: number;
   currentPrice?: number;

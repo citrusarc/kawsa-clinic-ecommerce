@@ -39,6 +39,10 @@ interface SupabaseProduct {
     variant_options: {
       id: string;
       optionName: string;
+      weight: number;
+      width?: number;
+      length?: number;
+      height?: number;
       currency: string;
       unitPrice: number;
       originalPrice?: number;
@@ -87,10 +91,14 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
               variant_options (
                 id,
                 optionName,
-                 currency,
-                 unitPrice,
-                 originalPrice,
-                 currentPrice
+                weight,
+                width,
+                length,
+                height,
+                currency,
+                unitPrice,
+                originalPrice,
+                currentPrice
               )
             )
           `
@@ -131,6 +139,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                   ): VariantOption => ({
                     id: option.id,
                     optionName: option.optionName,
+                    weight: option.weight,
+                    width: option.width,
+                    height: option.height,
+                    length: option.length,
                     currency: option.currency,
                     unitPrice: option.unitPrice,
                     originalPrice: option.originalPrice,
@@ -155,6 +167,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
             variant_options (
               id,
               optionName,
+              weight,
+              width,
+              length,
+              height,
               currency,
               unitPrice,
               originalPrice,
@@ -205,6 +221,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                       ): VariantOption => ({
                         id: option.id,
                         optionName: option.optionName,
+                        weight: option.weight,
+                        width: option.width,
+                        height: option.height,
+                        length: option.length,
                         currency: option.currency,
                         unitPrice: option.unitPrice,
                         originalPrice: option.originalPrice,
@@ -363,6 +383,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                     variantOptionId: selectedOption.id,
                     src: product.src,
                     name: product.name + " - " + selectedOption.optionName,
+                    weight: selectedOption.weight,
+                    width: selectedOption.width,
+                    length: selectedOption.length,
+                    height: selectedOption.height,
                     unitPrice: selectedOption.unitPrice,
                     originalPrice: originalPrice,
                     currentPrice: selectedOption.currentPrice,
@@ -402,6 +426,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                   variantOptionId: selectedOption.id,
                   src: product.src,
                   name: product.name + " - " + selectedOption.optionName,
+                  weight: selectedOption.weight,
+                  width: selectedOption.width,
+                  length: selectedOption.length,
+                  height: selectedOption.height,
                   unitPrice: selectedOption.unitPrice,
                   originalPrice: originalPrice,
                   currentPrice: selectedOption.currentPrice,

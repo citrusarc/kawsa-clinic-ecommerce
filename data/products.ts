@@ -32,11 +32,15 @@ export const products: ProductsItem[] = [
     variants: [
       {
         id: "variant-1",
-        variantName: "Default",
+        variantName: "Size",
         options: [
           {
             id: "option-1",
-            optionName: "Standard",
+            optionName: "50ml (1.7oz)",
+            weight: 1.0,
+            width: 1.0,
+            length: 1.0,
+            height: 1.0,
             currency: "RM",
             unitPrice: 70.0,
             originalPrice: 70.0,
@@ -68,11 +72,15 @@ export const products: ProductsItem[] = [
     variants: [
       {
         id: "variant-2",
-        variantName: "Default",
+        variantName: "Size",
         options: [
           {
             id: "option-2",
-            optionName: "Standard",
+            optionName: "15ml (0.5oz)",
+            weight: 1.0,
+            width: 1.0,
+            length: 1.0,
+            height: 1.0,
             currency: "RM",
             unitPrice: 85.0,
             originalPrice: 85.0,
@@ -100,11 +108,15 @@ export const products: ProductsItem[] = [
     variants: [
       {
         id: "variant-3",
-        variantName: "Default",
+        variantName: "Package",
         options: [
           {
             id: "option-3",
-            optionName: "Standard",
+            optionName: "1 Set",
+            weight: 1.0,
+            width: 1.0,
+            length: 1.0,
+            height: 1.0,
             currency: "RM",
             unitPrice: 210.0,
             originalPrice: 210.0,
@@ -136,15 +148,72 @@ export const products: ProductsItem[] = [
     variants: [
       {
         id: "variant-4",
-        variantName: "Default",
+        variantName: "Size",
         options: [
           {
             id: "option-4",
-            optionName: "Standard",
+            optionName: "30g (1oz)",
+            weight: 1.0,
+            width: 1.0,
+            length: 1.0,
+            height: 1.0,
             currency: "RM",
             unitPrice: 75.0,
             originalPrice: 75.0,
             currentPrice: 75.0,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "product-5",
+    src: "/Images/product-banner-5.jpg",
+    alt: "Product Image 5",
+    name: "KAWSA MASK",
+    description: [
+      "A luxurious hydrating facial mask crafted to deeply nourish, soothe, and rejuvenate your skin. Infused with natural botanical extracts, Kawsa Mask delivers instant moisture, enhances skin elasticity, and restores a youthful glow. Perfect for all skin types, it leaves your complexion feeling refreshed, radiant, and silky smooth after every use.",
+    ],
+    additionalInfo1: [
+      "Aqua (Water), Glycerin, Niacinamide, Aloe Barbadensis Leaf Extract, Camellia Sinensis (Green Tea) Extract, Centella Asiatica Extract, Sodium Hyaluronate, Collagen, Panthenol (Vitamin B5), Allantoin, Tocopheryl Acetate (Vitamin E), Carbomer, Phenoxyethanol, Ethylhexylglycerin, Fragrance.",
+    ],
+    additionalInfo2: [
+      "1. Cleanse your face thoroughly and pat dry.",
+      "2. Apply an even layer of Kawsa Mask over the face, avoiding the eye and lip areas.",
+      "3. Leave on for 10–15 minutes to allow full absorption of nutrients.",
+      "4. Rinse off gently with lukewarm water and follow with your regular skincare routine.",
+      "5. Use 2–3 times a week for optimal results.",
+    ],
+    currency: "RM",
+    status: { ...defaultStatus },
+    variants: [
+      {
+        id: "variant-5",
+        variantName: "Package",
+        options: [
+          {
+            id: "option-5",
+            optionName: "1 Piece",
+            weight: 1.0,
+            width: 1.0,
+            length: 1.0,
+            height: 1.0,
+            currency: "RM",
+            unitPrice: 38.0,
+            originalPrice: 38.0,
+            currentPrice: 38.0,
+          },
+          {
+            id: "option-6",
+            optionName: "1 Box",
+            weight: 1.0,
+            width: 1.0,
+            length: 1.0,
+            height: 1.0,
+            currency: "RM",
+            unitPrice: 115.0,
+            originalPrice: 115.0,
+            currentPrice: 115.0,
           },
         ],
       },

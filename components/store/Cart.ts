@@ -101,6 +101,7 @@ export const useCart = create<CartState>((set, get) => {
             ? {
                 ...i,
                 quantity,
+                subTotalPrice: quantity * (i.currentPrice ?? i.unitPrice),
                 totalPrice: quantity * (i.currentPrice ?? i.unitPrice),
               }
             : i

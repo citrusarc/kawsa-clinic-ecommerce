@@ -80,6 +80,7 @@ function CheckoutPageContent() {
   const [selectedState, setSelectedState] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  console.log(items); // //
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -157,6 +158,10 @@ function CheckoutPageContent() {
           variantId: item.variantId || null,
           variantOptionId: item.variantOptionId || null,
           itemName: item.name,
+          weight: item.weight,
+          width: item.width,
+          height: item.height,
+          length: item.length,
           itemCurrency: "RM",
           itemUnitPrice: item.currentPrice ?? item.unitPrice,
           itemQuantity: item.quantity,
@@ -230,7 +235,7 @@ function CheckoutPageContent() {
                       {item.name}
                     </p>
                     <p className="text-neutral-400">
-                      Quantity: {item.quantity}
+                      Quantity: {item.quantity} {item.weight} {item.height}
                     </p>
                     <p className="text-violet-600 font-semibold">
                       RM{(item.currentPrice ?? item.unitPrice) * item.quantity}
