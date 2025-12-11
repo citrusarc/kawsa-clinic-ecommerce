@@ -3,10 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { z } from "zod";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
 import ReactCountryFlag from "react-country-flag";
 import { Country, State, City, IState, ICity } from "country-state-city";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,13 +54,13 @@ const formSchema = z
             (s) => s.name === data.state
           )
         : null;
+
       const cities =
         countryData && stateData
           ? City.getCitiesOfState(countryData.isoCode, stateData.isoCode)
           : [];
 
-      if (cities.length > 0 && !data.city) return false;
-      return true;
+      return !(cities.length > 0 && !data.city);
     },
     {
       path: ["city"],
@@ -70,18 +69,24 @@ const formSchema = z
   );
 
 function CheckoutPageContent() {
-  const { items, subTotalPrice, shippingFee, totalPrice } = useCheckout();
+  const { items, subTotalPrice, shippingFee, totalPrice, setShippingFee } =
+    useCheckout();
+
   const params = useSearchParams();
   const error = params.get("status") === "error";
-  const [hydrated, setHydrated] = useState(false); // //
+
+  const [hydrated, setHydrated] = useState(false);
   const [states, setStates] = useState<IState[]>([]);
   const [cities, setCities] = useState<ICity[]>([]);
   const [country, setCountry] = useState("Malaysia");
   const [selectedState, setSelectedState] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const allCountries = useMemo(() => Country.getAllCountries(), []);
+
+  const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: "",
@@ -99,26 +104,25 @@ function CheckoutPageContent() {
 
   const {
     formState: { errors },
+    watch,
+    setValue, // //
+    getValues,
   } = form;
 
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
+  const watchedPostcode = watch("postcode");
+  const watchedState = watch("state");
+  const watchedCountry = watch("country");
+
+  useEffect(() => setHydrated(true), []);
 
   useEffect(() => {
-    const countryData = Country.getAllCountries().find(
-      (c) => c.name === country
-    );
+    const countryData = allCountries.find((c) => c.name === country);
     if (!countryData) return;
-
-    const list = State.getStatesOfCountry(countryData.isoCode);
-    setStates(list);
-  }, [country]);
+    setStates(State.getStatesOfCountry(countryData.isoCode));
+  }, [country, allCountries]);
 
   useEffect(() => {
-    const countryData = Country.getAllCountries().find(
-      (c) => c.name === country
-    );
+    const countryData = allCountries.find((c) => c.name === country);
     const stateData = states.find((s) => s.name === selectedState);
 
     if (!countryData || !stateData) {
@@ -127,15 +131,112 @@ function CheckoutPageContent() {
       return;
     }
 
-    const list = City.getCitiesOfState(countryData.isoCode, stateData.isoCode);
-    setCities(list);
-  }, [country, selectedState, states, form]);
+    setCities(City.getCitiesOfState(countryData.isoCode, stateData.isoCode));
+  }, [country, selectedState, states, allCountries, form]);
 
   useEffect(() => {
-    if (error) {
-      console.log("Payment failed → checkout restored");
-    }
+    if (error) console.log("Payment failed → checkout restored");
   }, [error]);
+
+  const calculateEasyParcelShippingRate = useCallback(
+    async (send_postcode: string, send_state: string, send_country: string) => {
+      setIsCalculating(true);
+      try {
+        if (
+          !send_state ||
+          !send_country ||
+          !send_postcode ||
+          send_postcode.length !== 5
+        ) {
+          setShippingFee(0);
+          return;
+        }
+
+        const { totalWeight, maxWidth, maxLength, maxHeight } = items.reduce(
+          (acc, item) => ({
+            totalWeight: acc.totalWeight + (Number(item.weight) || 0),
+            maxWidth: Math.max(acc.maxWidth, Number(item.width) || 0),
+            maxLength: Math.max(acc.maxLength, Number(item.length) || 0),
+            maxHeight: Math.max(acc.maxHeight, Number(item.height) || 0),
+          }),
+          { totalWeight: 0, maxWidth: 0, maxLength: 0, maxHeight: 0 }
+        );
+
+        if (totalWeight <= 0) return;
+
+        const body = {
+          pick_postcode: "40170",
+          pick_state: "Selangor",
+          pick_country: "MY",
+          send_postcode,
+          send_state,
+          send_country: "MY",
+          weight: totalWeight,
+          width: maxWidth,
+          length: maxLength,
+          height: maxHeight,
+        };
+
+        const response = await fetch("/api/easyparcel/rate-checking", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Rate check failed");
+
+        const rates = Array.isArray(data?.rates) ? data.rates : [];
+        if (rates.length === 0) {
+          setShippingFee(0);
+          return;
+        }
+
+        const lowestRate = rates.reduce((best: any, r: any) => {
+          const price = Number(r.price_rm);
+          if (isNaN(price)) return best;
+          if (!best) return { ...r, _price: price };
+          return price < best._price ? { ...r, _price: price } : best;
+        }, null as any);
+
+        setShippingFee(
+          lowestRate ? parseFloat(lowestRate._price.toFixed(2)) : 0
+        );
+      } catch (err) {
+        console.error("EasyParcel rate check error:", err);
+      } finally {
+        setIsCalculating(false);
+      }
+    },
+    [items, setShippingFee]
+  );
+
+  useEffect(() => {
+    if (
+      !watchedPostcode ||
+      !watchedState ||
+      !watchedCountry ||
+      watchedPostcode.length !== 5
+    ) {
+      setShippingFee(0);
+      return;
+    }
+
+    const debounceTimer = setTimeout(() => {
+      calculateEasyParcelShippingRate(
+        watchedPostcode,
+        watchedState,
+        watchedCountry
+      );
+    }, 400);
+
+    return () => clearTimeout(debounceTimer);
+  }, [
+    watchedPostcode,
+    watchedState,
+    watchedCountry,
+    calculateEasyParcelShippingRate,
+  ]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setSubmitting(true);
@@ -149,9 +250,9 @@ function CheckoutPageContent() {
         }, ${values.postcode}, ${values.city}, ${values.state}, ${
           values.country
         }`,
-        subTotalPrice: subTotalPrice,
-        shippingFee: shippingFee,
-        totalPrice: totalPrice,
+        subTotalPrice,
+        shippingFee,
+        totalPrice,
         items: items.map((item) => ({
           productId: item.productId,
           variantId: item.variantId || null,
@@ -170,17 +271,13 @@ function CheckoutPageContent() {
 
       const response = await fetch("/api/orders", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Payment failed");
-      }
+      if (!response.ok) throw new Error(data.error || "Payment failed");
 
       window.location.href = data.checkout_url;
       form.reset();
@@ -191,9 +288,7 @@ function CheckoutPageContent() {
     }
   }
 
-  if (!hydrated) {
-    return <div className="p-8">Loading your items...</div>;
-  }
+  if (!hydrated) return <div className="p-8">Loading your items...</div>;
 
   return (
     <section className="flex flex-col gap-8 py-8 p-4 sm:p-24">
@@ -247,7 +342,10 @@ function CheckoutPageContent() {
                   Sub Total: RM{subTotalPrice.toFixed(2)}
                 </p>
                 <p className="text-neutral-400">
-                  Shipping Fee: RM{shippingFee.toFixed(2)}
+                  Shipping Fee:{" "}
+                  {isCalculating
+                    ? "Estimating your shipping…"
+                    : `RM${shippingFee.toFixed(2)}`}
                 </p>
                 <p className="mt-4 sm:mt-8 text-xl font-semibold">
                   Total: RM{totalPrice.toFixed(2)}
@@ -579,6 +677,21 @@ function CheckoutPageContent() {
                                 {...field}
                                 placeholder="12345"
                                 className="w-full h-12 items-center justify-start text-left rounded-xl sm:rounded-2xl"
+                                onBlur={() => {
+                                  const value = getValues();
+                                  if (
+                                    value.postcode &&
+                                    value.state &&
+                                    value.country &&
+                                    value.postcode.length === 5
+                                  ) {
+                                    calculateEasyParcelShippingRate(
+                                      value.postcode,
+                                      value.state,
+                                      value.country
+                                    );
+                                  }
+                                }}
                               />
                             </FormControl>
                           </FormItem>
@@ -643,7 +756,7 @@ function CheckoutPageContent() {
 
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || isCalculating || shippingFee === 0}
                   className="p-4 w-full sm:w-fit rounded-lg overflow-hidden cursor-pointer border border-violet-600 text-white bg-violet-600 hover:text-violet-600 hover:bg-white"
                 >
                   {submitting ? "Sending your order..." : "Place Order"}

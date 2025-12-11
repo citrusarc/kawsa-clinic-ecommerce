@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
 import { OrderItem, OrderBody } from "@/types";
 
-const CHIP_API_URL = "https://gate.chip-in.asia/api/v1/purchases/";
+const CHIP_API_URL = process.env.CHIP_API_URL!;
 const CHIP_BRAND_ID = process.env.CHIP_BRAND_ID!;
 const CHIP_TOKEN = process.env.CHIP_TEST_API_TOKEN!;
 
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       address,
       subTotalPrice,
       shippingFee,
-      totalPrice,
+      totalPrice, // //
       paymentMethod,
       items,
     } = body;
@@ -25,6 +25,9 @@ export async function POST(req: NextRequest) {
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
     }
+
+    const finalTotalPrice =
+      Number(subTotalPrice || 0) + Number(shippingFee || 0); ///
 
     // 1. Create order
     const { data: orderData, error: orderError } = await supabase
@@ -37,7 +40,7 @@ export async function POST(req: NextRequest) {
         address,
         subTotalPrice,
         shippingFee,
-        totalPrice,
+        totalPrice: finalTotalPrice, ///
         paymentMethod,
         paymentStatus: "pending",
         courierName: "J&T",
@@ -94,11 +97,19 @@ export async function POST(req: NextRequest) {
         phone: phoneNumber,
       },
       purchase: {
-        products: items.map((item: OrderItem) => ({
-          name: item.itemName,
-          price: Math.round(Number(item.itemUnitPrice || 0) * 100),
-          quantity: item.itemQuantity,
-        })),
+        products: [
+          ...items.map((item: OrderItem) => ({
+            name: item.itemName,
+            price: Math.round(Number(item.itemUnitPrice || 0) * 100),
+            quantity: item.itemQuantity,
+          })),
+          // /// NEW: add shipping as a separate product to CHIP
+          {
+            name: "Shipping Fee", /// ///
+            price: Math.round(Number(shippingFee || 0) * 100), /// ///
+            quantity: 1, /// ///
+          },
+        ],
         currency: "MYR",
       },
       brand_id: CHIP_BRAND_ID,

@@ -121,6 +121,7 @@ export type CheckoutStore = {
   totalPrice: number;
   setCheckoutData: (items: CartItem[], totalPrice: number) => void;
   clearCheckout: () => void;
+  setShippingFee: (fee: number) => void;
 };
 
 export type OrderItem = {
