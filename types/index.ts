@@ -124,6 +124,16 @@ export type CheckoutStore = {
   setShippingFee: (fee: number) => void;
 };
 
+export type RateCheckingItem = {
+  rate_id: string;
+  courier_name: string;
+  service_id: string;
+  service_name: string;
+  shipment_price: number;
+  addon_price: number;
+  [key: string]: unknown;
+};
+
 export type OrderItem = {
   orderId: string;
   productId: string;

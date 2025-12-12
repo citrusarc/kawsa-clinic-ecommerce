@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { RateCheckingItem } from "@/types";
+
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_API_KEY!; // set EP-rAkk0XgHC in .env.local
 const EASYPARCEL_RATE_CHECKING_URL = process.env.EASYPARCEL_RATE_CHECKING_URL!;
 
@@ -63,14 +65,8 @@ export async function POST(req: NextRequest) {
 
     const data = await response.json();
 
-    // Attempt to safely extract rates from EasyParcel response
-    const allRates =
-      (data &&
-        data.result &&
-        Array.isArray(data.result) &&
-        data.result[0] &&
-        data.result[0].rates) ||
-      [];
+    const allRates: RateCheckingItem[] =
+      (data?.result?.[0]?.rates as RateCheckingItem[]) || [];
 
     const COURIER_PRIORITY = [
       "Poslaju National Courier",
@@ -85,36 +81,33 @@ export async function POST(req: NextRequest) {
       "Lazada Express (Malaysia) Sdn Bhd",
     ];
 
-    const filtered = allRates.filter((r: any) => {
+    const priorityCouriers = allRates.filter((r: RateCheckingItem) => {
       return COURIER_PRIORITY.some((name) =>
         r.courier_name?.toLowerCase().includes(name.toLowerCase())
       );
     });
 
-    const usableRates = filtered.length > 0 ? filtered : allRates;
+    const effectiveRates =
+      priorityCouriers.length > 0 ? priorityCouriers : allRates;
 
-    // Normalize rates and return simplified structure
-    const simplifiedRates = usableRates.map((r: any) => {
-      const base = Number(r.shipment_price || 0);
-      const addons = Number(r.addon_price || 0); // includes sms/email/branding
-      const price = base + addons;
+    const mappedRates = effectiveRates.map((response: RateCheckingItem) => {
+      const base = Number(response.shipment_price || 0);
+      const addons = Number(response.addon_price || 0); // includes sms/email/branding
+      const price = (base || 0) + (addons || 0);
 
       return {
-        rate_id: r.rate_id,
-        courier: r.courier_name,
-        service_id: r.service_id,
-        service_name: r.service_name,
-
-        // // NEW: final price including addons
+        rate_id: response.rate_id,
+        courier: response.courier_name,
+        service_id: response.service_id,
+        service_name: response.service_name,
         price_rm: Number(price.toFixed(2)),
-
-        raw: r,
+        original: response,
       };
     });
 
     return NextResponse.json({
       status: "success",
-      rates: simplifiedRates,
+      rates: mappedRates,
     });
   } catch (error) {
     return NextResponse.json(

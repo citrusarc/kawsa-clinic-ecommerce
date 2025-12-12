@@ -105,7 +105,6 @@ function CheckoutPageContent() {
   const {
     formState: { errors },
     watch,
-    setValue, // //
     getValues,
   } = form;
 
@@ -117,9 +116,12 @@ function CheckoutPageContent() {
 
   useEffect(() => {
     const countryData = allCountries.find((c) => c.name === country);
-    if (!countryData) return;
-    setStates(State.getStatesOfCountry(countryData.isoCode));
-  }, [country, allCountries]);
+    setStates(countryData ? State.getStatesOfCountry(countryData.isoCode) : []);
+    setSelectedState("");
+    setSelectedCity("");
+    form.setValue("state", "");
+    form.setValue("city", "");
+  }, [country, allCountries, form]);
 
   useEffect(() => {
     const countryData = allCountries.find((c) => c.name === country);
@@ -192,12 +194,15 @@ function CheckoutPageContent() {
           return;
         }
 
-        const lowestRate = rates.reduce((best: any, r: any) => {
-          const price = Number(r.price_rm);
-          if (isNaN(price)) return best;
-          if (!best) return { ...r, _price: price };
-          return price < best._price ? { ...r, _price: price } : best;
-        }, null as any);
+        const lowestRate = rates.reduce(
+          (best: { _price: number } | null, response: { price_rm: number }) => {
+            const price = Number(response.price_rm);
+            if (isNaN(price)) return best;
+            if (!best) return { ...response, _price: price };
+            return price < best._price ? { ...response, _price: price } : best;
+          },
+          null
+        );
 
         setShippingFee(
           lowestRate ? parseFloat(lowestRate._price.toFixed(2)) : 0
@@ -236,6 +241,7 @@ function CheckoutPageContent() {
     watchedState,
     watchedCountry,
     calculateEasyParcelShippingRate,
+    setShippingFee,
   ]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {

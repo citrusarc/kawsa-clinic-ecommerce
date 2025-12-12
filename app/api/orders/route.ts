@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
       address,
       subTotalPrice,
       shippingFee,
-      totalPrice, // //
       paymentMethod,
       items,
     } = body;
@@ -26,8 +25,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
     }
 
-    const finalTotalPrice =
-      Number(subTotalPrice || 0) + Number(shippingFee || 0); ///
+    const calculatedTotalPrice =
+      Number(subTotalPrice || 0) + Number(shippingFee || 0);
 
     // 1. Create order
     const { data: orderData, error: orderError } = await supabase
@@ -40,7 +39,7 @@ export async function POST(req: NextRequest) {
         address,
         subTotalPrice,
         shippingFee,
-        totalPrice: finalTotalPrice, ///
+        totalPrice: calculatedTotalPrice,
         paymentMethod,
         paymentStatus: "pending",
         courierName: "J&T",
@@ -103,11 +102,10 @@ export async function POST(req: NextRequest) {
             price: Math.round(Number(item.itemUnitPrice || 0) * 100),
             quantity: item.itemQuantity,
           })),
-          // /// NEW: add shipping as a separate product to CHIP
           {
-            name: "Shipping Fee", /// ///
-            price: Math.round(Number(shippingFee || 0) * 100), /// ///
-            quantity: 1, /// ///
+            name: "Shipping Fee",
+            price: Math.round(Number(shippingFee || 0) * 100),
+            quantity: 1,
           },
         ],
         currency: "MYR",
