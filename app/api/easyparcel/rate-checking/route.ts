@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { RateCheckingItem } from "@/types";
 
-const EASYPARCEL_API_KEY = process.env.EASYPARCEL_API_KEY!; // set EP-rAkk0XgHC in .env.local
-const EASYPARCEL_RATE_CHECKING_URL = process.env.EASYPARCEL_RATE_CHECKING_URL!;
+const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!; // set EP-rAkk0XgHC in .env.local
+const EASYPARCEL_RATE_CHECKING_URL =
+  process.env.EASYPARCEL_DEMO_RATE_CHECKING_URL!;
 
 export async function POST(req: NextRequest) {
   try {

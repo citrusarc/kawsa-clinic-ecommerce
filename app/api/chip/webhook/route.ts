@@ -44,6 +44,37 @@ export async function POST(req: NextRequest) {
           chipPurchaseId,
         })
         .eq("id", order.id);
+
+      // // Prevent duplicate EasyParcel orders
+      if (!order.trackingNumber) {
+        try {
+          const easyParcelResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`, // //
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                orderId: order.id, // //
+              }),
+            }
+          );
+
+          const easyParcelData = await easyParcelResponse.json();
+
+          if (!easyParcelResponse.ok) {
+            console.error("EasyParcel order creation failed:", easyParcelData);
+          } else {
+            console.log(
+              "EasyParcel order created successfully:",
+              easyParcelData
+            );
+          }
+        } catch (epError) {
+          console.error("EasyParcel API call error:", epError);
+        }
+      } else {
+        console.log("EasyParcel order already exists, skipping creation..."); // //
+      }
     }
 
     // FAILED / CANCELLED
