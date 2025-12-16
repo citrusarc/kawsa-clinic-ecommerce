@@ -173,6 +173,14 @@ export type OrderEmailTemplateProps = {
   items: CartItem[];
 };
 
+export type EasyParcelRateItem = {
+  service_id: string;
+  service_name?: string;
+  courier_name?: string;
+  price_rm: number | string;
+  delivery_days?: string;
+};
+
 export type StepperProps = {
   value: number;
   onChange: (v: number) => void;

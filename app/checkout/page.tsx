@@ -27,6 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useCheckout } from "@/components/store/Checkout";
+import { EasyParcelRateItem } from "@/types";
 
 const formSchema = z
   .object({
@@ -83,6 +84,10 @@ function CheckoutPageContent() {
   const [selectedCity, setSelectedCity] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
+    null
+  );
+  const [, setAvailableRates] = useState<EasyParcelRateItem[]>([]);
 
   const allCountries = useMemo(() => Country.getAllCountries(), []);
 
@@ -105,7 +110,6 @@ function CheckoutPageContent() {
   const {
     formState: { errors },
     watch,
-    getValues,
   } = form;
 
   const watchedPostcode = watch("postcode");
@@ -192,22 +196,28 @@ function CheckoutPageContent() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || "Rate check failed");
 
-        const rates = Array.isArray(data?.rates) ? data.rates : [];
+        const rates: EasyParcelRateItem[] = Array.isArray(data?.rates)
+          ? data.rates
+          : [];
         if (rates.length === 0) {
           setShippingFee(0);
           return;
         }
 
-        const lowestRate = rates.reduce(
-          (best: { _price: number } | null, response: { price_rm: number }) => {
-            const price = Number(response.price_rm);
-            if (isNaN(price)) return best;
-            if (!best) return { ...response, _price: price };
-            return price < best._price ? { ...response, _price: price } : best;
-          },
-          null
-        );
+        setAvailableRates(rates);
+        const lowestRate = rates.reduce<{
+          _price: number;
+          service_id: string;
+        } | null>((best, rate) => {
+          const price = Number(rate.price_rm);
+          if (isNaN(price)) return best;
+          if (!best) return { service_id: rate.service_id, _price: price };
+          return price < best._price
+            ? { service_id: rate.service_id, _price: price }
+            : best;
+        }, null);
 
+        if (lowestRate) setSelectedServiceId(lowestRate.service_id);
         setShippingFee(
           lowestRate ? parseFloat(lowestRate._price.toFixed(2)) : 0
         );
@@ -224,7 +234,7 @@ function CheckoutPageContent() {
     if (
       !watchedPostcode ||
       !watchedState ||
-      !watchedCountry ||
+      !watchedCountryISO ||
       watchedPostcode.length !== 5
     ) {
       setShippingFee(0);
@@ -251,6 +261,58 @@ function CheckoutPageContent() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setSubmitting(true);
     try {
+      const totalWeight = items.reduce(
+        (acc, item) => acc + Number(item.weight || 0),
+        0
+      );
+
+      const easyParcelPayload = {
+        service_id: selectedServiceId,
+        sender: {
+          name: "DRKAY MEDIBEAUTY SDN BHD",
+          phone: "+60123456789",
+          address1: "39-02, Jalan Padi Emas 1/8",
+          address2: "Bandar Baru Uda",
+          city: "Johor Bahru",
+          state: "Johor",
+          postcode: "81200",
+          country: "MY",
+        },
+        receiver: {
+          name: values.fullName,
+          phone: `${values.countryCode}${values.phoneNumber}`,
+          address1: values.addressLine1,
+          address2: values.addressLine2 || "",
+          city: values.city,
+          state: values.state,
+          postcode: values.postcode,
+          country:
+            allCountries.find((c) => c.name === values.country)?.isoCode ||
+            "MY",
+        },
+        items: [
+          {
+            weight: totalWeight,
+            content: items.map((index) => index.name).join(","),
+            value: subTotalPrice,
+          },
+        ],
+        email: values.email,
+      };
+
+      // Send EasyParcel order before CHIP payment - epData epResponse
+      const epResponse = await fetch("/api/easyparcel/making-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(easyParcelPayload),
+      });
+
+      const epData = await epResponse.json();
+
+      if (!epResponse.ok || !epData.success) {
+        throw new Error(epData.message || "EasyParcel order failed");
+      }
+
       const payload = {
         fullName: values.fullName,
         email: values.email,
@@ -277,6 +339,7 @@ function CheckoutPageContent() {
           itemQuantity: item.quantity,
           itemTotalPrice: (item.currentPrice ?? item.unitPrice) * item.quantity,
         })),
+        easyParcelResult: epData.result, // //
       };
 
       const response = await fetch("/api/orders", {
