@@ -44,10 +44,10 @@ export async function POST(req: NextRequest) {
         {
           pick_code: String(pick_postcode),
           pick_state: String(pick_state),
-          pick_country: String(pick_country) || "MY",
+          pick_country: String(pick_country || "MY"),
           send_code: String(send_postcode),
           send_state: String(send_state),
-          send_country: String(send_country) || "MY",
+          send_country: String(send_country || "MY"),
           weight: Number(weight),
           width: Number(width) || 0,
           length: Number(length) || 0,

@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
 
-const EASY_PARCEL_URL = process.env.EASYPARCEL_API_URL!; // // demo or live
-const EASY_PARCEL_API_KEY = process.env.EASYPARCEL_API_KEY!; // //
+const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
+const EASYPARCEL_DEMO_MAKING_ORDER_URL =
+  process.env.EASYPARCEL_DEMO_MAKING_ORDER_URL!;
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId } = await req.json(); // //
+    const { orderId } = await req.json();
 
     if (!orderId) {
       return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
     }
 
-    // // 1. Get order
+    // 1. Get order
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .select("*")
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // // Ensure payment is successful
+    // Ensure payment is successful (CHIP)
     if (order.paymentStatus !== "paid") {
       return NextResponse.json(
         { error: "Payment not completed" },
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // // 2. Get order items
+    // 2. Get order items
     const { data: items, error: itemsError } = await supabase
       .from("order_items")
       .select("*")
@@ -44,28 +45,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // // 3. Calculate parcel info
+    // 3. Calculate parcel info
     const totalWeight = items.reduce(
-      (sum, i) => sum + Number(i.weight || 0),
+      (sum, index) => sum + Number(index.weight || 0),
       0
     );
 
     const parcelValue = items.reduce(
-      (sum, i) => sum + Number(i.itemTotalPrice || 0),
+      (sum, index) => sum + Number(index.itemTotalPrice || 0),
       0
     );
 
-    // // 4. Build EasyParcel payload
+    if (totalWeight <= 0) {
+      return NextResponse.json(
+        { error: "Invalid parcel weight" },
+        { status: 400 }
+      );
+    }
+
+    // 4. Build EasyParcel Making-Order payload (DOC COMPLIANT)
     const payload = {
-      api: EASY_PARCEL_API_KEY, // //
+      api: EASYPARCEL_API_KEY,
       bulk: [
         {
+          // Shipment details
           weight: totalWeight,
           content: "E-commerce Order",
           value: parcelValue,
-          service_id: order.easyparcel_service_id, // // must be saved earlier
+          service_id: order.easyparcel_service_id,
 
-          // // Sender (Your shop)
+          // Sender
           pick_name: "Your Shop Name",
           pick_contact: "0123456789",
           pick_addr1: "Your warehouse address",
@@ -74,25 +83,27 @@ export async function POST(req: NextRequest) {
           pick_code: "40170",
           pick_country: "MY",
 
-          // // Receiver
+          // Receiver
           send_name: order.fullName,
           send_contact: order.phoneNumber,
           send_email: order.email,
-          send_addr1: order.address,
+          send_addr1: order.addressLine1,
+          send_addr2: order.addressLine2 || "",
           send_city: order.city,
           send_state: order.state,
           send_code: order.postcode,
           send_country: "MY",
 
-          collect_date: new Date().toISOString().split("T")[0], // //
+          // Notifications & reference
+          collect_date: new Date().toISOString().split("T")[0],
           sms: true,
-          reference: order.orderNumber, // //
+          reference: order.orderNumber,
         },
       ],
     };
 
-    // // 5. Call EasyParcel
-    const response = await fetch(EASY_PARCEL_URL, {
+    // 5. Call EasyParcel Making-Order API
+    const response = await fetch(EASYPARCEL_DEMO_MAKING_ORDER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -100,33 +111,34 @@ export async function POST(req: NextRequest) {
 
     const result = await response.json();
 
-    if (!response.ok || result?.error) {
-      console.error("EasyParcel error:", result);
+    if (!response.ok || result?.api_status !== "Success") {
+      console.error("EasyParcel making-order error:", result);
       return NextResponse.json(
-        { error: "EasyParcel order failed" },
+        { error: "EasyParcel making-order failed", detail: result },
         { status: 500 }
       );
     }
 
-    const epOrder = result?.result?.[0]; // //
+    const epOrder = result?.result?.[0];
 
-    // // 6. Update order with tracking info
+    // 6. Save EasyParcel order info (needed for payment step)
     await supabase
       .from("orders")
       .update({
-        courierName: epOrder?.courier_name || "EasyParcel",
-        trackingNumber: epOrder?.tracking_number || null,
+        courierName: epOrder.courier || "EasyParcel",
+        parcelNumber: epOrder.parcel_number, // //
+        easyparcelOrderNo: epOrder.order_number, // //
         deliveryStatus: "processing",
       })
       .eq("id", orderId);
 
     return NextResponse.json({
       success: true,
-      trackingNumber: epOrder?.tracking_number,
-      courier: epOrder?.courier_name,
+      parcelNumber: epOrder.parcel_number,
+      easyparcelOrderNo: epOrder.order_number, // //
     });
   } catch (err) {
-    console.error("EasyParcel making order error:", err);
+    console.error("EasyParcel making-order error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

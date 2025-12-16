@@ -45,40 +45,57 @@ export async function POST(req: NextRequest) {
         })
         .eq("id", order.id);
 
-      // // Prevent duplicate EasyParcel orders
-      if (!order.trackingNumber) {
+      if (!order.easyparcelOrderNo) {
         try {
-          const easyParcelResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`, // //
+          const createOrderRes = await fetch(
+            `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                orderId: order.id, // //
-              }),
+              body: JSON.stringify({ orderId: order.id }),
             }
           );
 
-          const easyParcelData = await easyParcelResponse.json();
+          const createOrderData = await createOrderRes.json();
 
-          if (!easyParcelResponse.ok) {
-            console.error("EasyParcel order creation failed:", easyParcelData);
-          } else {
-            console.log(
-              "EasyParcel order created successfully:",
-              easyParcelData
-            );
+          if (!createOrderRes.ok) {
+            console.error("EasyParcel making-order failed:", createOrderData);
+            return NextResponse.json({ received: true });
           }
-        } catch (epError) {
-          console.error("EasyParcel API call error:", epError);
+        } catch (err) {
+          console.error("EasyParcel making-order error:", err);
+          return NextResponse.json({ received: true });
         }
       } else {
-        console.log("EasyParcel order already exists, skipping creation..."); // //
+        console.log("EasyParcel order already exists, skipping making-order");
       }
-    }
 
-    // FAILED / CANCELLED
-    else if (status === "failed" || status === "cancelled") {
+      if (!order.trackingNumber) {
+        try {
+          const payOrderRes = await fetch(
+            `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order-payment`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId: order.id }),
+            }
+          );
+
+          const payOrderData = await payOrderRes.json();
+
+          if (!payOrderRes.ok) {
+            console.error(
+              "EasyParcel making-order-payment failed:",
+              payOrderData
+            );
+          }
+        } catch (err) {
+          console.error("EasyParcel making-order-payment error:", err);
+        }
+      } else {
+        console.log("AWB already exists, skipping payment");
+      }
+    } else if (status === "failed" || status === "cancelled") {
       console.log("Payment failed/cancelled, updating order...");
 
       await supabase
@@ -88,10 +105,7 @@ export async function POST(req: NextRequest) {
           orderStatus: "cancelled_due_to_payment",
         })
         .eq("id", order.id);
-    }
-
-    // STILL PENDING (FPX not finished)
-    else if (status === "pending") {
+    } else if (status === "pending") {
       console.log("Payment still pending...");
 
       await supabase

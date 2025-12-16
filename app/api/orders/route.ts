@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
         totalPrice: calculatedTotalPrice,
         paymentMethod,
         paymentStatus: "pending",
-        courierName: "J&T",
-        trackingNumber: "ABC12345",
+        courierName: null,
+        trackingNumber: null,
         deliveryStatus: "pending",
         orderStatus: "pending",
       })

@@ -119,9 +119,9 @@ export type CheckoutStore = {
   subTotalPrice: number;
   shippingFee: number;
   totalPrice: number;
+  setShippingFee: (fee: number) => void;
   setCheckoutData: (items: CartItem[], totalPrice: number) => void;
   clearCheckout: () => void;
-  setShippingFee: (fee: number) => void;
 };
 
 export type RateCheckingItem = {

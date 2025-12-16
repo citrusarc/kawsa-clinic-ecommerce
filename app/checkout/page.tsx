@@ -112,6 +112,10 @@ function CheckoutPageContent() {
   const watchedState = watch("state");
   const watchedCountry = watch("country");
 
+  const watchedCountryISO = useMemo(() => {
+    return allCountries.find((c) => c.name === watchedCountry)?.isoCode || "MY";
+  }, [watchedCountry, allCountries]);
+
   useEffect(() => setHydrated(true), []);
 
   useEffect(() => {
@@ -172,7 +176,7 @@ function CheckoutPageContent() {
           pick_country: "MY",
           send_postcode,
           send_state,
-          send_country: "MY",
+          send_country,
           weight: totalWeight,
           width: maxWidth,
           length: maxLength,
@@ -231,7 +235,7 @@ function CheckoutPageContent() {
       calculateEasyParcelShippingRate(
         watchedPostcode,
         watchedState,
-        watchedCountry
+        watchedCountryISO
       );
     }, 400);
 
@@ -239,7 +243,7 @@ function CheckoutPageContent() {
   }, [
     watchedPostcode,
     watchedState,
-    watchedCountry,
+    watchedCountryISO,
     calculateEasyParcelShippingRate,
     setShippingFee,
   ]);
@@ -683,21 +687,6 @@ function CheckoutPageContent() {
                                 {...field}
                                 placeholder="12345"
                                 className="w-full h-12 items-center justify-start text-left rounded-xl sm:rounded-2xl"
-                                onBlur={() => {
-                                  const value = getValues();
-                                  if (
-                                    value.postcode &&
-                                    value.state &&
-                                    value.country &&
-                                    value.postcode.length === 5
-                                  ) {
-                                    calculateEasyParcelShippingRate(
-                                      value.postcode,
-                                      value.state,
-                                      value.country
-                                    );
-                                  }
-                                }}
                               />
                             </FormControl>
                           </FormItem>
@@ -763,7 +752,7 @@ function CheckoutPageContent() {
                 <button
                   type="submit"
                   disabled={submitting || isCalculating || shippingFee === 0}
-                  className="p-4 w-full sm:w-fit rounded-lg overflow-hidden cursor-pointer border border-violet-600 text-white bg-violet-600 hover:text-violet-600 hover:bg-white"
+                  className="p-4 w-full sm:w-fit rounded-lg overflow-hidden cursor-pointer border border-violet-600 text-white bg-violet-600 hover:text-violet-600 hover:bg-white disabled:cursor-auto disabled:border-neutral-200 disabled:text-white disabled:bg-neutral-200"
                 >
                   {submitting ? "Sending your order..." : "Place Order"}
                 </button>
