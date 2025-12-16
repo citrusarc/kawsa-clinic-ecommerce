@@ -3,7 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { z } from "zod";
-import { Suspense, useEffect, useState, useCallback, useMemo } from "react";
+import {
+  Suspense,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import ReactCountryFlag from "react-country-flag";
@@ -74,6 +81,7 @@ function CheckoutPageContent() {
     useCheckout();
 
   const params = useSearchParams();
+  const availableRatesRef = useRef<EasyParcelRateItem[]>([]);
   const error = params.get("status") === "error";
 
   const [hydrated, setHydrated] = useState(false);
@@ -87,9 +95,6 @@ function CheckoutPageContent() {
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
     null
   );
-  const [, setAvailableRates] = useState<EasyParcelRateItem[]>([]);
-
-  const allCountries = useMemo(() => Country.getAllCountries(), []);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -116,9 +121,23 @@ function CheckoutPageContent() {
   const watchedState = watch("state");
   const watchedCountry = watch("country");
 
+  const allCountries = useMemo(() => Country.getAllCountries(), []);
+
   const watchedCountryISO = useMemo(() => {
     return allCountries.find((c) => c.name === watchedCountry)?.isoCode || "MY";
   }, [watchedCountry, allCountries]);
+
+  const parcelMetrics = useMemo(() => {
+    return items.reduce(
+      (acc, item) => ({
+        totalWeight: acc.totalWeight + (Number(item.weight) || 0),
+        maxWidth: Math.max(acc.maxWidth, Number(item.width) || 0),
+        maxLength: Math.max(acc.maxLength, Number(item.length) || 0),
+        maxHeight: Math.max(acc.maxHeight, Number(item.height) || 0),
+      }),
+      { totalWeight: 0, maxWidth: 0, maxLength: 0, maxHeight: 0 }
+    );
+  }, [items]);
 
   useEffect(() => setHydrated(true), []);
 
@@ -159,20 +178,16 @@ function CheckoutPageContent() {
           send_postcode.length !== 5
         ) {
           setShippingFee(0);
+          setSelectedServiceId(null);
           return;
         }
 
-        const { totalWeight, maxWidth, maxLength, maxHeight } = items.reduce(
-          (acc, item) => ({
-            totalWeight: acc.totalWeight + (Number(item.weight) || 0),
-            maxWidth: Math.max(acc.maxWidth, Number(item.width) || 0),
-            maxLength: Math.max(acc.maxLength, Number(item.length) || 0),
-            maxHeight: Math.max(acc.maxHeight, Number(item.height) || 0),
-          }),
-          { totalWeight: 0, maxWidth: 0, maxLength: 0, maxHeight: 0 }
-        );
+        const { totalWeight, maxWidth, maxLength, maxHeight } = parcelMetrics;
 
-        if (totalWeight <= 0) return;
+        if (totalWeight <= 0) {
+          setIsCalculating(false);
+          return;
+        }
 
         const body = {
           pick_postcode: "40170",
@@ -201,10 +216,11 @@ function CheckoutPageContent() {
           : [];
         if (rates.length === 0) {
           setShippingFee(0);
+          setSelectedServiceId(null);
           return;
         }
 
-        setAvailableRates(rates);
+        availableRatesRef.current = rates;
         const lowestRate = rates.reduce<{
           _price: number;
           service_id: string;
@@ -227,7 +243,7 @@ function CheckoutPageContent() {
         setIsCalculating(false);
       }
     },
-    [items, setShippingFee]
+    [parcelMetrics, setShippingFee, setSelectedServiceId]
   );
 
   useEffect(() => {
@@ -255,16 +271,16 @@ function CheckoutPageContent() {
     watchedState,
     watchedCountryISO,
     calculateEasyParcelShippingRate,
-    setShippingFee,
   ]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!selectedServiceId) {
+      throw new Error("Shipping service not selected");
+    }
+
     setSubmitting(true);
     try {
-      const totalWeight = items.reduce(
-        (acc, item) => acc + Number(item.weight || 0),
-        0
-      );
+      const { totalWeight } = parcelMetrics;
 
       const easyParcelPayload = {
         service_id: selectedServiceId,
@@ -300,7 +316,7 @@ function CheckoutPageContent() {
         email: values.email,
       };
 
-      // Send EasyParcel order before CHIP payment - epData epResponse
+      // // Send EasyParcel order before CHIP payment - epData epResponse
       const epResponse = await fetch("/api/easyparcel/making-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -814,7 +830,12 @@ function CheckoutPageContent() {
 
                 <button
                   type="submit"
-                  disabled={submitting || isCalculating || shippingFee === 0}
+                  disabled={
+                    submitting ||
+                    isCalculating ||
+                    !selectedServiceId ||
+                    shippingFee === 0
+                  }
                   className="p-4 w-full sm:w-fit rounded-lg overflow-hidden cursor-pointer border border-violet-600 text-white bg-violet-600 hover:text-violet-600 hover:bg-white disabled:cursor-auto disabled:border-neutral-200 disabled:text-white disabled:bg-neutral-200"
                 >
                   {submitting ? "Sending your order..." : "Place Order"}
