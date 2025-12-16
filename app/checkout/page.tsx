@@ -779,15 +779,7 @@ function CheckoutPageContent() {
                         render={({ field }) => (
                           <FormItem className="flex-1">
                             <FormControl>
-                              <Select
-                                onValueChange={(value) => {
-                                  setCountry(value);
-                                  setSelectedState("");
-                                  setSelectedCity("");
-                                  form.setValue("country", value);
-                                }}
-                                value={country}
-                              >
+                              <Select disabled value="Malaysia">
                                 <SelectTrigger className="w-full h-12! rounded-xl sm:rounded-2xl">
                                   <SelectValue>{field.value}</SelectValue>
                                 </SelectTrigger>
