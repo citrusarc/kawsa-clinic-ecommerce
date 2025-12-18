@@ -14,10 +14,16 @@ export async function POST(req: NextRequest) {
       fullName,
       email,
       phoneNumber,
-      address,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      postcode,
+      country,
       subTotalPrice,
       shippingFee,
       paymentMethod,
+      easyparcel,
       items,
     } = body;
 
@@ -35,13 +41,25 @@ export async function POST(req: NextRequest) {
         fullName,
         email,
         phoneNumber,
-        address,
+
+        addressLine1,
+        addressLine2,
+        city,
+        state,
+        postcode,
+        country,
+
         subTotalPrice,
         shippingFee,
         totalPrice: totalPrice,
         paymentMethod,
         paymentStatus: "pending",
-        courierName: null,
+
+        rateId: easyparcel?.rateId,
+        serviceId: easyparcel?.serviceId,
+        serviceName: easyparcel?.serviceName,
+        courierId: easyparcel?.courierId,
+        courierName: easyparcel?.courierName,
         trackingNumber: null,
         deliveryStatus: "pending",
         orderStatus: "pending",
@@ -66,6 +84,10 @@ export async function POST(req: NextRequest) {
       variantId: item.variantId || null,
       variantOptionId: item.variantOptionId || null,
       itemName: item.itemName,
+      itemWeight: item.itemWeight, // //
+      itemWidth: item.itemWidth, // //
+      itemLength: item.itemLength, // //
+      itemHeight: item.itemHeight, // //
       itemCurrency: item.itemCurrency,
       itemUnitPrice: item.itemUnitPrice,
       itemQuantity: item.itemQuantity,

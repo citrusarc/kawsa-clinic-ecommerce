@@ -140,6 +140,10 @@ export type OrderItem = {
   variantId: string;
   variantOptionId: string;
   itemName: string;
+  itemWeight: number;
+  itemWidth: number;
+  itemLength: number;
+  itemHeight: number;
   itemCurrency: string;
   itemUnitPrice: number;
   itemQuantity: number;
@@ -150,11 +154,23 @@ export type OrderBody = {
   fullName: string;
   email: string;
   phoneNumber: string;
-  address: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  postcode: number;
+  country: string;
   subTotalPrice: number;
   shippingFee: number;
   totalPrice: number;
   paymentMethod: string;
+  easyparcel: {
+    rateId?: string;
+    serviceId: string;
+    serviceName?: string;
+    courierId?: string;
+    courierName?: string;
+  };
   items: OrderItem[];
 };
 
@@ -174,11 +190,13 @@ export type OrderEmailTemplateProps = {
 };
 
 export type EasyParcelRateItem = {
+  rateId: string;
   serviceId: string;
-  serviceName?: string;
-  courierName?: string;
+  serviceName: string;
+  courierId: string;
+  courierName: string;
   shipmentTotalRates: number | string;
-  delivery_days?: string;
+  deliveryDays?: string;
 };
 
 export type StepperProps = {

@@ -282,6 +282,10 @@ function CheckoutPageContent() {
 
     setSubmitting(true);
     try {
+      const selectedRate = availableRatesRef.current.find(
+        (r) => r.serviceId === selectedServiceId
+      );
+
       const payload = {
         fullName: values.fullName,
         email: values.email,
@@ -298,11 +302,25 @@ function CheckoutPageContent() {
         shippingFee,
         totalPrice,
 
+        easyparcel: {
+          rateId: selectedRate?.rateId,
+          serviceId: selectedServiceId,
+          serviceName: selectedRate?.serviceName,
+          courierId: selectedRate?.courierId,
+          courierName: selectedRate?.courierName,
+        },
+
         items: items.map((item) => ({
           productId: item.productId,
           variantId: item.variantId || null,
           variantOptionId: item.variantOptionId || null,
           itemName: item.name,
+
+          itemWeight: item.weight,
+          itemWidth: item.width,
+          itemLength: item.length,
+          itemHeight: item.height,
+
           itemCurrency: "RM",
           itemUnitPrice: item.currentPrice ?? item.unitPrice,
           itemQuantity: item.quantity,
@@ -774,12 +792,7 @@ function CheckoutPageContent() {
 
                 <button
                   type="submit"
-                  disabled={
-                    submitting ||
-                    isCalculating ||
-                    !selectedServiceId ||
-                    shippingFee === 0
-                  }
+                  disabled={submitting || isCalculating || !selectedServiceId}
                   className="p-4 w-full sm:w-fit rounded-lg overflow-hidden cursor-pointer border border-violet-600 text-white bg-violet-600 hover:text-violet-600 hover:bg-white disabled:cursor-auto disabled:border-neutral-200 disabled:text-white disabled:bg-neutral-200"
                 >
                   {submitting ? "Sending your order..." : "Place Order"}

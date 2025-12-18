@@ -35,13 +35,13 @@ export async function POST(req: NextRequest) {
       await supabase
         .from("orders")
         .update({
+          chipPurchaseId,
           paymentMethod:
             payload.transaction_data?.payment_method ||
             payload.transaction_data?.attempts?.[0]?.payment_method ||
             null,
           paymentStatus: "paid",
           orderStatus: "processing",
-          chipPurchaseId,
         })
         .eq("id", order.id);
 

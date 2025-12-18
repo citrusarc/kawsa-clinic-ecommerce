@@ -31,6 +31,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!order.serviceId) {
+      return NextResponse.json(
+        { error: "Missing EasyParcel serviceId" },
+        { status: 400 }
+      );
+    }
+
+    if (order.easyparcelOrderNo) {
+      return NextResponse.json({ skipped: true });
+    }
+
     // 2. Get order items
     const { data: items, error: itemsError } = await supabase
       .from("order_items")
@@ -65,7 +76,7 @@ export async function POST(req: NextRequest) {
       (sum, item) => sum + Number(item.itemTotalPrice || 0),
       0
     );
-    const parcelContent = items.map((item) => item.itemName).join(", ");
+    // const parcelContent = items.map((item) => item.itemName).join(", "); // //
 
     if (totalWeight <= 0) {
       return NextResponse.json(
@@ -84,9 +95,9 @@ export async function POST(req: NextRequest) {
           width: maxWidth,
           length: maxLength,
           height: maxHeight,
-          content: parcelContent,
+          content: "skincare", // //
           value: parcelValue,
-          service_id: order.easyparcel_service_id,
+          service_id: order.serviceId,
 
           // Sender
           pick_name: "DRKAY MEDIBEAUTY SDN BHD",
@@ -126,6 +137,9 @@ export async function POST(req: NextRequest) {
 
     const result = await response.json();
 
+    console.log("[EP] Payload:", JSON.stringify(payload, null, 2)); // //
+    console.log("[EP] Response:", result); // //
+
     if (!response.ok || result?.api_status !== "Success") {
       console.error("EasyParcel making-order error:", result);
       return NextResponse.json(
@@ -140,16 +154,16 @@ export async function POST(req: NextRequest) {
     await supabase
       .from("orders")
       .update({
-        // easyparcelOrderNo: epOrder.order_number, // //
-        courierName: epOrder.courier_name || "EasyParcel",
-        trackingNumber: epOrder.parcel_number,
+        easyparcelOrderNo: epOrder.order_number,
+        courierName: epOrder.courier_name || order.courierName,
+        trackingNumber: null,
         deliveryStatus: "processing",
       })
       .eq("id", orderId);
 
     return NextResponse.json({
       success: true,
-      // easyparcelOrderNo: epOrder.order_number, // //
+      easyparcelOrderNo: epOrder.order_number, // //
       trackingNumber: epOrder.parcel_number,
     });
   } catch (err) {
