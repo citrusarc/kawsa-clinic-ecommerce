@@ -76,7 +76,6 @@ export async function POST(req: NextRequest) {
       (sum, item) => sum + Number(item.itemTotalPrice || 0),
       0
     );
-    // const parcelContent = items.map((item) => item.itemName).join(", "); // //
 
     if (totalWeight <= 0) {
       return NextResponse.json(
@@ -90,16 +89,14 @@ export async function POST(req: NextRequest) {
       api: EASYPARCEL_API_KEY,
       bulk: [
         {
-          // Shipment details
           weight: totalWeight,
           width: maxWidth,
           length: maxLength,
           height: maxHeight,
-          content: "skincare", // //
+          content: "skincare",
           value: parcelValue,
           service_id: order.serviceId,
 
-          // Sender
           pick_name: "DRKAY MEDIBEAUTY SDN BHD",
           pick_contact: "+60123456789",
           pick_addr1: "39-02, Jalan Padi Emas 1/8",
@@ -109,7 +106,6 @@ export async function POST(req: NextRequest) {
           pick_code: "81200",
           pick_country: "MY",
 
-          // Receiver
           send_name: order.fullName,
           send_contact: order.phoneNumber,
           send_email: order.email,
@@ -120,10 +116,9 @@ export async function POST(req: NextRequest) {
           send_code: order.postcode,
           send_country: "MY",
 
-          // Notifications & reference
           collect_date: new Date().toISOString().split("T")[0],
           sms: true,
-          reference: order.orderNumber, // //
+          reference: order.orderNumber,
         },
       ],
     };
@@ -140,18 +135,37 @@ export async function POST(req: NextRequest) {
     console.log("[EP] Payload:", JSON.stringify(payload, null, 2)); // //
     console.log("[EP] Response:", result); // //
 
-    if (!response.ok || result?.api_status !== "Success") {
-      console.error("EasyParcel making-order error:", result);
+    if (!response.ok) {
+      // //
+      console.error("EasyParcel HTTP error:", result); // //
       return NextResponse.json(
-        { error: "EasyParcel making-order failed", detail: result },
+        { error: "EasyParcel HTTP error", detail: result }, // //
+        { status: 500 }
+      );
+    }
+
+    if (result?.api_status !== "Success") {
+      // //
+      console.error("EasyParcel API status error:", result); // //
+      return NextResponse.json(
+        { error: "EasyParcel API failed", detail: result }, // //
         { status: 500 }
       );
     }
 
     const epOrder = result?.result?.[0]; // //
 
-    // 6. Save EasyParcel order info (needed for payment step)
-    await supabase
+    if (!epOrder || !epOrder.order_number) {
+      // //
+      console.error("EasyParcel invalid response:", result); // //
+      return NextResponse.json(
+        { error: "EasyParcel invalid response", detail: result }, // //
+        { status: 500 }
+      );
+    }
+
+    // 6. Save EasyParcel order info
+    const { error: updateError } = await supabase
       .from("orders")
       .update({
         easyparcelOrderNo: epOrder.order_number,
@@ -159,11 +173,27 @@ export async function POST(req: NextRequest) {
         trackingNumber: null,
         deliveryStatus: "processing",
       })
-      .eq("id", orderId);
+      .eq("id", orderId); // //
+
+    if (updateError) {
+      // //
+      console.error("Failed to update order:", updateError); // //
+      return NextResponse.json(
+        { error: "Failed to update order" }, // //
+        { status: 500 }
+      );
+    }
+
+    console.log("[EP] Order updated:", {
+      // //
+      orderId,
+      easyparcelOrderNo: epOrder.order_number,
+      deliveryStatus: "processing",
+    });
 
     return NextResponse.json({
       success: true,
-      easyparcelOrderNo: epOrder.order_number, // //
+      easyparcelOrderNo: epOrder.order_number,
       trackingNumber: epOrder.parcel_number,
     });
   } catch (err) {
