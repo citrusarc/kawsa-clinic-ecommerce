@@ -58,6 +58,11 @@ export async function POST(req: NextRequest) {
 
       // // 🔍 Trigger EasyParcel ONLY after paid
       console.log("Trigger EasyParcel making-order:", order.id); // //
+      console.log("🚀 CALLING EASY PARCEL", {
+        orderId: order.id,
+        paymentStatus: order.paymentStatus,
+        deliveryStatus: order.deliveryStatus, // //
+      }); // //
 
       const makingOrderRes = await fetch(
         `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`,

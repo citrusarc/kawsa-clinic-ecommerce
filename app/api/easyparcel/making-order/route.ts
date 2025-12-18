@@ -5,6 +5,8 @@ const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_DEMO_MAKING_ORDER_URL =
   process.env.EASYPARCEL_DEMO_MAKING_ORDER_URL!;
 
+console.log("📦 EASY PARCEL HIT"); // //
+
 export async function POST(req: NextRequest) {
   try {
     const { orderId } = await req.json();
@@ -38,8 +40,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (order.easyparcelOrderNo) {
-      return NextResponse.json({ skipped: true });
+    if (
+      order.easyparcelOrderNo &&
+      order.deliveryStatus === "processing" // //
+    ) {
+      return NextResponse.json({ skipped: true }); // //
     }
 
     // 2. Get order items
@@ -54,6 +59,13 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    console.log("📦 ORDER STATE", {
+      id: order.id,
+      paymentStatus: order.paymentStatus,
+      deliveryStatus: order.deliveryStatus,
+      easyparcelOrderNo: order.easyparcelOrderNo, // //
+    }); // //
 
     // 3. Calculate parcel info
     const totalWeight = items.reduce(
@@ -122,6 +134,8 @@ export async function POST(req: NextRequest) {
         },
       ],
     };
+
+    console.log("📦 SENDING TO EASY PARCEL"); // //
 
     // 5. Call EasyParcel Making-Order API
     const response = await fetch(EASYPARCEL_DEMO_MAKING_ORDER_URL, {
