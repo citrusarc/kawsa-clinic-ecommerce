@@ -57,19 +57,19 @@ export async function POST(req: NextRequest) {
 
     // 3. Calculate parcel info
     const totalWeight = items.reduce(
-      (sum, item) => sum + Number(item.weight || 0),
+      (sum, item) => sum + Number(item.itemWeight || 0),
       0
     );
     const maxWidth = items.reduce(
-      (max, item) => Math.max(max, Number(item.width || 0)),
+      (max, item) => Math.max(max, Number(item.itemWidth || 0)),
       0
     );
     const maxLength = items.reduce(
-      (max, item) => Math.max(max, Number(item.length || 0)),
+      (max, item) => Math.max(max, Number(item.itemLength || 0)),
       0
     );
     const maxHeight = items.reduce(
-      (max, item) => Math.max(max, Number(item.height || 0)),
+      (max, item) => Math.max(max, Number(item.itemHeight || 0)),
       0
     );
     const parcelValue = items.reduce(
@@ -172,6 +172,7 @@ export async function POST(req: NextRequest) {
         courierName: epOrder.courier_name || order.courierName,
         trackingNumber: null,
         deliveryStatus: "processing",
+        orderStatus: "processing",
       })
       .eq("id", orderId); // //
 
