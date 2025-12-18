@@ -26,13 +26,16 @@ export async function POST(req: NextRequest) {
     }
 
     // // 🚫 CRITICAL: never allow downgrade after payment is paid
-    if (order.paymentStatus === "paid") {
-      console.log("Order already paid, ignoring webhook status:", status); // //
+    if (
+      order.paymentStatus === "paid" &&
+      status !== "paid" // //
+    ) {
+      console.log("Ignoring downgrade webhook:", status); // //
       return NextResponse.json({ received: true }); // //
     }
 
     // // ✅ HANDLE PAID (ONLY ONCE)
-    if (status === "paid") {
+    if (status === "paid" && order.paymentStatus !== "paid") {
       console.log("Payment PAID → updating order"); // //
 
       const { error: updateError } = await supabase
@@ -44,7 +47,7 @@ export async function POST(req: NextRequest) {
             payload.transaction_data?.attempts?.[0]?.payment_method ||
             null,
           paymentStatus: "paid",
-          orderStatus: "processing",
+          orderStatus: "paid", // //
         })
         .eq("id", order.id);
 
