@@ -174,10 +174,10 @@ export type OrderEmailTemplateProps = {
 };
 
 export type EasyParcelRateItem = {
-  service_id: string;
-  service_name?: string;
-  courier_name?: string;
-  price_rm: number | string;
+  serviceId: string;
+  serviceName?: string;
+  courierName?: string;
+  shipmentTotalRates: number | string;
   delivery_days?: string;
 };
 

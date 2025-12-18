@@ -87,7 +87,7 @@ function CheckoutPageContent() {
   const [hydrated, setHydrated] = useState(false);
   const [states, setStates] = useState<IState[]>([]);
   const [cities, setCities] = useState<ICity[]>([]);
-  const [country, setCountry] = useState("Malaysia");
+  const [country] = useState("Malaysia");
   const [selectedState, setSelectedState] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -115,6 +115,7 @@ function CheckoutPageContent() {
   const {
     formState: { errors },
     watch,
+    setValue,
   } = form;
 
   const watchedPostcode = watch("postcode");
@@ -146,9 +147,9 @@ function CheckoutPageContent() {
     setStates(countryData ? State.getStatesOfCountry(countryData.isoCode) : []);
     setSelectedState("");
     setSelectedCity("");
-    form.setValue("state", "");
-    form.setValue("city", "");
-  }, [country, allCountries, form]);
+    setValue("state", "");
+    setValue("city", "");
+  }, [country, allCountries, setValue]);
 
   useEffect(() => {
     const countryData = allCountries.find((c) => c.name === country);
@@ -156,26 +157,26 @@ function CheckoutPageContent() {
 
     if (!countryData || !stateData) {
       setCities([]);
-      form.setValue("city", "");
+      setValue("city", "");
       return;
     }
 
     setCities(City.getCitiesOfState(countryData.isoCode, stateData.isoCode));
-  }, [country, selectedState, states, allCountries, form]);
+  }, [country, selectedState, states, allCountries, setValue]);
 
   useEffect(() => {
     if (error) console.log("Payment failed → checkout restored");
   }, [error]);
 
   const calculateEasyParcelShippingRate = useCallback(
-    async (send_postcode: string, send_state: string, send_country: string) => {
+    async (sendPostcode: string, sendState: string, sendCountry: string) => {
       setIsCalculating(true);
       try {
         if (
-          !send_state ||
-          !send_country ||
-          !send_postcode ||
-          send_postcode.length !== 5
+          !sendState ||
+          !sendCountry ||
+          !sendPostcode ||
+          sendPostcode.length !== 5
         ) {
           setShippingFee(0);
           setSelectedServiceId(null);
@@ -190,12 +191,12 @@ function CheckoutPageContent() {
         }
 
         const body = {
-          pick_postcode: "40170",
-          pick_state: "Selangor",
-          pick_country: "MY",
-          send_postcode,
-          send_state,
-          send_country,
+          pickPostcode: "81200",
+          pickState: "Johor",
+          pickCountry: "MY",
+          sendPostcode,
+          sendState,
+          sendCountry,
           weight: totalWeight,
           width: maxWidth,
           length: maxLength,
@@ -222,20 +223,20 @@ function CheckoutPageContent() {
 
         availableRatesRef.current = rates;
         const lowestRate = rates.reduce<{
-          _price: number;
-          service_id: string;
-        } | null>((best, rate) => {
-          const price = Number(rate.price_rm);
-          if (isNaN(price)) return best;
-          if (!best) return { service_id: rate.service_id, _price: price };
-          return price < best._price
-            ? { service_id: rate.service_id, _price: price }
-            : best;
+          totalRate: number;
+          serviceId: string;
+        } | null>((priority, rate) => {
+          const price = Number(rate.shipmentTotalRates);
+          if (isNaN(price)) return priority;
+          if (!priority) return { serviceId: rate.serviceId, totalRate: price };
+          return price < priority.totalRate
+            ? { serviceId: rate.serviceId, totalRate: price }
+            : priority;
         }, null);
 
-        if (lowestRate) setSelectedServiceId(lowestRate.service_id);
+        if (lowestRate) setSelectedServiceId(lowestRate.serviceId);
         setShippingFee(
-          lowestRate ? parseFloat(lowestRate._price.toFixed(2)) : 0
+          lowestRate ? parseFloat(lowestRate.totalRate.toFixed(2)) : 0
         );
       } catch (err) {
         console.error("EasyParcel rate check error:", err);
@@ -271,6 +272,7 @@ function CheckoutPageContent() {
     watchedState,
     watchedCountryISO,
     calculateEasyParcelShippingRate,
+    setShippingFee,
   ]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -280,82 +282,32 @@ function CheckoutPageContent() {
 
     setSubmitting(true);
     try {
-      const { totalWeight } = parcelMetrics;
-
-      const easyParcelPayload = {
-        service_id: selectedServiceId,
-        sender: {
-          name: "DRKAY MEDIBEAUTY SDN BHD",
-          phone: "+60123456789",
-          address1: "39-02, Jalan Padi Emas 1/8",
-          address2: "Bandar Baru Uda",
-          city: "Johor Bahru",
-          state: "Johor",
-          postcode: "81200",
-          country: "MY",
-        },
-        receiver: {
-          name: values.fullName,
-          phone: `${values.countryCode}${values.phoneNumber}`,
-          address1: values.addressLine1,
-          address2: values.addressLine2 || "",
-          city: values.city,
-          state: values.state,
-          postcode: values.postcode,
-          country:
-            allCountries.find((c) => c.name === values.country)?.isoCode ||
-            "MY",
-        },
-        items: [
-          {
-            weight: totalWeight,
-            content: items.map((index) => index.name).join(","),
-            value: subTotalPrice,
-          },
-        ],
-        email: values.email,
-      };
-
-      // // Send EasyParcel order before CHIP payment - epData epResponse
-      const epResponse = await fetch("/api/easyparcel/making-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(easyParcelPayload),
-      });
-
-      const epData = await epResponse.json();
-
-      if (!epResponse.ok || !epData.success) {
-        throw new Error(epData.message || "EasyParcel order failed");
-      }
-
       const payload = {
         fullName: values.fullName,
         email: values.email,
         phoneNumber: `${values.countryCode}${values.phoneNumber}`,
-        address: `${values.addressLine1}${
-          values.addressLine2 ? ", " + values.addressLine2 : ""
-        }, ${values.postcode}, ${values.city}, ${values.state}, ${
-          values.country
-        }`,
+
+        addressLine1: values.addressLine1,
+        addressLine2: values.addressLine2 || "",
+        city: values.city || "",
+        state: values.state,
+        postcode: values.postcode,
+        country: "MY",
+
         subTotalPrice,
         shippingFee,
         totalPrice,
+
         items: items.map((item) => ({
           productId: item.productId,
           variantId: item.variantId || null,
           variantOptionId: item.variantOptionId || null,
           itemName: item.name,
-          weight: item.weight,
-          width: item.width,
-          height: item.height,
-          length: item.length,
           itemCurrency: "RM",
           itemUnitPrice: item.currentPrice ?? item.unitPrice,
           itemQuantity: item.quantity,
           itemTotalPrice: (item.currentPrice ?? item.unitPrice) * item.quantity,
         })),
-        easyParcelResult: epData.result, // //
       };
 
       const response = await fetch("/api/orders", {
@@ -366,7 +318,7 @@ function CheckoutPageContent() {
 
       const data = await response.json();
 
-      if (!response.ok) throw new Error(data.error || "Payment failed");
+      if (!response.ok) throw new Error(data.error || "Order creation failed");
 
       window.location.href = data.checkout_url;
       form.reset();
@@ -667,8 +619,8 @@ function CheckoutPageContent() {
                             <FormControl>
                               <Select
                                 onValueChange={(value) => {
+                                  field.onChange(value);
                                   setSelectedState(value);
-                                  form.setValue("state", value);
                                 }}
                                 value={selectedState}
                               >
@@ -711,8 +663,8 @@ function CheckoutPageContent() {
                             <FormControl>
                               <Select
                                 onValueChange={(value) => {
+                                  field.onChange(value);
                                   setSelectedCity(value);
-                                  form.setValue("city", value);
                                 }}
                                 value={selectedCity}
                                 disabled={cities.length === 0}

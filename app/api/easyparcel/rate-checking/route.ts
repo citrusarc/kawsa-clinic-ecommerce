@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { RateCheckingItem } from "@/types";
 
-const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!; // set EP-rAkk0XgHC in .env.local
+const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_RATE_CHECKING_URL =
   process.env.EASYPARCEL_DEMO_RATE_CHECKING_URL!;
 
@@ -11,25 +11,32 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const {
-      pick_postcode,
-      pick_state,
-      pick_country,
-      send_postcode,
-      send_state,
-      send_country,
+      pickPostcode,
+      pickState,
+      pickCountry,
+      sendPostcode,
+      sendState,
+      sendCountry,
       weight,
       width,
       length,
       height,
     } = body;
 
+    if (sendCountry !== "MY") {
+      return NextResponse.json(
+        { status: "error", message: "Only Malaysia shipping supported" },
+        { status: 400 }
+      );
+    }
+
     if (
-      !pick_postcode ||
-      !pick_state ||
-      !pick_country ||
-      !send_postcode ||
-      !send_state ||
-      !send_country ||
+      !pickPostcode ||
+      !pickState ||
+      !pickCountry ||
+      !sendPostcode ||
+      !sendState ||
+      !sendCountry ||
       !weight
     ) {
       return NextResponse.json(
@@ -42,12 +49,12 @@ export async function POST(req: NextRequest) {
       api: EASYPARCEL_API_KEY,
       bulk: [
         {
-          pick_code: String(pick_postcode),
-          pick_state: String(pick_state),
-          pick_country: String(pick_country || "MY"),
-          send_code: String(send_postcode),
-          send_state: String(send_state),
-          send_country: String(send_country || "MY"),
+          pick_code: String(pickPostcode),
+          pick_state: String(pickState),
+          pick_country: String(pickCountry || "MY"),
+          send_code: String(sendPostcode),
+          send_state: String(sendState),
+          send_country: String(sendCountry || "MY"),
           weight: Number(weight),
           width: Number(width) || 0,
           length: Number(length) || 0,
@@ -69,7 +76,7 @@ export async function POST(req: NextRequest) {
     const allRates: RateCheckingItem[] =
       (data?.result?.[0]?.rates as RateCheckingItem[]) || [];
 
-    const COURIER_PRIORITY = [
+    const priorityCouriers = [
       "Poslaju National Courier",
       "J&T Express (Malaysia) Sdn. Bhd.",
       "DHL eCommerce",
@@ -82,33 +89,35 @@ export async function POST(req: NextRequest) {
       "Lazada Express (Malaysia) Sdn Bhd",
     ];
 
-    const priorityCouriers = allRates.filter((r: RateCheckingItem) => {
-      return COURIER_PRIORITY.some((name) =>
+    const priorityCouriersAllRates = allRates.filter((r: RateCheckingItem) => {
+      return priorityCouriers.some((name) =>
         r.courier_name?.toLowerCase().includes(name.toLowerCase())
       );
     });
 
-    const effectiveRates =
-      priorityCouriers.length > 0 ? priorityCouriers : allRates;
+    const priorityCouriersRates =
+      priorityCouriersAllRates.length > 0 ? priorityCouriersAllRates : allRates;
 
-    const mappedRates = effectiveRates.map((response: RateCheckingItem) => {
-      const base = Number(response.shipment_price || 0);
-      const addons = Number(response.addon_price || 0); // includes sms/email/branding
-      const price = (base || 0) + (addons || 0);
+    const courierRates = priorityCouriersRates.map(
+      (response: RateCheckingItem) => {
+        const shipmentRates = Number(response.shipment_price || 0);
+        const addOnRates = Number(response.addon_price || 0); // includes sms/email/branding/whatsapp
+        const shipmentTotalRates = shipmentRates + addOnRates;
 
-      return {
-        rate_id: response.rate_id,
-        courier: response.courier_name,
-        service_id: response.service_id,
-        service_name: response.service_name,
-        price_rm: Number(price.toFixed(2)),
-        original: response,
-      };
-    });
+        return {
+          rateId: response.rate_id,
+          serviceId: response.service_id,
+          serviceName: response.service_name,
+          courierId: response.courier_id,
+          courierName: response.courier_name,
+          shipmentTotalRates: Number(shipmentTotalRates.toFixed(2)),
+        };
+      }
+    );
 
     return NextResponse.json({
       status: "success",
-      rates: mappedRates,
+      rates: courierRates,
     });
   } catch (error) {
     return NextResponse.json(

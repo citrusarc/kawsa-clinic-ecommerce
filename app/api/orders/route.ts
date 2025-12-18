@@ -25,8 +25,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
     }
 
-    const calculatedTotalPrice =
-      Number(subTotalPrice || 0) + Number(shippingFee || 0);
+    const totalPrice = Number(subTotalPrice || 0) + Number(shippingFee || 0);
 
     // 1. Create order
     const { data: orderData, error: orderError } = await supabase
@@ -39,7 +38,7 @@ export async function POST(req: NextRequest) {
         address,
         subTotalPrice,
         shippingFee,
-        totalPrice: calculatedTotalPrice,
+        totalPrice: totalPrice,
         paymentMethod,
         paymentStatus: "pending",
         courierName: null,

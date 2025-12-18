@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Ensure payment is successful (CHIP)
     if (order.paymentStatus !== "paid") {
       return NextResponse.json(
         { error: "Payment not completed" },
@@ -47,14 +46,26 @@ export async function POST(req: NextRequest) {
 
     // 3. Calculate parcel info
     const totalWeight = items.reduce(
-      (sum, index) => sum + Number(index.weight || 0),
+      (sum, item) => sum + Number(item.weight || 0),
       0
     );
-
+    const maxWidth = items.reduce(
+      (max, item) => Math.max(max, Number(item.width || 0)),
+      0
+    );
+    const maxLength = items.reduce(
+      (max, item) => Math.max(max, Number(item.length || 0)),
+      0
+    );
+    const maxHeight = items.reduce(
+      (max, item) => Math.max(max, Number(item.height || 0)),
+      0
+    );
     const parcelValue = items.reduce(
-      (sum, index) => sum + Number(index.itemTotalPrice || 0),
+      (sum, item) => sum + Number(item.itemTotalPrice || 0),
       0
     );
+    const parcelContent = items.map((item) => item.itemName).join(", ");
 
     if (totalWeight <= 0) {
       return NextResponse.json(
@@ -70,17 +81,21 @@ export async function POST(req: NextRequest) {
         {
           // Shipment details
           weight: totalWeight,
-          content: "E-commerce Order",
+          width: maxWidth,
+          length: maxLength,
+          height: maxHeight,
+          content: parcelContent,
           value: parcelValue,
           service_id: order.easyparcel_service_id,
 
           // Sender
-          pick_name: "Your Shop Name",
-          pick_contact: "0123456789",
-          pick_addr1: "Your warehouse address",
-          pick_city: "Shah Alam",
-          pick_state: "Selangor",
-          pick_code: "40170",
+          pick_name: "DRKAY MEDIBEAUTY SDN BHD",
+          pick_contact: "+60123456789",
+          pick_addr1: "39-02, Jalan Padi Emas 1/8",
+          pick_addr2: "Bandar Baru Uda",
+          pick_city: "Johor Bahru",
+          pick_state: "Johor",
+          pick_code: "81200",
           pick_country: "MY",
 
           // Receiver
@@ -97,7 +112,7 @@ export async function POST(req: NextRequest) {
           // Notifications & reference
           collect_date: new Date().toISOString().split("T")[0],
           sms: true,
-          reference: order.orderNumber,
+          reference: order.orderNumber, // //
         },
       ],
     };
@@ -119,23 +134,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const epOrder = result?.result?.[0];
+    const epOrder = result?.result?.[0]; // //
 
     // 6. Save EasyParcel order info (needed for payment step)
     await supabase
       .from("orders")
       .update({
-        courierName: epOrder.courier || "EasyParcel",
-        parcelNumber: epOrder.parcel_number, // //
-        easyparcelOrderNo: epOrder.order_number, // //
+        // easyparcelOrderNo: epOrder.order_number, // //
+        courierName: epOrder.courier_name || "EasyParcel",
+        trackingNumber: epOrder.parcel_number,
         deliveryStatus: "processing",
       })
       .eq("id", orderId);
 
     return NextResponse.json({
       success: true,
-      parcelNumber: epOrder.parcel_number,
-      easyparcelOrderNo: epOrder.order_number, // //
+      // easyparcelOrderNo: epOrder.order_number, // //
+      trackingNumber: epOrder.parcel_number,
     });
   } catch (err) {
     console.error("EasyParcel making-order error:", err);
