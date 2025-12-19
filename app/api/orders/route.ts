@@ -84,10 +84,10 @@ export async function POST(req: NextRequest) {
       variantId: item.variantId || null,
       variantOptionId: item.variantOptionId || null,
       itemName: item.itemName,
-      itemWeight: item.itemWeight, // //
-      itemWidth: item.itemWidth, // //
-      itemLength: item.itemLength, // //
-      itemHeight: item.itemHeight, // //
+      itemWeight: item.itemWeight,
+      itemWidth: item.itemWidth,
+      itemLength: item.itemLength,
+      itemHeight: item.itemHeight,
       itemCurrency: item.itemCurrency,
       itemUnitPrice: item.itemUnitPrice,
       itemQuantity: item.itemQuantity,

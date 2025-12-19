@@ -4,13 +4,12 @@ import { supabase } from "@/utils/supabase/client";
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.json();
-    console.log("CHIP Webhook Received:", payload);
 
-    const { id: chipPurchaseId, reference, status } = payload;
+    const { id: chipPurchaseId, orderNumber, status } = payload;
 
-    if (!reference) {
+    if (!orderNumber) {
       return NextResponse.json(
-        { error: "Missing order reference" },
+        { error: "Missing order number" },
         { status: 400 }
       );
     }
@@ -18,26 +17,14 @@ export async function POST(req: NextRequest) {
     const { data: order, error: findError } = await supabase
       .from("orders")
       .select("*")
-      .eq("orderNumber", reference)
+      .eq("orderNumber", orderNumber)
       .single();
 
     if (findError || !order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // // 🚫 CRITICAL: never allow downgrade after payment is paid
-    if (
-      order.paymentStatus === "paid" &&
-      status !== "paid" // //
-    ) {
-      console.log("Ignoring downgrade webhook:", status); // //
-      return NextResponse.json({ received: true }); // //
-    }
-
-    // // ✅ HANDLE PAID (ONLY ONCE)
-    if (status === "paid" && order.paymentStatus !== "paid") {
-      console.log("Payment PAID → updating order"); // //
-
+    if (status === "paid") {
       const { error: updateError } = await supabase
         .from("orders")
         .update({
@@ -47,7 +34,7 @@ export async function POST(req: NextRequest) {
             payload.transaction_data?.attempts?.[0]?.payment_method ||
             null,
           paymentStatus: "paid",
-          orderStatus: "paid", // //
+          orderStatus: "processing",
         })
         .eq("id", order.id);
 
