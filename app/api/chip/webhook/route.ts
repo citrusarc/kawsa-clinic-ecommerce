@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         } else {
           console.log("Order marked as PAID:", reference);
           try {
-            await fetch(
+            const epResponse = await fetch(
               `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`,
               {
                 method: "POST",
@@ -58,10 +58,17 @@ export async function POST(req: NextRequest) {
                 body: JSON.stringify({ orderId: order.id }),
               }
             );
-            console.log(
-              "EasyParcel making-order triggered for order:",
-              reference
-            );
+
+            const epResult = await epResponse.json();
+
+            if (!epResponse.ok || epResult.error) {
+              console.error("EasyParcel API failed:", epResult);
+            } else {
+              console.log(
+                "EasyParcel making-order successfully triggered:",
+                epResult
+              );
+            }
           } catch (epError) {
             console.error(
               "Failed to trigger EasyParcel for order:",
