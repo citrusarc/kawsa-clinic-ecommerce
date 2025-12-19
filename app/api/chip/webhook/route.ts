@@ -4,51 +4,56 @@ import { supabase } from "@/utils/supabase/client";
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.json();
+    console.log("📩 CHIP webhook payload:", payload);
 
-    const { id: chipPurchaseId, orderNumber, status } = payload;
+    const { id: chipPurchaseId, reference, status, transaction_data } = payload;
 
-    if (!orderNumber) {
-      return NextResponse.json(
-        { error: "Missing order number" },
-        { status: 400 }
-      );
+    if (!reference) {
+      console.error("Missing reference in CHIP webhook");
+      return NextResponse.json({ received: true });
     }
 
     const { data: order, error: findError } = await supabase
       .from("orders")
       .select("*")
-      .eq("orderNumber", orderNumber)
+      .eq("orderNumber", reference)
       .single();
 
     if (findError || !order) {
-      console.error("Order not found:", orderNumber);
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      console.error("Order not found for reference:", reference);
+      return NextResponse.json({ received: true });
+    }
+
+    if (order.paymentStatus === "paid") {
+      console.log("Order already paid, skipping:", reference);
+      return NextResponse.json({ received: true });
     }
 
     switch (status) {
-      case "paid":
-        const { error: updatePaidError } = await supabase
+      case "paid": {
+        const { error } = await supabase
           .from("orders")
           .update({
             chipPurchaseId,
             paymentMethod:
-              payload.transaction_data?.payment_method ||
-              payload.transaction_data?.attempts?.[0]?.payment_method ||
+              transaction_data?.payment_method ||
+              transaction_data?.attempts?.[0]?.payment_method ||
+              order.paymentMethod ||
               null,
             paymentStatus: "paid",
             orderStatus: "processing",
           })
           .eq("id", order.id);
 
-        // // START
-        if (updatePaidError) {
-          console.error("Failed to update paid order:", updatePaidError);
+        if (error) {
+          console.error("Failed to update PAID order:", error);
         } else {
-          // // Optional: Trigger EasyParcel only after payment is confirmed
-          // console.log("Trigger EasyParcel making-order:", order.id); // //
+          console.log("Order marked as PAID:", reference);
         }
         break;
+      }
 
+      // // START
       // // 🔍 Trigger EasyParcel ONLY after paid
       // console.log("Trigger EasyParcel making-order:", order.id); // //
       // console.log("🚀 CALLING EASY PARCEL", {
@@ -73,32 +78,30 @@ export async function POST(req: NextRequest) {
 
       case "error":
       case "cancelled":
-        await supabase
-          .from("orders")
-          .update({
-            paymentStatus: "failed",
-            orderStatus: "cancelled_due_to_payment",
-          })
-          .eq("id", order.id);
-        break;
-
-      case "viewed":
-        if (order.paymentStatus === "pending") {
-          await supabase
+      case "blocked": {
+        if (order.paymentStatus !== "paid") {
+          const { error } = await supabase
             .from("orders")
             .update({
-              paymentStatus: "pending",
-              orderStatus: "awaiting_payment",
+              paymentStatus: "failed",
+              orderStatus: "cancelled_due_to_payment",
             })
             .eq("id", order.id);
+
+          if (error) {
+            console.error("Failed to update FAILED order:", error);
+          } else {
+            console.log("Order marked as FAILED:", reference);
+          }
         }
         break;
+      }
 
+      case "viewed":
       case "created":
       case "sent":
       case "overdue":
       case "expired":
-      case "blocked":
       case "hold":
       case "released":
       case "pending_release":
@@ -111,23 +114,16 @@ export async function POST(req: NextRequest) {
       case "chargeback":
       case "pending_refund":
       case "refunded":
-        console.log(
-          `CHIP webhook received status '${status}' for order ${orderNumber}`
-        );
+        console.log(`CHIP status '${status}' received for order ${reference}`);
         break;
 
       default:
-        console.warn(
-          `Unknown CHIP status '${status}' for order ${orderNumber}`
-        );
+        console.warn(`Unknown CHIP status '${status}' for order ${reference}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (err) {
-    console.error("Webhook error:", err);
-    return NextResponse.json(
-      { error: "Webhook processing failed" },
-      { status: 500 }
-    );
+    console.error("🔥 Webhook error:", err);
+    return NextResponse.json({ received: true });
   }
 }
