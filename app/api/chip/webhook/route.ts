@@ -49,32 +49,32 @@ export async function POST(req: NextRequest) {
           console.error("Failed to update PAID order:", error);
         } else {
           console.log("Order marked as PAID:", reference);
+          // // Optional: trigger EasyParcel here if needed
+          // // START
+          // // 🔍 Trigger EasyParcel ONLY after paid
+          // console.log("Trigger EasyParcel making-order:", order.id); // //
+          // console.log("🚀 CALLING EASY PARCEL", {
+          //   orderId: order.id,
+          //   paymentStatus: order.paymentStatus,
+          //   deliveryStatus: order.deliveryStatus, // //
+          // }); // //
+
+          // const makingOrderRes = await fetch(
+          //   `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`,
+          //   {
+          //     method: "POST",
+          //     headers: { "Content-Type": "application/json" },
+          //     body: JSON.stringify({ orderId: order.id }),
+          //   }
+          // );
+
+          // const makingOrderData = await makingOrderRes.json(); // //
+          // console.log("making-order result:", makingOrderData); // //
+
+          // // END
         }
         break;
       }
-
-      // // START
-      // // 🔍 Trigger EasyParcel ONLY after paid
-      // console.log("Trigger EasyParcel making-order:", order.id); // //
-      // console.log("🚀 CALLING EASY PARCEL", {
-      //   orderId: order.id,
-      //   paymentStatus: order.paymentStatus,
-      //   deliveryStatus: order.deliveryStatus, // //
-      // }); // //
-
-      // const makingOrderRes = await fetch(
-      //   `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`,
-      //   {
-      //     method: "POST",
-      //     headers: { "Content-Type": "application/json" },
-      //     body: JSON.stringify({ orderId: order.id }),
-      //   }
-      // );
-
-      // const makingOrderData = await makingOrderRes.json(); // //
-      // console.log("making-order result:", makingOrderData); // //
-
-      // // END
 
       case "error":
       case "cancelled":
@@ -96,26 +96,6 @@ export async function POST(req: NextRequest) {
         }
         break;
       }
-
-      case "viewed":
-      case "created":
-      case "sent":
-      case "overdue":
-      case "expired":
-      case "hold":
-      case "released":
-      case "pending_release":
-      case "pending_capture":
-      case "preauthorized":
-      case "pending_execute":
-      case "pending_charge":
-      case "cleared":
-      case "settled":
-      case "chargeback":
-      case "pending_refund":
-      case "refunded":
-        console.log(`CHIP status '${status}' received for order ${reference}`);
-        break;
 
       default:
         console.warn(`Unknown CHIP status '${status}' for order ${reference}`);
