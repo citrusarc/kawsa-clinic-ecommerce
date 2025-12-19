@@ -49,29 +49,26 @@ export async function POST(req: NextRequest) {
           console.error("Failed to update PAID order:", error);
         } else {
           console.log("Order marked as PAID:", reference);
-          // // Optional: trigger EasyParcel here if needed
-          // // START
-          // // 🔍 Trigger EasyParcel ONLY after paid
-          // console.log("Trigger EasyParcel making-order:", order.id); // //
-          // console.log("🚀 CALLING EASY PARCEL", {
-          //   orderId: order.id,
-          //   paymentStatus: order.paymentStatus,
-          //   deliveryStatus: order.deliveryStatus, // //
-          // }); // //
-
-          // const makingOrderRes = await fetch(
-          //   `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`,
-          //   {
-          //     method: "POST",
-          //     headers: { "Content-Type": "application/json" },
-          //     body: JSON.stringify({ orderId: order.id }),
-          //   }
-          // );
-
-          // const makingOrderData = await makingOrderRes.json(); // //
-          // console.log("making-order result:", makingOrderData); // //
-
-          // // END
+          try {
+            await fetch(
+              `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId: order.id }),
+              }
+            );
+            console.log(
+              "EasyParcel making-order triggered for order:",
+              reference
+            );
+          } catch (epError) {
+            console.error(
+              "Failed to trigger EasyParcel for order:",
+              reference,
+              epError
+            );
+          }
         }
         break;
       }
