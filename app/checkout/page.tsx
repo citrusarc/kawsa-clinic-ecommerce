@@ -81,6 +81,7 @@ function CheckoutPageContent() {
     useCheckout();
 
   const params = useSearchParams();
+  const rateRequestIdRef = useRef(0);
   const availableRatesRef = useRef<EasyParcelRateItem[]>([]);
   const error = params.get("status") === "error";
 
@@ -95,6 +96,7 @@ function CheckoutPageContent() {
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
     null
   );
+  const [, setShippingError] = useState<string | null>(null);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -130,17 +132,35 @@ function CheckoutPageContent() {
 
   const parcelMetrics = useMemo(() => {
     return items.reduce(
-      (acc, item) => ({
-        totalWeight: acc.totalWeight + (Number(item.weight) || 0),
-        maxWidth: Math.max(acc.maxWidth, Number(item.width) || 0),
-        maxLength: Math.max(acc.maxLength, Number(item.length) || 0),
-        maxHeight: Math.max(acc.maxHeight, Number(item.height) || 0),
-      }),
-      { totalWeight: 0, maxWidth: 0, maxLength: 0, maxHeight: 0 }
+      (acc, item) => {
+        const qty = Number(item.quantity) || 1;
+        const weight = Number(item.weight) || 0;
+        const width = Number(item.width) || 0;
+        const length = Number(item.length) || 0;
+        const height = Number(item.height) || 0;
+
+        return {
+          totalWeight: Number((acc.totalWeight + weight * qty).toFixed(2)),
+          totalWidth: Math.max(acc.totalWidth, Math.ceil(width)),
+          totalLength: Math.max(acc.totalLength, Math.ceil(length)),
+          totalHeight: Math.max(acc.totalHeight, Math.ceil(height * qty)),
+        };
+      },
+      {
+        totalWeight: 0,
+        totalWidth: 0,
+        totalLength: 0,
+        totalHeight: 0,
+      }
     );
   }, [items]);
 
   useEffect(() => setHydrated(true), []);
+
+  useEffect(() => {
+    setShippingFee(0);
+    setSelectedServiceId(null);
+  }, [items, setShippingFee]);
 
   useEffect(() => {
     const countryData = allCountries.find((c) => c.name === country);
@@ -170,7 +190,10 @@ function CheckoutPageContent() {
 
   const calculateEasyParcelShippingRate = useCallback(
     async (sendPostcode: string, sendState: string, sendCountry: string) => {
+      const requestId = ++rateRequestIdRef.current;
       setIsCalculating(true);
+      setShippingError(null);
+
       try {
         if (
           !sendState ||
@@ -183,7 +206,14 @@ function CheckoutPageContent() {
           return;
         }
 
-        const { totalWeight, maxWidth, maxLength, maxHeight } = parcelMetrics;
+        if (!states.find((s) => s.name === sendState)) {
+          setShippingFee(0);
+          setSelectedServiceId(null);
+          return;
+        }
+
+        const { totalWeight, totalWidth, totalLength, totalHeight } =
+          parcelMetrics;
 
         if (totalWeight <= 0) {
           setIsCalculating(false);
@@ -198,9 +228,9 @@ function CheckoutPageContent() {
           sendState,
           sendCountry,
           weight: totalWeight,
-          width: maxWidth,
-          length: maxLength,
-          height: maxHeight,
+          width: totalWidth,
+          length: totalLength,
+          height: totalHeight,
         };
 
         const response = await fetch("/api/easyparcel/rate-checking", {
@@ -208,6 +238,8 @@ function CheckoutPageContent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
+
+        if (requestId !== rateRequestIdRef.current) return;
 
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || "Rate check failed");
@@ -240,11 +272,14 @@ function CheckoutPageContent() {
         );
       } catch (err) {
         console.error("EasyParcel rate check error:", err);
+        setShippingError(
+          "Unable to calculate shipping. Please check your address."
+        );
       } finally {
         setIsCalculating(false);
       }
     },
-    [parcelMetrics, setShippingFee, setSelectedServiceId]
+    [parcelMetrics, setShippingFee, setSelectedServiceId, states]
   );
 
   useEffect(() => {
@@ -283,7 +318,7 @@ function CheckoutPageContent() {
     setSubmitting(true);
     try {
       const selectedRate = availableRatesRef.current.find(
-        (r) => r.serviceId === selectedServiceId
+        (response) => response.serviceId === selectedServiceId
       );
 
       const payload = {

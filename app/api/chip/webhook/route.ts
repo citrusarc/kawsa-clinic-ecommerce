@@ -21,74 +21,105 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (findError || !order) {
+      console.error("Order not found:", orderNumber);
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    if (status === "paid") {
-      const { error: updateError } = await supabase
-        .from("orders")
-        .update({
-          chipPurchaseId,
-          paymentMethod:
-            payload.transaction_data?.payment_method ||
-            payload.transaction_data?.attempts?.[0]?.payment_method ||
-            null,
-          paymentStatus: "paid",
-          orderStatus: "processing",
-        })
-        .eq("id", order.id);
+    switch (status) {
+      case "paid":
+        const { error: updatePaidError } = await supabase
+          .from("orders")
+          .update({
+            chipPurchaseId,
+            paymentMethod:
+              payload.transaction_data?.payment_method ||
+              payload.transaction_data?.attempts?.[0]?.payment_method ||
+              null,
+            paymentStatus: "paid",
+            orderStatus: "processing",
+          })
+          .eq("id", order.id);
 
-      if (updateError) {
-        console.error("Failed to update paid order:", updateError); // //
-        return NextResponse.json({ received: true }); // //
-      }
+        // // START
+        if (updatePaidError) {
+          console.error("Failed to update paid order:", updatePaidError);
+        } else {
+          // // Optional: Trigger EasyParcel only after payment is confirmed
+          // console.log("Trigger EasyParcel making-order:", order.id); // //
+        }
+        break;
 
       // // 🔍 Trigger EasyParcel ONLY after paid
-      console.log("Trigger EasyParcel making-order:", order.id); // //
-      console.log("🚀 CALLING EASY PARCEL", {
-        orderId: order.id,
-        paymentStatus: order.paymentStatus,
-        deliveryStatus: order.deliveryStatus, // //
-      }); // //
+      // console.log("Trigger EasyParcel making-order:", order.id); // //
+      // console.log("🚀 CALLING EASY PARCEL", {
+      //   orderId: order.id,
+      //   paymentStatus: order.paymentStatus,
+      //   deliveryStatus: order.deliveryStatus, // //
+      // }); // //
 
-      const makingOrderRes = await fetch(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: order.id }),
+      // const makingOrderRes = await fetch(
+      //   `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`,
+      //   {
+      //     method: "POST",
+      //     headers: { "Content-Type": "application/json" },
+      //     body: JSON.stringify({ orderId: order.id }),
+      //   }
+      // );
+
+      // const makingOrderData = await makingOrderRes.json(); // //
+      // console.log("making-order result:", makingOrderData); // //
+
+      // // END
+
+      case "error":
+      case "cancelled":
+        await supabase
+          .from("orders")
+          .update({
+            paymentStatus: "failed",
+            orderStatus: "cancelled_due_to_payment",
+          })
+          .eq("id", order.id);
+        break;
+
+      case "viewed":
+        if (order.paymentStatus === "pending") {
+          await supabase
+            .from("orders")
+            .update({
+              paymentStatus: "pending",
+              orderStatus: "awaiting_payment",
+            })
+            .eq("id", order.id);
         }
-      );
+        break;
 
-      const makingOrderData = await makingOrderRes.json(); // //
-      console.log("making-order result:", makingOrderData); // //
+      case "created":
+      case "sent":
+      case "overdue":
+      case "expired":
+      case "blocked":
+      case "hold":
+      case "released":
+      case "pending_release":
+      case "pending_capture":
+      case "preauthorized":
+      case "pending_execute":
+      case "pending_charge":
+      case "cleared":
+      case "settled":
+      case "chargeback":
+      case "pending_refund":
+      case "refunded":
+        console.log(
+          `CHIP webhook received status '${status}' for order ${orderNumber}`
+        );
+        break;
 
-      // // ⛔ DO NOT call making-order-payment here
-      // // EasyParcel payment should be triggered ONLY after order creation success
-    }
-
-    // // ⛔ FAILED / CANCELLED — only if NOT paid yet
-    if (status === "failed" || status === "cancelled") {
-      console.log("Payment failed/cancelled"); // //
-
-      await supabase
-        .from("orders")
-        .update({
-          paymentStatus: "failed",
-          orderStatus: "cancelled_due_to_payment",
-        })
-        .eq("id", order.id);
-    }
-
-    // // ⛔ PENDING — only before paid
-    if (status === "pending" && order.paymentStatus !== "paid") {
-      await supabase
-        .from("orders")
-        .update({
-          paymentStatus: "pending",
-          orderStatus: "awaiting_payment",
-        })
-        .eq("id", order.id);
+      default:
+        console.warn(
+          `Unknown CHIP status '${status}' for order ${orderNumber}`
+        );
     }
 
     return NextResponse.json({ received: true });
