@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (order.easyparcelOrderNo && order.deliveryStatus === "processing") {
+    if (order.easyparcelOrderNumber && order.deliveryStatus === "processing") {
       return NextResponse.json({ skipped: true });
     }
 
@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
     const { error: updateError } = await supabase
       .from("orders")
       .update({
-        easyparcelOrderNo: epOrder.order_number,
+        easyparcelOrderNumber: epOrder.order_number,
         courierName: epOrder.courier_name || order.courierName,
         trackingNumber: null,
         deliveryStatus: "processing",
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      easyparcelOrderNo: epOrder.order_number,
+      easyparcelOrderNumber: epOrder.order_number,
       trackingNumber: epOrder.parcel_number,
     });
   } catch (err) {
