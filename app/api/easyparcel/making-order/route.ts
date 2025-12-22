@@ -123,8 +123,6 @@ export async function POST(req: NextRequest) {
       ],
     };
 
-    console.log("📦 EASY PARCEL PAYLOAD", JSON.stringify(payload, null, 2)); // //
-
     // 5. Call EasyParcel Making-Order API
     const response = await fetch(EASYPARCEL_MAKING_ORDER_URL, {
       method: "POST",

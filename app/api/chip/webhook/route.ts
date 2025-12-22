@@ -48,7 +48,6 @@ export async function POST(req: NextRequest) {
         if (error) {
           console.error("Failed to update PAID order:", error);
         } else {
-          console.log("Order marked as PAID:", reference); // //
           try {
             const epResponse = await fetch(
               `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`,
