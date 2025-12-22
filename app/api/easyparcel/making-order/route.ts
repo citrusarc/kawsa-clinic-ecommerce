@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
           pick_addr2: "Bandar Baru Uda",
           pick_city: "Johor Bahru",
           pick_state: "Johor",
-          pick_code: "81200",
+          pick_code: String("81200"),
           pick_country: "MY",
 
           send_name: order.fullName,
@@ -113,15 +113,17 @@ export async function POST(req: NextRequest) {
           send_addr2: order.addressLine2 || "",
           send_city: order.city,
           send_state: order.state,
-          send_code: order.postcode,
+          send_code: String(order.postcode),
           send_country: "MY",
 
           collect_date: new Date().toISOString().split("T")[0],
           sms: true,
-          reference: order.orderNumber,
+          reference: String(order.orderNumber),
         },
       ],
     };
+
+    console.log("📦 EASY PARCEL PAYLOAD", JSON.stringify(payload, null, 2)); // //
 
     // 5. Call EasyParcel Making-Order API
     const response = await fetch(EASYPARCEL_MAKING_ORDER_URL, {
