@@ -453,7 +453,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
           </div>
         </div>
       </div>
-      <div className="flex flex-col gap-8 sm:gap-16 py-8 sm:py-24 w-full text-left">
+      <div className="flex flex-col gap-8 sm:gap-16 pt-8 sm:py-24 w-full text-left">
         <h2 className={`text-4xl sm:text-6xl ${spectral.className} text-black`}>
           INGREDIENTS
         </h2>

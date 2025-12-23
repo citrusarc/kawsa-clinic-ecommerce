@@ -1,23 +1,66 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/components/store/Cart";
 import { useCheckout } from "@/components/store/Checkout";
 
 import { spectral } from "@/config/font";
 
+type OrderItem = {
+  id: string;
+  itemSrc: string;
+  itemName: string;
+  itemQuantity: number;
+  itemTotalPrice: number;
+}; // //
+
+type Order = {
+  orderNumber: string;
+  deliveryStatus: string;
+  subTotalPrice: number;
+  shippingFee: number;
+  totalPrice: number;
+  order_items: OrderItem[];
+}; // //
+
 export default function OrderSuccessPage() {
-  const hasCleared = useRef(false);
+  const hasCleared = useRef(false); // //
   const clearCart = useCart((state) => state.clearCart);
   const clearCheckout = useCheckout((state) => state.clearCheckout);
 
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    if (!hasCleared.current) {
+    const orderNumber = localStorage.getItem("lastOrderNumber");
+
+    if (!orderNumber) {
+      setLoading(false);
+      return;
+    }
+
+    fetch(`/api/get-orders?orderNumber=${orderNumber}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setOrder(data);
+        localStorage.removeItem("lastOrderNumber");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!hasCleared.current && order) {
       clearCart();
       clearCheckout();
       hasCleared.current = true;
     }
-  }, [clearCart, clearCheckout]);
+  }, [order, clearCart, clearCheckout]);
+
+  if (loading) {
+    return <div className="p-8">Loading your order…</div>;
+  }
+
   return (
     <section className="flex flex-col p-4 sm:p-24 gap-8 sm:gap-16 text-black">
       <h2
@@ -25,73 +68,62 @@ export default function OrderSuccessPage() {
       >
         Order Placed Successfully!
       </h2>
-      <p>
-        We’ve received your order #123456ABC and it’s getting ready for
-        delivery.
-      </p>
 
-      {/* Add list order items like checkout one */}
-      {/* something like this */}
-      {/* {items.length === 0 ? (
-        <div className="space-y-4 sm:space-y-8">
-          <h2 className="text-xl font-semibold text-violet-600">
-            Nothing to checkout
-          </h2>
-          <p className="text-neutral-400">
-            Looks like you haven’t added any items to your cart.
+      {order ? (
+        <>
+          <p>
+            We’ve received your order{" "}
+            <span className="font-semibold">{order.orderNumber}</span> <br />
+            Please check your email for details.
           </p>
-          <Link
-            href="/shop-our-products"
-            className="block p-4 w-fit rounded-lg overflow-hidden cursor-pointer border border-violet-600 text-violet-600 bg-white hover:text-white hover:bg-violet-600"
-          >
-            Explore Our Products
-          </Link>
-        </div>
-      ) : (
+
           <div className="space-y-4 sm:space-y-8">
             <h2 className="text-xl font-semibold text-violet-600">
               Order Summary
             </h2>
             <div className="flex flex-col gap-4 sm:gap-8">
-              {items.map((item) => (
+              {order.order_items.map((item) => (
                 <div key={item.id} className="flex gap-4 items-start">
                   <div className="relative shrink-0 w-32 h-32 rounded-xl sm:rounded-2xl overflow-hidden">
                     <Image
                       fill
-                      src={item.src}
-                      alt={item.name}
+                      src={item.itemSrc}
+                      alt={item.itemName}
                       className="object-cover"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
                     <p className="line-clamp-2 wrap-break-words font-semibold">
-                      {item.name}
+                      {item.itemName}
                     </p>
                     <p className="text-neutral-400">
-                      Quantity: {item.quantity}
+                      Quantity: {item.itemQuantity}
                     </p>
                     <p className="text-violet-600 font-semibold">
-                      RM{(item.currentPrice ?? item.unitPrice) * item.quantity}
+                      RM{item.itemTotalPrice.toFixed(2)}
                     </p>
                   </div>
                 </div>
               ))}
               <div>
                 <p className="text-neutral-400">
-                  Sub Total: RM{subTotalPrice.toFixed(2)}
+                  Sub Total: RM{order.subTotalPrice.toFixed(2)}
                 </p>
                 <p className="text-neutral-400">
-                  Shipping Fee:{" "}
-                  {isCalculating
-                    ? "Estimating your shipping…"
-                    : `RM${shippingFee.toFixed(2)}`}
+                  Shipping Fee: RM{order.shippingFee.toFixed(2)}
                 </p>
                 <p className="mt-4 sm:mt-8 text-xl font-semibold">
-                  Total: RM{totalPrice.toFixed(2)}
+                  Total: RM{order.totalPrice.toFixed(2)}
                 </p>
               </div>
             </div>
-          </div> */}
+          </div>
+        </>
+      ) : (
+        <p>
+          Your order has been confirmed. Please check your email for details.
+        </p>
+      )}
     </section>
   );
 }

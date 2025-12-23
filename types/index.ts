@@ -139,6 +139,7 @@ export type OrderItem = {
   productId: string;
   variantId: string;
   variantOptionId: string;
+  itemSrc: string;
   itemName: string;
   itemWeight: number;
   itemWidth: number;

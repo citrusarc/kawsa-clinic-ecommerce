@@ -25,7 +25,7 @@ export default async function IngredientsDetailsPage({
   }
 
   return (
-    <section className="flex flex-col gap-8 p-4 sm:p-24 items-center justify-center">
+    <section className="flex flex-col gap-8 p-4 pb-16 sm:p-24 items-center justify-center">
       <div className="flex flex-col sm:flex-row gap-8 sm:gap-16">
         <div className="relative w-full max-w-2xl aspect-square rounded-4xl overflow-hidden">
           <Image

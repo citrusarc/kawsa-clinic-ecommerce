@@ -349,6 +349,7 @@ function CheckoutPageContent() {
           productId: item.productId,
           variantId: item.variantId || null,
           variantOptionId: item.variantOptionId || null,
+          itemSrc: item.src,
           itemName: item.name,
 
           itemWeight: item.weight,
@@ -372,6 +373,8 @@ function CheckoutPageContent() {
       const data = await response.json();
 
       if (!response.ok) throw new Error(data.error || "Order creation failed");
+
+      localStorage.setItem("lastOrderNumber", data.orderNumber);
 
       window.location.href = data.checkout_url;
       form.reset();

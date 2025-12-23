@@ -2,7 +2,7 @@ import { spectral } from "@/config/font";
 
 export default function RefundPolicyPage() {
   return (
-    <section className="flex flex-col p-4 sm:p-24 gap-8 sm:gap-16 font-medium text-black">
+    <section className="flex flex-col p-4 pb-16 sm:p-24 gap-8 sm:gap-16 font-medium text-black">
       <h2 className={`text-4xl sm:text-6xl ${spectral.className}`}>
         Refund Policy
       </h2>
