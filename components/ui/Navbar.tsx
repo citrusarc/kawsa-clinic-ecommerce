@@ -53,16 +53,18 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (!cartRef.current) return;
-
       const target = event.target as Node;
 
-      if (!cartRef.current.contains(target)) {
+      if (cartRef.current && !cartRef.current.contains(target)) {
         setOpenCart(false);
         resetSwipe();
       } else {
         const swipeable = (target as HTMLElement).closest("[data-swipe-item]");
         if (!swipeable) resetSwipe();
+      }
+
+      if (menuRef.current && !menuRef.current.contains(target)) {
+        setOpenMenu(false);
       }
     };
 

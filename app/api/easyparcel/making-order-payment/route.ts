@@ -24,20 +24,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Ensure EasyParcel order was created
-    if (!order.easyparcelOrderNo) {
+    if (order.paymentStatus !== "paid") {
+      return NextResponse.json(
+        { error: "Order not paid yet" },
+        { status: 400 }
+      );
+    }
+
+    if (!order.easyparcelOrderNumber) {
       return NextResponse.json(
         { error: "EasyParcel order not created yet" },
         { status: 400 }
       );
     }
 
-    // 2. Build payment payload (DOC COMPLIANT)
+    if (order.trackingNumber) {
+      return NextResponse.json({ skipped: true, reason: "Already paid" });
+    }
+
+    // 2. Build payment payload
     const payload = {
       api: EASYPARCEL_API_KEY,
       bulk: [
         {
-          order_no: order.easyparcelOrderNo,
+          order_no: order.easyparcelOrderNumber,
         },
       ],
     };
@@ -67,29 +77,39 @@ export async function POST(req: NextRequest) {
 
     if (!parcelInfo) {
       return NextResponse.json(
-        { error: "AWB data not returned" },
+        { error: "Parcel / AWB data not returned" },
         { status: 500 }
       );
     }
 
-    // 4. Update order with AWB + tracking info
-    await supabase
+    // 4. Update order with shipping info
+    const { error: updateError } = await supabase
       .from("orders")
       .update({
         trackingNumber: parcelInfo.parcelno,
-        awbNumber: parcelInfo.awb, // // but I don't have awbNumber in supabase, need to add? awbNumber and trackingNumber is different?
-        awbPdfUrl: parcelInfo.awb_id_link, // // but I don't have awbPdfUrl in supabase, need to add?
-        trackingUrl: parcelInfo.tracking_url, // // but I don't have trackingUrl in supabase, need to add?
+        trackingUrl: parcelInfo.tracking_url,
+        awbNumber: parcelInfo.awb,
+        awbPdfUrl: parcelInfo.awb_id_link,
         deliveryStatus: "ready_for_pickup",
+        orderStatus: "processing",
       })
       .eq("id", orderId);
 
+    if (updateError) {
+      console.error("Failed to update order:", updateError);
+      return NextResponse.json(
+        { error: "Failed to update order shipping info" },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      parcelNumber: parcelInfo.parcelno,
+      easyparcelOrderNumber: order.easyparcelOrderNumber,
+      trackingNumber: parcelInfo.parcelno,
+      trackingUrl: parcelInfo.tracking_url,
       awbNumber: parcelInfo.awb,
       awbPdfUrl: parcelInfo.awb_id_link,
-      trackingUrl: parcelInfo.tracking_url,
       message: paymentResult?.messagenow,
     });
   } catch (err) {

@@ -158,7 +158,7 @@ export default function OurStoryPage() {
           ))}
         </div>
       </div>
-      <div className="flex flex-col p-8 sm:px-8 sm:py-24 gap-8 sm:gap-16 my-8 sm:mt-16 rounded-4xl overflow-hidden font-medium bg-violet-600">
+      <div className="flex flex-col p-8 sm:px-8 sm:py-24 gap-8 sm:gap-16 my-8 sm:mt-16 rounded-4xl overflow-hidden bg-violet-600">
         <div>
           <h2
             className={`text-4xl sm:text-6xl ${spectral.className} text-white`}
