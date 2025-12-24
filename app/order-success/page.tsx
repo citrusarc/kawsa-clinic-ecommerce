@@ -32,6 +32,9 @@ type Order = {
 
 export default function OrderSuccessPage() {
   const hasCleared = useRef(false); // //
+  const intervalRef = useRef<number | null>(null); // // store interval in ref
+  const timeoutRef = useRef<number | null>(null); // // store timeout in ref
+
   const clearCart = useCart((state) => state.clearCart);
   const clearCheckout = useCheckout((state) => state.clearCheckout);
 
@@ -46,9 +49,6 @@ export default function OrderSuccessPage() {
       return;
     }
 
-    let intervalId: number | undefined; // // changed type from NodeJS.Timer to number
-    let timeoutId: number | undefined; // // max timeout
-
     const fetchOrder = async () => {
       try {
         const res = await fetch(`/api/get-orders?orderNumber=${orderNumber}`);
@@ -56,9 +56,10 @@ export default function OrderSuccessPage() {
         setOrder(data);
 
         // stop polling if tracking number exists
-        if (data.trackingNumber && intervalId) {
-          clearInterval(intervalId); // // cleared correctly
-          if (timeoutId) clearTimeout(timeoutId); // // clear max timeout
+        if (data.trackingNumber && intervalRef.current) {
+          clearInterval(intervalRef.current); // //
+          intervalRef.current = null; // //
+          if (timeoutRef.current) clearTimeout(timeoutRef.current); // //
         }
       } catch (err) {
         console.error("Failed to fetch order:", err);
@@ -68,16 +69,17 @@ export default function OrderSuccessPage() {
     };
 
     fetchOrder(); // initial fetch
-    intervalId = window.setInterval(fetchOrder, 5000); // // poll every 5 seconds
 
-    // stop polling after 1 minute max
-    timeoutId = window.setTimeout(() => {
-      if (intervalId) clearInterval(intervalId); // // stop polling after timeout
-    }, 60_000); // // 1 minute
+    intervalRef.current = window.setInterval(fetchOrder, 5000); // // poll every 5 seconds
+    timeoutRef.current = window.setTimeout(() => {
+      // // max polling timeout
+      if (intervalRef.current) clearInterval(intervalRef.current); // //
+      intervalRef.current = null; // //
+    }, 60_000); // // stop after 1 minute
 
     return () => {
-      if (intervalId) clearInterval(intervalId); // // cleanup
-      if (timeoutId) clearTimeout(timeoutId); // // cleanup
+      if (intervalRef.current) clearInterval(intervalRef.current); // // cleanup
+      if (timeoutRef.current) clearTimeout(timeoutRef.current); // // cleanup
     };
   }, []);
 
