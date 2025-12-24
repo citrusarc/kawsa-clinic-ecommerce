@@ -15,6 +15,7 @@ type Order = {
   subTotalPrice: number;
   shippingFee: number;
   totalPrice: number;
+  courierName: string;
   trackingNumber?: string | null;
   trackingUrl?: string | null;
   awbNumber?: string | null;
@@ -24,12 +25,13 @@ type Order = {
 }; // //
 
 export default function OrderSuccessPage() {
-  const isClear = useRef(false); // // better label?
+  const hasCleared = useRef(false);
   const intervalRef = useRef<number | null>(null);
   const timeoutRef = useRef<number | null>(null);
 
   const clearCart = useCart((state) => state.clearCart);
   const clearCheckout = useCheckout((state) => state.clearCheckout);
+
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -75,10 +77,10 @@ export default function OrderSuccessPage() {
   }, []);
 
   useEffect(() => {
-    if (!isClear.current && order) {
+    if (!hasCleared.current && order) {
       clearCart();
       clearCheckout();
-      isClear.current = true;
+      hasCleared.current = true;
     }
   }, [order, clearCart, clearCheckout]);
 
@@ -102,10 +104,31 @@ export default function OrderSuccessPage() {
             {order.trackingNumber ? (
               <>
                 Tracking Number:{" "}
-                <span className="font-semibold">{order.trackingNumber}</span>
+                <span>
+                  {order.courierName}{" "}
+                  {order.trackingUrl ? (
+                    <a
+                      href={order.trackingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold"
+                    >
+                      ({order.trackingNumber})
+                    </a>
+                  ) : (
+                    <span className="font-semibold">
+                      ({order.trackingNumber})
+                    </span>
+                  )}
+                </span>
               </>
             ) : (
-              <span> Tracking Number: Getting your tracking number...</span>
+              <p>
+                Tracking Number:{" "}
+                <span className="text-neutral-400">
+                  Getting your tracking number...
+                </span>
+              </p>
             )}
             <br />
             Please check your email for details.

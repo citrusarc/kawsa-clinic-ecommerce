@@ -182,6 +182,7 @@ export type LoremIpsum = {
   subTotalPrice: number;
   shippingFee: number;
   totalPrice: number;
+  courierName: string;
   trackingNumber?: string | null;
   trackingUrl?: string | null;
   awbNumber?: string | null;
