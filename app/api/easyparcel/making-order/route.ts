@@ -56,20 +56,27 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Calculate parcel info
-    const totalWeight = items.reduce(
-      (sum, item) => sum + Number(item.itemWeight || 0),
-      0
+    const totalWeight = Number(
+      items
+        .reduce(
+          (sum, item) =>
+            sum + Number(item.itemWeight || 0) * Number(item.itemQuantity || 1),
+          0
+        )
+        .toFixed(2)
     );
     const maxWidth = items.reduce(
-      (max, item) => Math.max(max, Number(item.itemWidth || 0)),
+      (max, item) => Math.max(max, Math.ceil(Number(item.itemWidth || 0))),
       0
     );
+
     const maxLength = items.reduce(
-      (max, item) => Math.max(max, Number(item.itemLength || 0)),
+      (max, item) => Math.max(max, Math.ceil(Number(item.itemLength || 0))),
       0
     );
+
     const maxHeight = items.reduce(
-      (max, item) => Math.max(max, Number(item.itemHeight || 0)),
+      (max, item) => Math.max(max, Math.ceil(Number(item.itemHeight || 0))),
       0
     );
     const parcelValue = items.reduce(
@@ -180,7 +187,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       easyparcelOrderNumber: epOrder.order_number,
-      trackingNumber: epOrder.parcel_number,
+      // trackingNumber: epOrder.parcel_number, // //
     });
   } catch (err) {
     console.error("EasyParcel making-order error:", err);

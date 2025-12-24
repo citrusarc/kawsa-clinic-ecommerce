@@ -140,10 +140,10 @@ function CheckoutPageContent() {
         const height = Number(item.height) || 0;
 
         return {
-          totalWeight: Number((acc.totalWeight + weight * qty).toFixed(2)),
+          totalWeight: acc.totalWeight + weight * qty,
           totalWidth: Math.max(acc.totalWidth, Math.ceil(width)),
           totalLength: Math.max(acc.totalLength, Math.ceil(length)),
-          totalHeight: Math.max(acc.totalHeight, Math.ceil(height * qty)),
+          totalHeight: Math.max(acc.totalHeight, Math.ceil(height)),
         };
       },
       {

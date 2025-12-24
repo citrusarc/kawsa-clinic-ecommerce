@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       country,
       subTotalPrice,
       shippingFee,
-      paymentMethod,
+      paymentMethod = null, // //
       easyparcel,
       items,
     } = body;
