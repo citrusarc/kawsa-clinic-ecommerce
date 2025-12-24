@@ -46,13 +46,31 @@ export default function OrderSuccessPage() {
       return;
     }
 
-    fetch(`/api/get-orders?orderNumber=${orderNumber}`)
-      .then((res) => res.json())
-      .then((data) => {
+    let intervalId: number | undefined; // // changed type from NodeJS.Timer to number
+
+    const fetchOrder = async () => {
+      try {
+        const res = await fetch(`/api/get-orders?orderNumber=${orderNumber}`);
+        const data = await res.json();
         setOrder(data);
-        localStorage.removeItem("lastOrderNumber");
-      })
-      .finally(() => setLoading(false));
+
+        // stop polling if tracking number exists
+        if (data.trackingNumber && intervalId) {
+          clearInterval(intervalId); // // cleared correctly
+        }
+      } catch (err) {
+        console.error("Failed to fetch order:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrder(); // initial fetch
+    intervalId = window.setInterval(fetchOrder, 5000); // // window.setInterval returns number in browser
+
+    return () => {
+      if (intervalId) clearInterval(intervalId); // // cleanup
+    };
   }, []);
 
   useEffect(() => {
@@ -81,8 +99,14 @@ export default function OrderSuccessPage() {
             We’ve received your order{" "}
             <span className="font-semibold">{order.orderNumber}</span> <br />
             Please check your email for details. <br />
-            Tracking Number:{" "}
-            <span className="font-semibold">{order.trackingNumber}</span>
+            {order.trackingNumber ? ( // // show tracking number if available
+              <>
+                Tracking Number:{" "}
+                <span className="font-semibold">{order.trackingNumber}</span>
+              </>
+            ) : (
+              <span>Tracking number will be available shortly…</span> // //
+            )}
           </p>
 
           <div className="space-y-4 sm:space-y-8">

@@ -187,7 +187,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       easyparcelOrderNumber: epOrder.order_number,
-      // trackingNumber: epOrder.parcel_number, // //
     });
   } catch (err) {
     console.error("EasyParcel making-order error:", err);
