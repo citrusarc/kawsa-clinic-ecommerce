@@ -421,7 +421,7 @@ function CheckoutPageContent() {
                       className="object-cover"
                     />
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div>
                     <p className="line-clamp-2 wrap-break-words font-semibold">
                       {item.name}
                     </p>

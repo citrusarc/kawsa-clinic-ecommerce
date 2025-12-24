@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       trackingNumber,
       trackingUrl,
       awbNumber,
-       awbPdfUrl,
+      awbPdfUrl,
       deliveryStatus,
       order_items (
         id,

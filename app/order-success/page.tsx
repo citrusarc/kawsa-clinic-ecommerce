@@ -5,15 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/components/store/Cart";
 import { useCheckout } from "@/components/store/Checkout";
 
+import { OrderItem } from "@/types";
 import { spectral } from "@/config/font";
-
-type OrderItem = {
-  id: string;
-  itemSrc: string;
-  itemName: string;
-  itemQuantity: number;
-  itemTotalPrice: number;
-}; // //
 
 type Order = {
   id: string;
@@ -31,13 +24,12 @@ type Order = {
 }; // //
 
 export default function OrderSuccessPage() {
-  const hasCleared = useRef(false); // //
-  const intervalRef = useRef<number | null>(null); // // store interval in ref
-  const timeoutRef = useRef<number | null>(null); // // store timeout in ref
+  const isClear = useRef(false); // // better label?
+  const intervalRef = useRef<number | null>(null);
+  const timeoutRef = useRef<number | null>(null);
 
   const clearCart = useCart((state) => state.clearCart);
   const clearCheckout = useCheckout((state) => state.clearCheckout);
-
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -51,15 +43,15 @@ export default function OrderSuccessPage() {
 
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`/api/get-orders?orderNumber=${orderNumber}`);
-        const data = await res.json();
+        const response = await fetch(
+          `/api/get-orders?orderNumber=${orderNumber}`
+        );
+        const data = await response.json();
         setOrder(data);
-
-        // stop polling if tracking number exists
         if (data.trackingNumber && intervalRef.current) {
-          clearInterval(intervalRef.current); // //
-          intervalRef.current = null; // //
-          if (timeoutRef.current) clearTimeout(timeoutRef.current); // //
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
         }
       } catch (err) {
         console.error("Failed to fetch order:", err);
@@ -68,26 +60,25 @@ export default function OrderSuccessPage() {
       }
     };
 
-    fetchOrder(); // initial fetch
+    fetchOrder();
 
-    intervalRef.current = window.setInterval(fetchOrder, 5000); // // poll every 5 seconds
+    intervalRef.current = window.setInterval(fetchOrder, 5000);
     timeoutRef.current = window.setTimeout(() => {
-      // // max polling timeout
-      if (intervalRef.current) clearInterval(intervalRef.current); // //
-      intervalRef.current = null; // //
-    }, 60_000); // // stop after 1 minute
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }, 60_000);
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current); // // cleanup
-      if (timeoutRef.current) clearTimeout(timeoutRef.current); // // cleanup
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
   useEffect(() => {
-    if (!hasCleared.current && order) {
+    if (!isClear.current && order) {
       clearCart();
       clearCheckout();
-      hasCleared.current = true;
+      isClear.current = true;
     }
   }, [order, clearCart, clearCheckout]);
 
@@ -108,15 +99,16 @@ export default function OrderSuccessPage() {
           <p>
             We’ve received your order{" "}
             <span className="font-semibold">{order.orderNumber}</span> <br />
-            Please check your email for details. <br />
-            {order.trackingNumber ? ( // // show tracking number if available
+            {order.trackingNumber ? (
               <>
                 Tracking Number:{" "}
                 <span className="font-semibold">{order.trackingNumber}</span>
               </>
             ) : (
-              <span>Tracking number will be available shortly…</span> // //
+              <span> Tracking Number: Getting your tracking number...</span>
             )}
+            <br />
+            Please check your email for details.
           </p>
 
           <div className="space-y-4 sm:space-y-8">
@@ -125,7 +117,7 @@ export default function OrderSuccessPage() {
             </h2>
             <div className="flex flex-col gap-4 sm:gap-8">
               {order.order_items.map((item) => (
-                <div key={item.id} className="flex gap-4 items-start">
+                <div key={item.orderId} className="flex gap-4 items-start">
                   <div className="relative shrink-0 w-32 h-32 rounded-xl sm:rounded-2xl overflow-hidden">
                     <Image
                       fill
@@ -134,7 +126,7 @@ export default function OrderSuccessPage() {
                       className="object-cover"
                     />
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div>
                     <p className="line-clamp-2 wrap-break-words font-semibold">
                       {item.itemName}
                     </p>

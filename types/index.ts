@@ -175,6 +175,21 @@ export type OrderBody = {
   items: OrderItem[];
 };
 
+export type LoremIpsum = {
+  id: string;
+  easyparcelOrderNumber?: string | null;
+  orderNumber: string;
+  subTotalPrice: number;
+  shippingFee: number;
+  totalPrice: number;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  awbNumber?: string | null;
+  awbPdfUrl?: string | null;
+  deliveryStatus: string;
+  order_items: OrderItem[];
+};
+
 export type OrderEmailTemplateProps = {
   orderNumber: string;
   fullName: string;
