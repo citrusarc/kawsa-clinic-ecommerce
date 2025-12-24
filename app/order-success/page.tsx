@@ -111,7 +111,7 @@ export default function OrderSuccessPage() {
                       href={order.trackingUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-semibold"
+                      className="text-blue-600"
                     >
                       ({order.trackingNumber})
                     </a>
