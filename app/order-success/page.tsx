@@ -50,7 +50,7 @@ export default function OrderSuccessPage() {
         );
         const data = await response.json();
         setOrder(data);
-        if (data.trackingNumber && intervalRef.current) {
+        if (data.awbNumber && intervalRef.current) {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -101,7 +101,7 @@ export default function OrderSuccessPage() {
           <p>
             We’ve received your order{" "}
             <span className="font-semibold">{order.orderNumber}</span> <br />
-            {order.trackingNumber ? (
+            {order.awbNumber ? (
               <>
                 Tracking Number:{" "}
                 <span>
@@ -113,12 +113,10 @@ export default function OrderSuccessPage() {
                       rel="noopener noreferrer"
                       className="text-blue-600"
                     >
-                      ({order.trackingNumber})
+                      ({order.awbNumber})
                     </a>
                   ) : (
-                    <span className="font-semibold">
-                      ({order.trackingNumber})
-                    </span>
+                    <span className="font-semibold">({order.awbNumber})</span>
                   )}
                 </span>
               </>
