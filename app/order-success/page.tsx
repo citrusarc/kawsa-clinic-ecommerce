@@ -103,7 +103,7 @@ export default function OrderSuccessPage() {
             <span className="font-semibold">{order.orderNumber}</span> <br />
             {order.awbNumber ? (
               <>
-                Tracking Number:{" "}
+                <span className="font-semibold">Tracking Number:</span>{" "}
                 <span>
                   {order.courierName}{" "}
                   {order.trackingUrl ? (
@@ -116,7 +116,9 @@ export default function OrderSuccessPage() {
                       ({order.awbNumber})
                     </a>
                   ) : (
-                    <span className="font-semibold">({order.awbNumber})</span>
+                    <span className="text-neutral-400">
+                      No tracking number...
+                    </span>
                   )}
                 </span>
               </>
