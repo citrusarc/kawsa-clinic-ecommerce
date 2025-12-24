@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
       subTotalPrice,
       shippingFee,
       totalPrice,
+      courierName,
       trackingNumber,
       trackingUrl,
       awbNumber,

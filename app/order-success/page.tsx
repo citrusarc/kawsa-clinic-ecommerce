@@ -123,12 +123,12 @@ export default function OrderSuccessPage() {
                 </span>
               </>
             ) : (
-              <p>
+              <span>
                 Tracking Number:{" "}
                 <span className="text-neutral-400">
                   Getting your tracking number...
                 </span>
-              </p>
+              </span>
             )}
             <br />
             Please check your email for details.
