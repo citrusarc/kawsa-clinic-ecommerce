@@ -47,6 +47,7 @@ export default function OrderSuccessPage() {
     }
 
     let intervalId: number | undefined; // // changed type from NodeJS.Timer to number
+    let timeoutId: number | undefined; // // max timeout
 
     const fetchOrder = async () => {
       try {
@@ -57,6 +58,7 @@ export default function OrderSuccessPage() {
         // stop polling if tracking number exists
         if (data.trackingNumber && intervalId) {
           clearInterval(intervalId); // // cleared correctly
+          if (timeoutId) clearTimeout(timeoutId); // // clear max timeout
         }
       } catch (err) {
         console.error("Failed to fetch order:", err);
@@ -66,10 +68,16 @@ export default function OrderSuccessPage() {
     };
 
     fetchOrder(); // initial fetch
-    intervalId = window.setInterval(fetchOrder, 5000); // // window.setInterval returns number in browser
+    intervalId = window.setInterval(fetchOrder, 5000); // // poll every 5 seconds
+
+    // stop polling after 1 minute max
+    timeoutId = window.setTimeout(() => {
+      if (intervalId) clearInterval(intervalId); // // stop polling after timeout
+    }, 60_000); // // 1 minute
 
     return () => {
       if (intervalId) clearInterval(intervalId); // // cleanup
+      if (timeoutId) clearTimeout(timeoutId); // // cleanup
     };
   }, []);
 
