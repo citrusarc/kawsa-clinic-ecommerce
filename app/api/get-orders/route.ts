@@ -16,10 +16,16 @@ export async function GET(req: NextRequest) {
     .from("orders")
     .select(
       `
+      id,
+      easyparcelOrderNumber,
       orderNumber,
       subTotalPrice,
       shippingFee,
       totalPrice,
+      trackingNumber,
+      trackingUrl,
+      awbNumber,
+       awbPdfUrl,
       deliveryStatus,
       order_items (
         id,

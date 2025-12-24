@@ -16,11 +16,17 @@ type OrderItem = {
 }; // //
 
 type Order = {
+  id: string;
+  easyparcelOrderNumber?: string | null;
   orderNumber: string;
-  deliveryStatus: string;
   subTotalPrice: number;
   shippingFee: number;
   totalPrice: number;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  awbNumber?: string | null;
+  awbPdfUrl?: string | null;
+  deliveryStatus: string;
   order_items: OrderItem[];
 }; // //
 
@@ -74,7 +80,9 @@ export default function OrderSuccessPage() {
           <p>
             We’ve received your order{" "}
             <span className="font-semibold">{order.orderNumber}</span> <br />
-            Please check your email for details.
+            Please check your email for details. <br />
+            Tracking Number:{" "}
+            <span className="font-semibold">{order.trackingNumber}</span>
           </p>
 
           <div className="space-y-4 sm:space-y-8">
