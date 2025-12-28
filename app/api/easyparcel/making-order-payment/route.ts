@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL!; // //
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL =
   process.env.EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL!;
@@ -38,8 +39,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (order.trackingNumber) {
-      return NextResponse.json({ skipped: true, reason: "Already paid" });
+    if (order.awbNumber) {
+      return NextResponse.json({ skipped: true, reason: "AWB already exists" });
     }
 
     // 2. Build payment payload
@@ -92,6 +93,7 @@ export async function POST(req: NextRequest) {
         awbPdfUrl: parcelInfo.awb_id_link,
         deliveryStatus: "ready_for_pickup",
         orderStatus: "processing",
+        emailSent: false, // //
       })
       .eq("id", orderId);
 
@@ -102,6 +104,17 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+    // // START
+    try {
+      await fetch(`${SITE_URL}/api/email-confirmation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+    } catch (emailErr) {
+      console.error("Failed to trigger email confirmation:", emailErr);
+    }
+    // // END
 
     return NextResponse.json({
       success: true,

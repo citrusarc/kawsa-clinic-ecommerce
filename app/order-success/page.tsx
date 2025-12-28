@@ -5,24 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/components/store/Cart";
 import { useCheckout } from "@/components/store/Checkout";
 
-import { OrderItem } from "@/types";
+import { OrderSuccessBody } from "@/types";
 import { spectral } from "@/config/font";
-
-type Order = {
-  id: string;
-  easyparcelOrderNumber?: string | null;
-  orderNumber: string;
-  subTotalPrice: number;
-  shippingFee: number;
-  totalPrice: number;
-  courierName: string;
-  trackingNumber?: string | null;
-  trackingUrl?: string | null;
-  awbNumber?: string | null;
-  awbPdfUrl?: string | null;
-  deliveryStatus: string;
-  order_items: OrderItem[];
-}; // //
 
 export default function OrderSuccessPage() {
   const hasCleared = useRef(false);
@@ -32,7 +16,7 @@ export default function OrderSuccessPage() {
   const clearCart = useCart((state) => state.clearCart);
   const clearCheckout = useCheckout((state) => state.clearCheckout);
 
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<OrderSuccessBody | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -139,7 +123,7 @@ export default function OrderSuccessPage() {
               Order Summary
             </h2>
             <div className="flex flex-col gap-4 sm:gap-8">
-              {order.order_items.map((item) => (
+              {order.items.map((item) => (
                 <div key={item.orderId} className="flex gap-4 items-start">
                   <div className="relative shrink-0 w-32 h-32 rounded-xl sm:rounded-2xl overflow-hidden">
                     <Image

@@ -175,10 +175,10 @@ export type OrderBody = {
   items: OrderItem[];
 };
 
-export type LoremIpsum = {
-  id: string;
-  easyparcelOrderNumber?: string | null;
+export type OrderSuccessBody = {
+  orderId: string;
   orderNumber: string;
+  easyparcelOrderNumber?: string | null;
   subTotalPrice: number;
   shippingFee: number;
   totalPrice: number;
@@ -188,10 +188,11 @@ export type LoremIpsum = {
   awbNumber?: string | null;
   awbPdfUrl?: string | null;
   deliveryStatus: string;
-  order_items: OrderItem[];
+  items: OrderItem[];
 };
 
-export type OrderEmailTemplateProps = {
+export type OrderEmailConfirmationTemplateProps = {
+  orderId: string;
   orderNumber: string;
   fullName: string;
   email: string;
@@ -199,11 +200,15 @@ export type OrderEmailTemplateProps = {
   address: string;
   paymentMethod: string;
   paymentStatus: string;
+  subTotalPrice: number;
+  shippingFee: number;
+  totalPrice: number;
   courierName: string;
-  trackingNumber: string;
+  trackingUrl?: string | null;
+  awbNumber?: string | null;
   deliveryStatus: string;
   orderStatus: string;
-  items: CartItem[];
+  items: OrderItem[];
 };
 
 export type EasyParcelRateItem = {
