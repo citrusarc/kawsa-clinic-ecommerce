@@ -123,7 +123,7 @@ export default function OrderSuccessPage() {
               Order Summary
             </h2>
             <div className="flex flex-col gap-4 sm:gap-8">
-              {order.items?.map((item) => (
+              {order.order_items.map((item) => (
                 <div key={item.orderId} className="flex gap-4 items-start">
                   <div className="relative shrink-0 w-32 h-32 rounded-xl sm:rounded-2xl overflow-hidden">
                     <Image

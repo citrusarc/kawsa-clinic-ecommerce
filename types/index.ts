@@ -188,7 +188,7 @@ export type OrderSuccessBody = {
   awbNumber?: string | null;
   awbPdfUrl?: string | null;
   deliveryStatus: string;
-  items: OrderItem[];
+  order_items: OrderItem[];
 };
 
 export type OrderEmailConfirmationTemplateProps = {
