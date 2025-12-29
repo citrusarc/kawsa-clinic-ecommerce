@@ -59,7 +59,17 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    let result: any; // // added type for ESLint
+    try {
+      result = await response.json(); // // safely parse JSON
+    } catch (jsonErr) {
+      const text = await response.text(); // // fallback: get raw response
+      console.error("EasyParcel returned non-JSON:", text); // // log raw HTML or error page
+      return NextResponse.json(
+        { error: "EasyParcel response is not JSON", detail: text },
+        { status: 500 }
+      );
+    }
 
     if (!response.ok || result?.api_status !== "Success") {
       console.error("EasyParcel payment error:", result);
