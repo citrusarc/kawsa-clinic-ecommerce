@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
 import { transporter } from "@/utils/email";
 import { orderEmailConfirmationTemplate } from "@/utils/email/orderEmailConfirmationTemplate";
+import type { OrderItem, OrderEmailConfirmationTemplateProps } from "@/types";
+
+interface Order {
+  id: string;
+  orderNumber: string;
+  fullName: string;
+  email: string;
+  paymentStatus: string;
+  courierName: string;
+  trackingUrl: string | null;
+  awbNumber: string | null;
+  subTotalPrice: number;
+  shippingFee: number;
+  totalPrice: number;
+  deliveryStatus: string;
+  orderStatus: string;
+  emailSent: boolean;
+  order_items?: OrderItem[];
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +33,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let ordersToProcess = [];
+    let ordersToProcess: Order[] = [];
 
     if (mode === "cron") {
       const { data: orders, error } = await supabase
@@ -22,107 +41,111 @@ export async function POST(req: NextRequest) {
         .select(
           `
           id,
-          order_number,
-          full_name,
+          orderNumber,
+          fullName,
           email,
-          payment_status,
-          courier_name,
-          tracking_url,
-          awb_number,
-          sub_total_price,
-          shipping_fee,
-          total_price,
-          delivery_status,
-          order_status,
+          paymentStatus,
+          courierName,
+          trackingUrl,
+          awbNumber,
+          subTotalPrice,
+          shippingFee,
+          totalPrice,
+          deliveryStatus,
+          orderStatus,
           emailSent,
           order_items (*)
         `
         )
-        .eq("payment_status", "paid")
-        .not("awb_number", "is", null)
+        .eq("paymentStatus", "paid")
+        .not("awbNumber", "is", null)
         .eq("emailSent", false);
+
       if (error) throw error;
-      ordersToProcess = orders;
+      ordersToProcess = (orders ?? []) as Order[];
     } else {
       if (!orderId)
         return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
+
       const { data: order, error } = await supabase
         .from("orders")
         .select(
           `
-        id,
-        order_number,
-        full_name,
-        email,
-        payment_status,
-        courier_name,
-        tracking_url,
-        awb_number,
-        sub_total_price,
-        shipping_fee,
-        total_price,
-        delivery_status,
-        order_status,
-        emailSent,
-        order_items (*)
-      `
+          id,
+          orderNumber,
+          fullName,
+          email,
+          paymentStatus,
+          courierName,
+          trackingUrl,
+          awbNumber,
+          subTotalPrice,
+          shippingFee,
+          totalPrice,
+          deliveryStatus,
+          orderStatus,
+          emailSent,
+          order_items (*)
+        `
         )
         .eq("id", orderId)
         .single();
+
       if (error || !order)
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
-      ordersToProcess = [order];
+
+      ordersToProcess = [order as Order];
     }
 
-    let processedCount = 0; // // count successfully sent emails
+    let processedCount = 0;
 
     for (const order of ordersToProcess) {
       if (order.emailSent) continue;
-      if (!order.awb_number) {
-        console.log(`Skipping order ${order.order_number} - AWB not ready`); // //
-        continue; // //
+      if (!order.awbNumber) {
+        console.log(`Skipping order ${order.orderNumber} - AWB not ready`);
+        continue;
       }
 
       const html = orderEmailConfirmationTemplate({
         orderId: order.id,
-        orderNumber: order.order_number,
-        fullName: order.full_name,
+        orderNumber: order.orderNumber,
+        fullName: order.fullName,
         email: order.email,
         phoneNumber: "",
         address: "",
         paymentMethod: "",
-        paymentStatus: order.payment_status,
-        subTotalPrice: order.sub_total_price,
-        shippingFee: order.shipping_fee,
-        totalPrice: order.total_price,
-        courierName: order.courier_name,
-        trackingUrl: order.tracking_url,
-        awbNumber: order.awb_number,
-        deliveryStatus: order.delivery_status,
-        orderStatus: order.order_status,
+        paymentStatus: order.paymentStatus,
+        subTotalPrice: order.subTotalPrice,
+        shippingFee: order.shippingFee,
+        totalPrice: order.totalPrice,
+        courierName: order.courierName,
+        trackingUrl: order.trackingUrl,
+        awbNumber: order.awbNumber,
+        deliveryStatus: order.deliveryStatus,
+        orderStatus: order.orderStatus,
         items: order.order_items ?? [],
-      });
+      } as OrderEmailConfirmationTemplateProps);
 
       const info = await transporter.sendMail({
         from: `"Kawsa Clinic" <${process.env.EMAIL_USER}>`,
         to: order.email,
-        subject: `Your order ${order.order_number} is on the way 🚚`,
+        subject: `Your order ${order.orderNumber} is on the way 🚚`,
         html,
       });
 
-      console.log(`Email sent to ${order.email}:`, info.messageId); // //
+      console.log(`Email sent to ${order.email}:`, info.messageId);
 
       await supabase
         .from("orders")
         .update({ emailSent: true })
         .eq("id", order.id);
 
-      processedCount++; // //
+      processedCount++;
     }
 
     return NextResponse.json({
       success: true,
-      processedOrders: processedCount, // // return count
+      processedOrders: processedCount,
     });
   } catch (err) {
     console.error("Email error:", err);
