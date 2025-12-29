@@ -5,7 +5,7 @@ import { orderEmailConfirmationTemplate } from "@/utils/email/orderEmailConfirma
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId } = await req.json(); // //
+    const { orderId } = await req.json();
 
     if (!orderId) {
       return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
@@ -41,15 +41,15 @@ export async function POST(req: NextRequest) {
 
     // Guards
     if (order.payment_status !== "paid") {
-      return NextResponse.json({ message: "Payment not completed" });
+      return NextResponse.json({ skipped: true, reason: "Not paid" });
     }
 
     if (!order.awb_number) {
-      return NextResponse.json({ message: "awbNumber not ready" });
+      return NextResponse.json({ skipped: true, reason: "AWB not ready" });
     }
 
     if (order.emailSent) {
-      return NextResponse.json({ message: "Email already sent" });
+      return NextResponse.json({ skipped: true, reason: "Email already sent" });
     }
 
     const html = orderEmailConfirmationTemplate({
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       awbNumber: order.awb_number,
       deliveryStatus: order.delivery_status,
       orderStatus: order.order_status,
-      items: order.order_items,
+      items: order.order_items ?? [],
     });
 
     await transporter.sendMail({
@@ -79,7 +79,6 @@ export async function POST(req: NextRequest) {
       html,
     });
 
-    // Mark email sent
     await supabase
       .from("orders")
       .update({ emailSent: true })

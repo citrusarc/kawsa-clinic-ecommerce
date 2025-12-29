@@ -4,7 +4,6 @@ import { supabase } from "@/utils/supabase/client";
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL =
   process.env.EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL!;
-const SITE_URL = process.env.SITE_URL!; // // FIX: server-side env
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,19 +39,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (order.awbNumber) {
-      return NextResponse.json({
-        skipped: true,
-        reason: "AWB already exists",
-      });
+      return NextResponse.json({ skipped: true, reason: "AWB already exists" });
     }
 
     // 2. Build payment payload
     const payload = {
       api: EASYPARCEL_API_KEY,
-      bulk: [{ order_no: order.easyparcelOrderNumber }],
+      bulk: [
+        {
+          order_no: order.easyparcelOrderNumber,
+        },
+      ],
     };
 
-    // 3. Call EasyParcel API
+    // 3. Call EasyParcel Making-Order-Payment API
     const response = await fetch(EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -64,12 +64,16 @@ export async function POST(req: NextRequest) {
     if (!response.ok || result?.api_status !== "Success") {
       console.error("EasyParcel payment error:", result);
       return NextResponse.json(
-        { error: "EasyParcel payment failed" },
+        {
+          error: "EasyParcel payment failed",
+          detail: result?.error_remark || "Unknown error",
+        },
         { status: 500 }
       );
     }
 
-    const parcelInfo = result?.result?.[0]?.parcel?.[0];
+    const paymentResult = result?.result?.[0];
+    const parcelInfo = paymentResult?.parcel?.[0];
 
     if (!parcelInfo) {
       return NextResponse.json(
@@ -88,7 +92,7 @@ export async function POST(req: NextRequest) {
         awbPdfUrl: parcelInfo.awb_id_link,
         deliveryStatus: "ready_for_pickup",
         orderStatus: "processing",
-        emailSent: false, // // ensure email can be sent
+        emailSent: false,
       })
       .eq("id", orderId);
 
@@ -100,26 +104,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Trigger email confirmation
-    try {
-      const emailRes = await fetch(`${SITE_URL}/api/email-confirmation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId }),
-      });
-
-      const emailResult = await emailRes.json(); // //
-      console.log("Email API result:", emailResult); // //
-    } catch (emailErr) {
-      console.error("Failed to trigger email confirmation:", emailErr);
-    }
-
     return NextResponse.json({
       success: true,
+      easyparcelOrderNumber: order.easyparcelOrderNumber,
       trackingNumber: parcelInfo.parcelno,
       trackingUrl: parcelInfo.tracking_url,
       awbNumber: parcelInfo.awb,
       awbPdfUrl: parcelInfo.awb_id_link,
+      message: paymentResult?.messagenow,
     });
   } catch (err) {
     console.error("EasyParcel making-order-payment error:", err);
