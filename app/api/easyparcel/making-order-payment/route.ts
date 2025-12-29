@@ -129,8 +129,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log("EasyParcel raw response:", JSON.stringify(result, null, 2));
-
     return NextResponse.json({
       success: true,
       easyparcelOrderNumber: order.easyparcelOrderNumber,
