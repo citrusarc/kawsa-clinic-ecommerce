@@ -85,36 +85,6 @@ export default function OrderSuccessPage() {
           <p>
             We’ve received your order{" "}
             <span className="font-semibold">{order.orderNumber}</span> <br />
-            {order.awbNumber ? (
-              <>
-                <span className="font-semibold">Tracking Number:</span>{" "}
-                <span>
-                  {order.courierName}{" "}
-                  {order.trackingUrl ? (
-                    <a
-                      href={order.trackingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600"
-                    >
-                      ({order.awbNumber})
-                    </a>
-                  ) : (
-                    <span className="text-neutral-400">
-                      No tracking number...
-                    </span>
-                  )}
-                </span>
-              </>
-            ) : (
-              <span>
-                Tracking Number:{" "}
-                <span className="text-neutral-400">
-                  Getting your tracking number...
-                </span>
-              </span>
-            )}
-            <br />
             Please check your email for details.
           </p>
 
