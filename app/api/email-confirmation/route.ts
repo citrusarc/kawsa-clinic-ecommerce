@@ -19,16 +19,13 @@ export async function POST(req: NextRequest) {
         order_number,
         full_name,
         email,
-        phone_number,
-        address,
-        payment_method,
         payment_status,
-        sub_total_price,
-        shipping_fee,
-        total_price,
         courier_name,
         tracking_url,
         awb_number,
+        sub_total_price,
+        shipping_fee,
+        total_price,
         delivery_status,
         order_status,
         emailSent,
@@ -36,32 +33,23 @@ export async function POST(req: NextRequest) {
       `
       )
       .eq("id", orderId)
-      .single(); // //
+      .single();
 
     if (error || !order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // guard conditions // //
+    // Guards
     if (order.payment_status !== "paid") {
-      return NextResponse.json(
-        { message: "Payment not completed" },
-        { status: 200 }
-      );
+      return NextResponse.json({ message: "Payment not completed" });
     }
 
     if (!order.awb_number) {
-      return NextResponse.json(
-        { message: "awbNumber not ready" },
-        { status: 200 }
-      );
+      return NextResponse.json({ message: "awbNumber not ready" });
     }
 
     if (order.emailSent) {
-      return NextResponse.json(
-        { message: "Email already sent" },
-        { status: 200 }
-      );
+      return NextResponse.json({ message: "Email already sent" });
     }
 
     const html = orderEmailConfirmationTemplate({
@@ -69,9 +57,9 @@ export async function POST(req: NextRequest) {
       orderNumber: order.order_number,
       fullName: order.full_name,
       email: order.email,
-      phoneNumber: order.phone_number,
-      address: order.address,
-      paymentMethod: order.payment_method,
+      phoneNumber: "",
+      address: "",
+      paymentMethod: "",
       paymentStatus: order.payment_status,
       subTotalPrice: order.sub_total_price,
       shippingFee: order.shipping_fee,
@@ -82,16 +70,16 @@ export async function POST(req: NextRequest) {
       deliveryStatus: order.delivery_status,
       orderStatus: order.order_status,
       items: order.order_items,
-    }); // //
+    });
 
     await transporter.sendMail({
       from: `"Kawsa Clinic" <${process.env.EMAIL_USER}>`,
       to: order.email,
       subject: `Your order ${order.order_number} is on the way 🚚`,
       html,
-    }); // //
+    });
 
-    // mark email sent // //
+    // Mark email sent
     await supabase
       .from("orders")
       .update({ emailSent: true })
