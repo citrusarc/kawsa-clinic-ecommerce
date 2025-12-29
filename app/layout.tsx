@@ -7,6 +7,7 @@ import "@/app/globals.css";
 import BrandLogo from "@/components/icons/BrandLogo";
 import Navbar from "@/components/ui/Navbar";
 import { siteConfig } from "@/config/site";
+import "./utils/sendPendingEmailsCron";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://kawsa-clinic-ecommerce.vercel.app"),
