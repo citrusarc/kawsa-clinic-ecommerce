@@ -19,6 +19,7 @@ interface Order {
   deliveryStatus: string;
   orderStatus: string;
   emailSent: boolean;
+  processing?: boolean;
   order_items?: OrderItem[];
 }
 
@@ -33,78 +34,46 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // // Modified: fetch multiple orders with processing lock
     let ordersToProcess: Order[] = [];
-
     if (mode === "cron") {
       const { data: orders, error } = await supabase
         .from("orders")
         .select(
-          `
-          id,
-          orderNumber,
-          fullName,
-          email,
-          paymentStatus,
-          courierName,
-          trackingUrl,
-          awbNumber,
-          subTotalPrice,
-          shippingFee,
-          totalPrice,
-          deliveryStatus,
-          orderStatus,
-          emailSent,
-          order_items (*)
-        `
+          `id, orderNumber, fullName, email, paymentStatus, courierName, trackingUrl, awbNumber, subTotalPrice, shippingFee, totalPrice, deliveryStatus, orderStatus, emailSent, processing, order_items (*)`
         )
         .eq("paymentStatus", "paid")
         .not("awbNumber", "is", null)
-        .eq("emailSent", false);
-
+        .eq("emailSent", false)
+        .eq("processing", false)
+        .limit(10);
       if (error) throw error;
       ordersToProcess = (orders ?? []) as Order[];
     } else {
       if (!orderId)
         return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
-
       const { data: order, error } = await supabase
         .from("orders")
         .select(
-          `
-          id,
-          orderNumber,
-          fullName,
-          email,
-          paymentStatus,
-          courierName,
-          trackingUrl,
-          awbNumber,
-          subTotalPrice,
-          shippingFee,
-          totalPrice,
-          deliveryStatus,
-          orderStatus,
-          emailSent,
-          order_items (*)
-        `
+          `id, orderNumber, fullName, email, paymentStatus, courierName, trackingUrl, awbNumber, subTotalPrice, shippingFee, totalPrice, deliveryStatus, orderStatus, emailSent, processing, order_items (*)`
         )
         .eq("id", orderId)
         .single();
-
       if (error || !order)
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
-
       ordersToProcess = [order as Order];
     }
 
     let processedCount = 0;
 
     for (const order of ordersToProcess) {
-      if (order.emailSent) continue;
-      if (!order.awbNumber) {
-        console.log(`Skipping order ${order.orderNumber} - AWB not ready`);
-        continue;
-      }
+      if (order.emailSent || !order.awbNumber) continue;
+
+      // // Modified: set processing lock
+      await supabase
+        .from("orders")
+        .update({ processing: true })
+        .eq("id", order.id);
 
       const html = orderEmailConfirmationTemplate({
         orderId: order.id,
@@ -137,9 +106,8 @@ export async function POST(req: NextRequest) {
 
       await supabase
         .from("orders")
-        .update({ emailSent: true })
+        .update({ emailSent: true, processing: false })
         .eq("id", order.id);
-
       processedCount++;
     }
 
