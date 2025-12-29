@@ -50,57 +50,6 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        try {
-          const epMakingOrderResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ orderId: order.id }),
-            }
-          );
-
-          const epMakingOrderResult = await epMakingOrderResponse.json();
-
-          if (!epMakingOrderResponse.ok || epMakingOrderResult.error) {
-            console.error("EasyParcel API failed:", epMakingOrderResult);
-            break;
-          }
-
-          const epMakingOrderPaymentResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order-payment`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ orderId: order.id }),
-            }
-          );
-
-          const epMakingOrderPaymentResult =
-            await epMakingOrderPaymentResponse.json();
-
-          if (
-            !epMakingOrderPaymentResponse.ok ||
-            epMakingOrderPaymentResult?.error
-          ) {
-            console.error(
-              "EasyParcel payment failed:",
-              epMakingOrderPaymentResult
-            );
-            break;
-          }
-          console.log("EasyParcel order + payment completed:", {
-            orderId: order.id,
-            trackingNumber: epMakingOrderPaymentResult.trackingNumber,
-          });
-        } catch (epError) {
-          console.error(
-            "Failed to trigger EasyParcel for order:",
-            reference,
-            epError
-          );
-        }
-
         break;
       }
 

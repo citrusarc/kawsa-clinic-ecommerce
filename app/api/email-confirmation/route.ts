@@ -5,7 +5,15 @@ import { orderEmailConfirmationTemplate } from "@/utils/email/orderEmailConfirma
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId } = await req.json();
+    const body = await req.json();
+    const { orderId, mode } = body;
+
+    if (mode === "cron") {
+      const cronSecret = req.headers.get("x-cron-secret");
+      if (cronSecret !== process.env.CRON_SECRET) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
 
     if (!orderId) {
       return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
