@@ -1,12 +1,15 @@
-import { createClient } from "@supabase/supabase-js";
+import fetch from "node-fetch"; // // Node.js fetch
+import { createClient } from "@supabase/supabase-js"; // // Node.js Supabase client
+import dotenv from "dotenv"; // // environment variables
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+dotenv.config(); // //
 
 export async function sendPendingOrderEmails() {
-  // 1️⃣ Get all orders that need email
+  const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   const { data: orders, error } = await supabase
     .from("orders")
     .select("id")
@@ -19,7 +22,6 @@ export async function sendPendingOrderEmails() {
     return;
   }
 
-  // 2️⃣ Trigger email-confirmation API for each order
   for (const order of orders ?? []) {
     try {
       await fetch(`${process.env.SITE_URL}/api/email-confirmation`, {
@@ -35,7 +37,7 @@ export async function sendPendingOrderEmails() {
   console.log("Done sending pending emails");
 }
 
-// Optional: allow running standalone via `node utils/sendPendingOrderEmails.ts`
+// // Optional: run manually
 if (require.main === module) {
   sendPendingOrderEmails();
 }
