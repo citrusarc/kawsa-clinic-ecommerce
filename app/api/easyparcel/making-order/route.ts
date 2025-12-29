@@ -17,16 +17,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // // Modified: fetch multiple orders for cron mode with processing lock and batch limit
+    // // Modified: support cron mode by fetching multiple orders
     let ordersToProcess = [];
+
     if (mode === "cron") {
       const { data: orders, error } = await supabase
         .from("orders")
         .select("*")
         .eq("paymentStatus", "paid")
-        .is("easyparcelOrderNumber", null)
-        .eq("processing", false) // only pick unprocessed
-        .limit(10); // batch size
+        .is("easyparcelOrderNumber", null); // only unpaid/unsent orders
       if (error) throw error;
       ordersToProcess = orders;
     } else {
@@ -43,27 +42,17 @@ export async function POST(req: NextRequest) {
       ordersToProcess = [order];
     }
 
+    // // Loop through orders
     for (const order of ordersToProcess) {
-      if (!order.serviceId) continue;
-
-      // // Modified: set processing lock before doing API call
-      await supabase
-        .from("orders")
-        .update({ processing: true, orderStatus: "processing" })
-        .eq("id", order.id);
+      if (!order.serviceId) continue; // skip if serviceId missing
+      if (order.easyparcelOrderNumber && order.deliveryStatus === "processing")
+        continue; // skip already processing
 
       const { data: items } = await supabase
         .from("order_items")
         .select("*")
         .eq("orderId", order.id);
-
-      if (!items || items.length === 0) {
-        await supabase
-          .from("orders")
-          .update({ processing: false })
-          .eq("id", order.id);
-        continue;
-      }
+      if (!items || items.length === 0) continue; // skip if no items
 
       const totalWeight = Number(
         items
@@ -91,14 +80,7 @@ export async function POST(req: NextRequest) {
         (sum, item) => sum + Number(item.itemTotalPrice || 0),
         0
       );
-
-      if (totalWeight <= 0) {
-        await supabase
-          .from("orders")
-          .update({ processing: false })
-          .eq("id", order.id);
-        continue;
-      }
+      if (totalWeight <= 0) continue; // skip invalid
 
       const payload = {
         api: EASYPARCEL_API_KEY,
@@ -140,25 +122,11 @@ export async function POST(req: NextRequest) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       const result = await response.json();
-
-      if (!response.ok || result?.api_status !== "Success") {
-        await supabase
-          .from("orders")
-          .update({ processing: false })
-          .eq("id", order.id);
-        continue;
-      }
+      if (!response.ok || result?.api_status !== "Success") continue;
 
       const epOrder = result?.result?.[0];
-      if (!epOrder?.order_number) {
-        await supabase
-          .from("orders")
-          .update({ processing: false })
-          .eq("id", order.id);
-        continue;
-      }
+      if (!epOrder?.order_number) continue;
 
       await supabase
         .from("orders")
@@ -167,8 +135,7 @@ export async function POST(req: NextRequest) {
           courierName: epOrder.courier_name || order.courierName,
           trackingNumber: null,
           deliveryStatus: "processing",
-          orderStatus: "created",
-          processing: false, // release lock
+          orderStatus: "processing",
         })
         .eq("id", order.id);
     }
@@ -176,7 +143,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       processedOrders: ordersToProcess.length,
-    });
+    }); // // modified
   } catch (err) {
     console.error("EasyParcel making-order error:", err);
     return NextResponse.json(

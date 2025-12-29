@@ -11,12 +11,10 @@ interface EasyParcelParcel {
   awb: string;
   awb_id_link: string;
 }
-
 interface EasyParcelResult {
   messagenow: string;
   parcel: EasyParcelParcel[];
 }
-
 interface EasyParcelResponse {
   api_status: string;
   error_remark?: string;
@@ -34,28 +32,27 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // // Modified: fetch multiple orders with processing lock
+    // // Modified: fetch multiple orders in cron
     let ordersToProcess = [];
+
     if (mode === "cron") {
       const { data: orders, error } = await supabase
         .from("orders")
         .select("*")
         .not("easyparcelOrderNumber", "is", null)
-        .is("trackingNumber", null)
-        .eq("paymentStatus", "paid")
-        .eq("processing", false)
-        .limit(10);
+        .is("trackingNumber", null) // only unpaid shipping
+        .eq("paymentStatus", "paid");
       if (error) throw error;
       ordersToProcess = orders;
     } else {
       if (!orderId)
         return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
-      const { data: order, error } = await supabase
+      const { data: order, error: orderError } = await supabase
         .from("orders")
         .select("*")
         .eq("id", orderId)
         .single();
-      if (error || !order)
+      if (orderError || !order)
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
       ordersToProcess = [order];
     }
@@ -63,51 +60,27 @@ export async function POST(req: NextRequest) {
     for (const order of ordersToProcess) {
       if (!order.easyparcelOrderNumber || order.trackingNumber) continue;
 
-      // // Modified: set processing lock
-      await supabase
-        .from("orders")
-        .update({ processing: true, orderStatus: "processing" })
-        .eq("id", order.id);
-
       const payload = {
         api: EASYPARCEL_API_KEY,
         bulk: [{ order_no: order.easyparcelOrderNumber }],
       };
-
       const response = await fetch(EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       let result: EasyParcelResponse;
       try {
         result = await response.json();
       } catch {
-        await supabase
-          .from("orders")
-          .update({ processing: false })
-          .eq("id", order.id);
         continue;
       }
 
-      if (!response.ok || result?.api_status !== "Success") {
-        await supabase
-          .from("orders")
-          .update({ processing: false })
-          .eq("id", order.id);
-        continue;
-      }
+      if (!response.ok || result?.api_status !== "Success") continue;
 
       const paymentResult = result.result?.[0];
       const parcelInfo = paymentResult?.parcel?.[0];
-      if (!parcelInfo) {
-        await supabase
-          .from("orders")
-          .update({ processing: false })
-          .eq("id", order.id);
-        continue;
-      }
+      if (!parcelInfo) continue;
 
       await supabase
         .from("orders")
@@ -117,8 +90,7 @@ export async function POST(req: NextRequest) {
           awbNumber: parcelInfo.awb,
           awbPdfUrl: parcelInfo.awb_id_link,
           deliveryStatus: "ready_for_pickup",
-          orderStatus: "paid",
-          processing: false,
+          orderStatus: "processing",
         })
         .eq("id", order.id);
     }
@@ -126,7 +98,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       processedOrders: ordersToProcess.length,
-    });
+    }); // // modified
   } catch (err) {
     console.error("EasyParcel making-order-payment error:", err);
     return NextResponse.json(
