@@ -5,6 +5,25 @@ const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL =
   process.env.EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL!;
 
+// // Define proper types for EasyParcel response
+interface EasyParcelParcel {
+  parcelno: string;
+  tracking_url: string;
+  awb: string;
+  awb_id_link: string;
+}
+
+interface EasyParcelResult {
+  messagenow: string;
+  parcel: EasyParcelParcel[];
+}
+
+interface EasyParcelResponse {
+  api_status: string;
+  error_remark?: string;
+  result?: EasyParcelResult[];
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { orderId } = await req.json();
@@ -45,11 +64,7 @@ export async function POST(req: NextRequest) {
     // 2. Build payment payload
     const payload = {
       api: EASYPARCEL_API_KEY,
-      bulk: [
-        {
-          order_no: order.easyparcelOrderNumber,
-        },
-      ],
+      bulk: [{ order_no: order.easyparcelOrderNumber }],
     };
 
     // 3. Call EasyParcel Making-Order-Payment API
@@ -59,12 +74,13 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload),
     });
 
-    let result: any; // // added type for ESLint
+    let result: EasyParcelResponse; // // replaced any with typed interface
     try {
-      result = await response.json(); // // safely parse JSON
-    } catch (jsonErr) {
-      const text = await response.text(); // // fallback: get raw response
-      console.error("EasyParcel returned non-JSON:", text); // // log raw HTML or error page
+      result = await response.json();
+    } catch (err) {
+      // // prefix with _ to mark unused
+      const text = await response.text();
+      console.error("EasyParcel returned non-JSON:", text, err);
       return NextResponse.json(
         { error: "EasyParcel response is not JSON", detail: text },
         { status: 500 }
@@ -82,7 +98,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const paymentResult = result?.result?.[0];
+    const paymentResult = result.result?.[0];
     const parcelInfo = paymentResult?.parcel?.[0];
 
     if (!parcelInfo) {
