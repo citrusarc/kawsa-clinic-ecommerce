@@ -59,7 +59,19 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    // // CHANGE: Check content-type before parsing JSON
+    const contentType = response.headers.get("content-type");
+    let result: any;
+    if (contentType && contentType.includes("application/json")) {
+      result = await response.json();
+    } else {
+      const text = await response.text();
+      console.error("EasyParcel returned non-JSON response:", text); // //
+      return NextResponse.json(
+        { error: "EasyParcel returned non-JSON response", detail: text }, // //
+        { status: 500 }
+      );
+    }
 
     if (!response.ok || result?.api_status !== "Success") {
       console.error("EasyParcel payment error:", result);
