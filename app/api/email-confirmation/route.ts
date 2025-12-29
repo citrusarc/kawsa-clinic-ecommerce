@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // // Modified: fetch multiple orders for cron
     let ordersToProcess = [];
 
     if (mode === "cron") {
@@ -75,8 +74,14 @@ export async function POST(req: NextRequest) {
       ordersToProcess = [order];
     }
 
+    let processedCount = 0; // // count successfully sent emails
+
     for (const order of ordersToProcess) {
       if (order.emailSent) continue;
+      if (!order.awb_number) {
+        console.log(`Skipping order ${order.order_number} - AWB not ready`); // //
+        continue; // //
+      }
 
       const html = orderEmailConfirmationTemplate({
         orderId: order.id,
@@ -98,23 +103,27 @@ export async function POST(req: NextRequest) {
         items: order.order_items ?? [],
       });
 
-      await transporter.sendMail({
+      const info = await transporter.sendMail({
         from: `"Kawsa Clinic" <${process.env.EMAIL_USER}>`,
         to: order.email,
         subject: `Your order ${order.order_number} is on the way 🚚`,
         html,
       });
 
+      console.log(`Email sent to ${order.email}:`, info.messageId); // //
+
       await supabase
         .from("orders")
         .update({ emailSent: true })
         .eq("id", order.id);
+
+      processedCount++; // //
     }
 
     return NextResponse.json({
       success: true,
-      processedOrders: ordersToProcess.length,
-    }); // // modified
+      processedOrders: processedCount, // // return count
+    });
   } catch (err) {
     console.error("Email error:", err);
     return NextResponse.json(
