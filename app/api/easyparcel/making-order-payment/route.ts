@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (order.awbNumber) {
-      return NextResponse.json({ skipped: true, reason: "AWB already exists" });
+    if (order.trackingNumber) {
+      return NextResponse.json({ skipped: true, reason: "Already paid" });
     }
 
     // 2. Build payment payload
@@ -92,7 +92,6 @@ export async function POST(req: NextRequest) {
         awbPdfUrl: parcelInfo.awb_id_link,
         deliveryStatus: "ready_for_pickup",
         orderStatus: "processing",
-        emailSent: false,
       })
       .eq("id", orderId);
 
