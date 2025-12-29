@@ -32,7 +32,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // // Modified: fetch multiple orders in cron
     let ordersToProcess = [];
 
     if (mode === "cron") {
@@ -40,7 +39,7 @@ export async function POST(req: NextRequest) {
         .from("orders")
         .select("*")
         .not("easyparcelOrderNumber", "is", null)
-        .is("trackingNumber", null) // only unpaid shipping
+        .is("trackingNumber", null)
         .eq("paymentStatus", "paid");
       if (error) throw error;
       ordersToProcess = orders;
@@ -85,20 +84,21 @@ export async function POST(req: NextRequest) {
       await supabase
         .from("orders")
         .update({
-          trackingNumber: parcelInfo.parcelno,
-          trackingUrl: parcelInfo.tracking_url,
-          awbNumber: parcelInfo.awb,
-          awbPdfUrl: parcelInfo.awb_id_link,
+          trackingNumber: parcelInfo.parcelno, // // was correct
+          trackingUrl: parcelInfo.tracking_url, // // was correct
+          awbNumber: parcelInfo.awb, // // was correct
+          awbPdfUrl: parcelInfo.awb_id_link, // // was correct
           deliveryStatus: "ready_for_pickup",
           orderStatus: "processing",
         })
-        .eq("id", order.id);
+        .eq("easyparcelOrderNumber", order.easyparcelOrderNumber); // // changed from .eq("id", order.id) to ensure correct row update
+      // // Some responses from EasyParcel have the order mapped differently; using easyparcelOrderNumber avoids missing row update
     }
 
     return NextResponse.json({
       success: true,
       processedOrders: ordersToProcess.length,
-    }); // // modified
+    });
   } catch (err) {
     console.error("EasyParcel making-order-payment error:", err);
     return NextResponse.json(
