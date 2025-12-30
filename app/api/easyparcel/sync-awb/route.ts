@@ -24,12 +24,15 @@ export async function POST(req: NextRequest) {
 
     for (const order of orders) {
       try {
+        const orderNumberSafe = order.orderNumber?.toString() || "unknown"; // // Added: safe toString
+        const orderIdSafe = order.id;
+
         if (!order.easyparcelOrderNumber) {
           console.log(
-            `Skipping order ${order.orderNumber} - no EasyParcel order number`
+            `Skipping order ${orderNumberSafe} - no EasyParcel order number`
           ); // // Added
           failedOrders.push({
-            orderNumber: order.orderNumber,
+            orderNumber: orderNumberSafe,
             error: "Missing EasyParcel order number",
           }); // // Added
           continue;
@@ -37,7 +40,7 @@ export async function POST(req: NextRequest) {
 
         const payload = {
           api: EASYPARCEL_API_KEY,
-          order_no: order.easyparcelOrderNumber,
+          order_no: order.easyparcelOrderNumber.toString(), // // Added: safe toString
         };
 
         const res = await fetch(EASYPARCEL_GET_ORDER_URL, {
@@ -50,11 +53,11 @@ export async function POST(req: NextRequest) {
 
         if (!res.ok) {
           console.error(
-            `EasyParcel API failed for order ${order.orderNumber}:`,
+            `EasyParcel API failed for order ${orderNumberSafe}:`,
             result
           ); // // Added
           failedOrders.push({
-            orderNumber: order.orderNumber,
+            orderNumber: orderNumberSafe,
             error: "EasyParcel API error",
           }); // // Added
           continue;
@@ -63,29 +66,29 @@ export async function POST(req: NextRequest) {
         const parcel = result?.result?.[0]?.parcel?.[0];
 
         if (!parcel?.awb) {
-          console.log(`AWB not yet available for order ${order.orderNumber}`); // // Added
+          console.log(`AWB not yet available for order ${orderNumberSafe}`); // // Added
           continue;
         }
 
         const { error: updateError } = await supabase
           .from("orders")
           .update({
-            trackingNumber: parcel.parcelno,
-            trackingUrl: parcel.tracking_url,
-            awbNumber: parcel.awb,
-            awbPdfUrl: parcel.awb_id_link,
+            trackingNumber: parcel.parcelno?.toString() || null, // // Added safe toString
+            trackingUrl: parcel.tracking_url || null, // // Added fallback
+            awbNumber: parcel.awb?.toString() || null, // // Added safe toString
+            awbPdfUrl: parcel.awb_id_link || null, // // Added fallback
             orderWorkflowStatus: "awb_generated",
             deliveryStatus: "ready_for_pickup",
           })
-          .eq("id", order.id);
+          .eq("id", orderIdSafe);
 
         if (updateError) {
           console.error(
-            `Failed to update order ${order.orderNumber}:`,
+            `Failed to update order ${orderNumberSafe}:`,
             updateError
           ); // // Added
           failedOrders.push({
-            orderNumber: order.orderNumber,
+            orderNumber: orderNumberSafe,
             error: "Database update failed",
           }); // // Added
           continue;
@@ -95,7 +98,7 @@ export async function POST(req: NextRequest) {
       } catch (orderErr) {
         console.error(`Error processing order ${order.orderNumber}:`, orderErr); // // Added
         failedOrders.push({
-          orderNumber: order.orderNumber,
+          orderNumber: order.orderNumber?.toString() || "unknown", // // Added safe fallback
           error:
             orderErr instanceof Error ? orderErr.message : String(orderErr),
         }); // // Added
