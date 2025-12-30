@@ -11,32 +11,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch orders with pending AWB
-    const { data: orders, error } = await supabase
+    // Fetch all orders waiting for AWB
+    const { data: orders, error: fetchError } = await supabase
       .from("orders")
       .select("*")
       .eq("orderWorkflowStatus", "payment_done_awb_pending");
 
-    if (error) throw error;
+    if (fetchError) {
+      console.error("Failed to fetch pending AWB orders:", fetchError);
+      throw fetchError;
+    }
+
     if (!orders || orders.length === 0) {
-      return NextResponse.json({ success: true, updated: 0 });
+      return NextResponse.json({
+        success: true,
+        updated: 0,
+        message: "No pending AWB orders",
+      });
     }
 
     let updated = 0;
     const failedOrders: { orderNumber: string; error: string }[] = [];
 
     for (const order of orders) {
-      const orderNumberSafe = order.orderNumber?.toString() || "unknown";
-      const orderIdSafe = order.id;
+      // Safe string conversions with fallback
+      const orderNumber = String(order.orderNumber ?? "UNKNOWN");
+      const easyparcelOrderNo = String(order.easyparcelOrderNumber ?? "");
 
       try {
-        // Skip orders with missing EasyParcel order number
-        if (!order.easyparcelOrderNumber) {
+        // Skip if no EasyParcel order reference
+        if (!easyparcelOrderNo.trim()) {
           console.log(
-            `Skipping order ${orderNumberSafe} - no EasyParcel order number`
+            `Skipping order ${orderNumber} - missing EasyParcel order number`
           );
           failedOrders.push({
-            orderNumber: orderNumberSafe,
+            orderNumber,
             error: "Missing EasyParcel order number",
           });
           continue;
@@ -44,7 +53,7 @@ export async function POST(req: NextRequest) {
 
         const payload = {
           api: EASYPARCEL_API_KEY,
-          order_no: order.easyparcelOrderNumber?.toString() || "",
+          order_no: easyparcelOrderNo,
         };
 
         const res = await fetch(EASYPARCEL_GET_ORDER_URL, {
@@ -53,59 +62,66 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify(payload),
         });
 
-        const result = await res.json();
-
         if (!res.ok) {
+          const errorText = await res.text().catch(() => "Unknown error");
           console.error(
-            `EasyParcel API failed for order ${orderNumberSafe}:`,
-            result
+            `EasyParcel API failed for ${orderNumber} (HTTP ${res.status}):`,
+            errorText
           );
           failedOrders.push({
-            orderNumber: orderNumberSafe,
-            error: "EasyParcel API error",
+            orderNumber,
+            error: `EasyParcel API error - HTTP ${res.status}`,
           });
           continue;
         }
 
+        const result = await res.json();
+
+        // Extract the first parcel (common structure in EasyParcel response)
         const parcel = result?.result?.[0]?.parcel?.[0];
 
-        if (!parcel?.awb) {
-          console.log(`AWB not yet available for order ${orderNumberSafe}`);
+        if (!parcel || !parcel.awb) {
+          console.log(`AWB not yet available for order ${orderNumber}`);
           continue;
         }
 
-        // Update order safely
+        // Prepare update payload with safe conversions
+        const updateData = {
+          trackingNumber: parcel.parcelno ? String(parcel.parcelno) : null,
+          trackingUrl: parcel.tracking_url || null,
+          awbNumber: parcel.awb ? String(parcel.awb) : null,
+          awbPdfUrl: parcel.awb_id_link || null,
+          orderWorkflowStatus: "awb_generated",
+          deliveryStatus: "ready_for_pickup",
+          updated_at: new Date().toISOString(), // optional: force timestamp
+        };
+
         const { error: updateError } = await supabase
           .from("orders")
-          .update({
-            trackingNumber: parcel.parcelno?.toString() || null,
-            trackingUrl: parcel.tracking_url || null,
-            awbNumber: parcel.awb?.toString() || null,
-            awbPdfUrl: parcel.awb_id_link || null,
-            orderWorkflowStatus: "awb_generated",
-            deliveryStatus: "ready_for_pickup",
-          })
-          .eq("id", orderIdSafe);
+          .update(updateData)
+          .eq("id", order.id);
 
         if (updateError) {
           console.error(
-            `Failed to update order ${orderNumberSafe}:`,
+            `Database update failed for ${orderNumber}:`,
             updateError
           );
           failedOrders.push({
-            orderNumber: orderNumberSafe,
+            orderNumber,
             error: "Database update failed",
           });
           continue;
         }
 
+        console.log(`Successfully synced AWB for order ${orderNumber}`);
         updated++;
       } catch (orderErr) {
-        console.error(`Error processing order ${orderNumberSafe}:`, orderErr);
+        const errorMessage =
+          orderErr instanceof Error ? orderErr.message : String(orderErr);
+        console.error(`Error processing order ${orderNumber}:`, errorMessage);
         failedOrders.push({
-          orderNumber: orderNumberSafe,
-          error:
-            orderErr instanceof Error ? orderErr.message : String(orderErr),
+          orderNumber,
+          error: errorMessage,
         });
       }
     }
@@ -114,14 +130,16 @@ export async function POST(req: NextRequest) {
       success: true,
       updated,
       totalOrders: orders.length,
-      failedOrders: failedOrders.length ? failedOrders : undefined,
+      failedOrders: failedOrders.length > 0 ? failedOrders : undefined,
     });
   } catch (err) {
-    console.error("Sync AWB error:", err);
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error("Critical sync AWB error:", errorMessage, err);
     return NextResponse.json(
       {
+        success: false,
         error: "Sync failed",
-        details: err instanceof Error ? err.message : String(err),
+        details: errorMessage,
       },
       { status: 500 }
     );
