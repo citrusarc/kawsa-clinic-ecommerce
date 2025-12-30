@@ -2,25 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
 import { transporter } from "@/utils/email";
 import { orderEmailConfirmationTemplate } from "@/utils/email/orderEmailConfirmationTemplate";
-import type { OrderItem, OrderEmailConfirmationTemplateProps } from "@/types";
-
-interface Order {
-  id: string;
-  orderNumber: string;
-  fullName: string;
-  email: string;
-  paymentStatus: string;
-  courierName: string;
-  trackingUrl: string | null;
-  awbNumber: string | null;
-  subTotalPrice: number;
-  shippingFee: number;
-  totalPrice: number;
-  deliveryStatus: string;
-  orderStatus: string;
-  emailSent: boolean;
-  order_items?: OrderItem[];
-}
+import type {
+  OrderSuccessBody,
+  OrderEmailConfirmationTemplateProps,
+} from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,17 +18,25 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let ordersToProcess: Order[] = [];
+    let ordersToProcess: OrderSuccessBody[] = [];
 
     if (mode === "cron") {
       const { data: orders, error } = await supabase
         .from("orders")
         .select(
           `
-          id,
+          orderId,
           orderNumber,
           fullName,
           email,
+          phoneNumber,
+          addressLine1,
+          addressLine2,
+          city,
+          state,
+          postcode,
+          country,
+          paymentMethod,
           paymentStatus,
           courierName,
           trackingUrl,
@@ -62,7 +55,7 @@ export async function POST(req: NextRequest) {
         .eq("emailSent", false);
 
       if (error) throw error;
-      ordersToProcess = (orders ?? []) as Order[];
+      ordersToProcess = (orders ?? []) as OrderSuccessBody[];
     } else {
       if (!orderId)
         return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
@@ -71,10 +64,18 @@ export async function POST(req: NextRequest) {
         .from("orders")
         .select(
           `
-          id,
+          orderId,
           orderNumber,
           fullName,
           email,
+          phoneNumber,
+          addressLine1,
+          addressLine2,
+          city,
+          state,
+          postcode,
+          country,
+          paymentMethod,
           paymentStatus,
           courierName,
           trackingUrl,
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
       if (error || !order)
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
-      ordersToProcess = [order as Order];
+      ordersToProcess = [order as OrderSuccessBody];
     }
 
     let processedCount = 0;
@@ -106,14 +107,25 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      const address = [
+        order.addressLine1,
+        order.addressLine2,
+        order.postcode,
+        order.city,
+        order.state,
+        order.country,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
       const html = orderEmailConfirmationTemplate({
-        orderId: order.id,
+        orderId: order.orderId,
         orderNumber: order.orderNumber,
         fullName: order.fullName,
         email: order.email,
-        phoneNumber: "",
-        address: "",
-        paymentMethod: "",
+        phoneNumber: order.phoneNumber,
+        address,
+        paymentMethod: order.paymentMethod,
         paymentStatus: order.paymentStatus,
         subTotalPrice: order.subTotalPrice,
         shippingFee: order.shippingFee,
@@ -138,7 +150,7 @@ export async function POST(req: NextRequest) {
       await supabase
         .from("orders")
         .update({ emailSent: true })
-        .eq("id", order.id);
+        .eq("id", order.orderId);
 
       processedCount++;
     }

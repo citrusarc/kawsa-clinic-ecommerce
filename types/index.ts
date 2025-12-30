@@ -178,16 +178,26 @@ export type OrderBody = {
 export type OrderSuccessBody = {
   orderId: string;
   orderNumber: string;
-  easyparcelOrderNumber?: string | null;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  postcode: number;
+  country: string;
   subTotalPrice: number;
   shippingFee: number;
   totalPrice: number;
+  paymentMethod: string;
+  paymentStatus: string;
   courierName: string;
-  trackingNumber?: string | null;
-  trackingUrl?: string | null;
-  awbNumber?: string | null;
-  awbPdfUrl?: string | null;
+  trackingUrl: string | null;
+  awbNumber: string | null;
   deliveryStatus: string;
+  orderStatus: string;
+  emailSent: boolean;
   order_items: OrderItem[];
 };
 
