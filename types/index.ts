@@ -197,6 +197,7 @@ export type OrderSuccessBody = {
   awbNumber: string | null;
   deliveryStatus: string;
   orderStatus: string;
+  orderWorkflowStatus: string;
   emailSent: boolean;
   order_items: OrderItem[];
 };

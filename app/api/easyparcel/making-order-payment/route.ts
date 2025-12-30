@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       const { data: orders, error } = await supabase
         .from("orders")
         .select("*")
+        .eq("orderWorkflowStatus", "easyparcel_order_created")
         .not("easyparcelOrderNumber", "is", null)
         .is("trackingNumber", null)
         .eq("paymentStatus", "paid");
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
     }
 
     for (const order of ordersToProcess) {
+      if (order.orderWorkflowStatus !== "easyparcel_order_created") continue;
       if (!order.easyparcelOrderNumber || order.trackingNumber) continue;
 
       const payload = {
@@ -68,6 +70,7 @@ export async function POST(req: NextRequest) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       let result: EasyParcelResponse;
       try {
         result = await response.json();
@@ -79,7 +82,7 @@ export async function POST(req: NextRequest) {
 
       const paymentResult = result.result?.[0];
       const parcelInfo = paymentResult?.parcel?.[0];
-      if (!parcelInfo) continue;
+      if (!parcelInfo?.awb) continue;
 
       await supabase
         .from("orders")
@@ -88,6 +91,7 @@ export async function POST(req: NextRequest) {
           trackingUrl: parcelInfo.tracking_url,
           awbNumber: parcelInfo.awb,
           awbPdfUrl: parcelInfo.awb_id_link,
+          orderWorkflowStatus: "awb_generated",
           deliveryStatus: "ready_for_pickup",
           orderStatus: "processing",
         })

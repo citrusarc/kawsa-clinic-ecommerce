@@ -24,32 +24,37 @@ export async function POST(req: NextRequest) {
         .from("orders")
         .select("*")
         .eq("paymentStatus", "paid")
-        .is("easyparcelOrderNumber", null); // only unpaid/unsent orders
+        .eq("orderWorkflowStatus", "payment_confirmed")
+        .is("easyparcelOrderNumber", null);
       if (error) throw error;
       ordersToProcess = orders;
     } else {
       if (!orderId) {
         return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
       }
-      const { data: order, error: orderError } = await supabase
+
+      const { data: order, error } = await supabase
         .from("orders")
         .select("*")
         .eq("id", orderId)
         .single();
-      if (orderError || !order)
+
+      if (error || !order)
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
+
       ordersToProcess = [order];
     }
 
     for (const order of ordersToProcess) {
       if (!order.serviceId) continue;
-      if (order.easyparcelOrderNumber && order.deliveryStatus === "processing")
-        continue;
+
+      if (order.orderWorkflowStatus !== "payment_confirmed") continue;
 
       const { data: items } = await supabase
         .from("order_items")
         .select("*")
         .eq("orderId", order.id);
+
       if (!items || items.length === 0) continue;
 
       const totalWeight = Number(
@@ -62,22 +67,7 @@ export async function POST(req: NextRequest) {
           )
           .toFixed(2)
       );
-      const maxWidth = items.reduce(
-        (max, item) => Math.max(max, Math.ceil(Number(item.itemWidth || 0))),
-        0
-      );
-      const maxLength = items.reduce(
-        (max, item) => Math.max(max, Math.ceil(Number(item.itemLength || 0))),
-        0
-      );
-      const maxHeight = items.reduce(
-        (max, item) => Math.max(max, Math.ceil(Number(item.itemHeight || 0))),
-        0
-      );
-      const parcelValue = items.reduce(
-        (sum, item) => sum + Number(item.itemTotalPrice || 0),
-        0
-      );
+
       if (totalWeight <= 0) continue;
 
       const payload = {
@@ -85,20 +75,24 @@ export async function POST(req: NextRequest) {
         bulk: [
           {
             weight: totalWeight,
-            width: maxWidth,
-            length: maxLength,
-            height: maxHeight,
+            width: Math.max(...items.map((i) => Math.ceil(i.itemWidth || 0))),
+            length: Math.max(...items.map((i) => Math.ceil(i.itemLength || 0))),
+            height: Math.max(...items.map((i) => Math.ceil(i.itemHeight || 0))),
             content: "skincare",
-            value: parcelValue,
+            value: items.reduce(
+              (sum, item) => sum + Number(item.itemTotalPrice || 0),
+              0
+            ),
             service_id: order.serviceId,
+
             pick_name: "DRKAY MEDIBEAUTY SDN BHD",
             pick_contact: "+60123456789",
             pick_addr1: "39-02, Jalan Padi Emas 1/8",
-            pick_addr2: "Bandar Baru Uda",
             pick_city: "Johor Bahru",
             pick_state: "Johor",
             pick_code: "81200",
             pick_country: "MY",
+
             send_name: order.fullName,
             send_contact: order.phoneNumber,
             send_email: order.email,
@@ -108,6 +102,7 @@ export async function POST(req: NextRequest) {
             send_state: order.state,
             send_code: String(order.postcode),
             send_country: "MY",
+
             collect_date: new Date().toISOString().split("T")[0],
             sms: true,
             reference: String(order.orderNumber),
@@ -120,6 +115,7 @@ export async function POST(req: NextRequest) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       const result = await response.json();
       if (!response.ok || result?.api_status !== "Success") continue;
 
@@ -131,17 +127,13 @@ export async function POST(req: NextRequest) {
         .update({
           easyparcelOrderNumber: epOrder.order_number,
           courierName: epOrder.courier_name || order.courierName,
-          trackingNumber: null,
-          deliveryStatus: "processing",
+          orderWorkflowStatus: "easyparcel_order_created",
           orderStatus: "processing",
         })
         .eq("id", order.id);
     }
 
-    return NextResponse.json({
-      success: true,
-      processedOrders: ordersToProcess.length,
-    });
+    return NextResponse.json({ success: true });
   } catch (err) {
     console.error("EasyParcel making-order error:", err);
     return NextResponse.json(

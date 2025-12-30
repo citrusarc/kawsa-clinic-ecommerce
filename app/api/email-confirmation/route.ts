@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
         )
         .eq("paymentStatus", "paid")
         .not("awbNumber", "is", null)
+        .eq("orderWorkflowStatus", "awb_generated")
         .eq("emailSent", false);
 
       if (error) throw error;
@@ -104,6 +105,7 @@ export async function POST(req: NextRequest) {
     let processedCount = 0;
 
     for (const order of ordersToProcess) {
+      if (order.orderWorkflowStatus !== "awb_generated") continue;
       if (order.emailSent) continue;
       if (!order.awbNumber) {
         console.log(`Skipping order ${order.orderNumber} - AWB not ready`);
@@ -152,7 +154,7 @@ export async function POST(req: NextRequest) {
 
       await supabase
         .from("orders")
-        .update({ emailSent: true })
+        .update({ emailSent: true, orderWorkflowStatus: "email_sent" })
         .eq("id", order.id);
 
       processedCount++;
