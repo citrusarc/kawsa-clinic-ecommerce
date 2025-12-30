@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // // Modified: support cron mode by fetching multiple orders
     let ordersToProcess = [];
 
     if (mode === "cron") {
@@ -42,17 +41,16 @@ export async function POST(req: NextRequest) {
       ordersToProcess = [order];
     }
 
-    // // Loop through orders
     for (const order of ordersToProcess) {
-      if (!order.serviceId) continue; // skip if serviceId missing
+      if (!order.serviceId) continue;
       if (order.easyparcelOrderNumber && order.deliveryStatus === "processing")
-        continue; // skip already processing
+        continue;
 
       const { data: items } = await supabase
         .from("order_items")
         .select("*")
         .eq("orderId", order.id);
-      if (!items || items.length === 0) continue; // skip if no items
+      if (!items || items.length === 0) continue;
 
       const totalWeight = Number(
         items
@@ -80,7 +78,7 @@ export async function POST(req: NextRequest) {
         (sum, item) => sum + Number(item.itemTotalPrice || 0),
         0
       );
-      if (totalWeight <= 0) continue; // skip invalid
+      if (totalWeight <= 0) continue;
 
       const payload = {
         api: EASYPARCEL_API_KEY,
@@ -143,7 +141,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       processedOrders: ordersToProcess.length,
-    }); // // modified
+    });
   } catch (err) {
     console.error("EasyParcel making-order error:", err);
     return NextResponse.json(

@@ -135,7 +135,7 @@ export type RateCheckingItem = {
 };
 
 export type OrderItem = {
-  orderId: string;
+  orderNumber: string;
   productId: string;
   variantId: string;
   variantOptionId: string;
@@ -176,7 +176,7 @@ export type OrderBody = {
 };
 
 export type OrderSuccessBody = {
-  orderId: string;
+  id: string;
   orderNumber: string;
   fullName: string;
   email: string;
@@ -202,7 +202,6 @@ export type OrderSuccessBody = {
 };
 
 export type OrderEmailConfirmationTemplateProps = {
-  orderId: string;
   orderNumber: string;
   fullName: string;
   email: string;

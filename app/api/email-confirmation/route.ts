@@ -10,7 +10,7 @@ import type {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { orderId, mode } = body;
+    const { orderNumber, mode } = body;
 
     if (mode === "cron") {
       const cronSecret = req.headers.get("x-cron-secret");
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         .from("orders")
         .select(
           `
-          orderId,
+          id,
           orderNumber,
           fullName,
           email,
@@ -57,14 +57,17 @@ export async function POST(req: NextRequest) {
       if (error) throw error;
       ordersToProcess = (orders ?? []) as OrderSuccessBody[];
     } else {
-      if (!orderId)
-        return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
+      if (!orderNumber)
+        return NextResponse.json(
+          { error: "Missing orderNumber" },
+          { status: 400 }
+        );
 
       const { data: order, error } = await supabase
         .from("orders")
         .select(
           `
-          orderId,
+          id,
           orderNumber,
           fullName,
           email,
@@ -89,7 +92,7 @@ export async function POST(req: NextRequest) {
           order_items (*)
         `
         )
-        .eq("id", orderId)
+        .eq("orderNumber", orderNumber)
         .single();
 
       if (error || !order)
@@ -119,7 +122,7 @@ export async function POST(req: NextRequest) {
         .join(", ");
 
       const html = orderEmailConfirmationTemplate({
-        orderId: order.orderId,
+        orderId: order.id,
         orderNumber: order.orderNumber,
         fullName: order.fullName,
         email: order.email,
@@ -150,7 +153,7 @@ export async function POST(req: NextRequest) {
       await supabase
         .from("orders")
         .update({ emailSent: true })
-        .eq("id", order.orderId);
+        .eq("id", order.id);
 
       processedCount++;
     }

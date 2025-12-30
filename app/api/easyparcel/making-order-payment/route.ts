@@ -84,15 +84,14 @@ export async function POST(req: NextRequest) {
       await supabase
         .from("orders")
         .update({
-          trackingNumber: parcelInfo.parcelno, // // was correct
-          trackingUrl: parcelInfo.tracking_url, // // was correct
-          awbNumber: parcelInfo.awb, // // was correct
-          awbPdfUrl: parcelInfo.awb_id_link, // // was correct
+          trackingNumber: parcelInfo.parcelno,
+          trackingUrl: parcelInfo.tracking_url,
+          awbNumber: parcelInfo.awb,
+          awbPdfUrl: parcelInfo.awb_id_link,
           deliveryStatus: "ready_for_pickup",
           orderStatus: "processing",
         })
-        .eq("easyparcelOrderNumber", order.easyparcelOrderNumber); // // changed from .eq("id", order.id) to ensure correct row update
-      // // Some responses from EasyParcel have the order mapped differently; using easyparcelOrderNumber avoids missing row update
+        .eq("id", order.id);
     }
 
     return NextResponse.json({
