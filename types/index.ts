@@ -274,7 +274,7 @@ export type OrderSuccessBody = {
   order_items: OrderItem[];
 };
 
-export type OrderEmailConfirmationTemplateProps = {
+export type EmailSendTrackingTemplateProps = {
   orderNumber: string;
   fullName: string;
   email: string;

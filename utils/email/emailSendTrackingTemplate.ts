@@ -1,6 +1,6 @@
-import { OrderEmailConfirmationTemplateProps } from "@/types";
+import { EmailSendTrackingTemplateProps } from "@/types";
 
-export function orderEmailConfirmationTemplate({
+export function emailSendTrackingTemplate({
   orderNumber,
   fullName,
   courierName,
@@ -10,7 +10,7 @@ export function orderEmailConfirmationTemplate({
   subTotalPrice,
   shippingFee,
   totalPrice,
-}: OrderEmailConfirmationTemplateProps) {
+}: EmailSendTrackingTemplateProps) {
   return `
   <div style="background-color:#f4f4f4; padding:24px; font-family:Arial;">
     <h2>Order Confirmed 🎉</h2>
