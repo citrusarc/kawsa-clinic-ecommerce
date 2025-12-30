@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { supabase } from "@/utils/supabase/client";
 import { transporter } from "@/utils/email";
 import { orderEmailConfirmationTemplate } from "@/utils/email/orderEmailConfirmationTemplate";
@@ -14,8 +15,9 @@ export async function POST(req: NextRequest) {
 
     if (mode === "cron") {
       const cronSecret = req.headers.get("x-cron-secret");
-      if (cronSecret !== process.env.CRON_SECRET)
+      if (cronSecret !== process.env.CRON_SECRET) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
     let ordersToProcess: OrderSuccessBody[] = [];
@@ -61,17 +63,17 @@ export async function POST(req: NextRequest) {
         throw error;
       }
 
-      // // Added logging for debugging
       console.log(
         `Found ${orders?.length || 0} orders ready for email confirmation`
       );
       ordersToProcess = (orders ?? []) as OrderSuccessBody[];
     } else {
-      if (!orderNumber)
+      if (!orderNumber) {
         return NextResponse.json(
           { error: "Missing orderNumber" },
           { status: 400 }
         );
+      }
 
       const { data: order, error } = await supabase
         .from("orders")
@@ -106,17 +108,21 @@ export async function POST(req: NextRequest) {
         .eq("orderNumber", orderNumber)
         .single();
 
-      if (error || !order)
+      if (error || !order) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      }
 
       ordersToProcess = [order as OrderSuccessBody];
     }
 
     let processedCount = 0;
-    const failedEmails = [];
+    const failedEmails: {
+      orderNumber: string;
+      error: string;
+      details?: string | Error;
+    }[] = [];
 
     for (const order of ordersToProcess) {
-      // // Added detailed logging
       console.log(
         `Processing email for order ${order.orderNumber} (ID: ${order.id})`
       );
@@ -141,7 +147,6 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // // Added validation for required email fields
       if (!order.email) {
         console.error(`Order ${order.orderNumber} has no email address`);
         failedEmails.push({
@@ -162,8 +167,7 @@ export async function POST(req: NextRequest) {
         .filter(Boolean)
         .join(", ");
 
-      // // Added try-catch for email template generation
-      let html;
+      let html: string;
       try {
         html = orderEmailConfirmationTemplate({
           orderId: order.id,
@@ -200,7 +204,6 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // // Added better error handling for email sending
       try {
         console.log(
           `Sending email to ${order.email} for order ${order.orderNumber}`
@@ -215,7 +218,6 @@ export async function POST(req: NextRequest) {
 
         console.log(`Email sent to ${order.email}:`, info.messageId);
 
-        // // Update database with better error handling
         const { error: updateError } = await supabase
           .from("orders")
           .update({ emailSent: true, orderWorkflowStatus: "email_sent" })
@@ -253,7 +255,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // // Return detailed response
     return NextResponse.json({
       success: true,
       processedCount,

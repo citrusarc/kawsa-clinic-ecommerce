@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { supabase } from "@/utils/supabase/client";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
@@ -30,16 +31,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    let updated = 0;
+    let updatedCount = 0;
     const failedOrders: { orderNumber: string; error: string }[] = [];
 
     for (const order of orders) {
-      // Safe string conversions with fallback
       const orderNumber = String(order.orderNumber ?? "UNKNOWN");
       const easyparcelOrderNo = String(order.easyparcelOrderNumber ?? "");
 
       try {
-        // Skip if no EasyParcel order reference
         if (!easyparcelOrderNo.trim()) {
           console.log(
             `Skipping order ${orderNumber} - missing EasyParcel order number`
@@ -56,28 +55,27 @@ export async function POST(req: NextRequest) {
           order_no: easyparcelOrderNo,
         };
 
-        const res = await fetch(EASYPARCEL_GET_ORDER_URL, {
+        const response = await fetch(EASYPARCEL_GET_ORDER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
 
-        if (!res.ok) {
-          const errorText = await res.text().catch(() => "Unknown error");
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => "Unknown error");
           console.error(
-            `EasyParcel API failed for ${orderNumber} (HTTP ${res.status}):`,
+            `EasyParcel API failed for ${orderNumber} (HTTP ${response.status}):`,
             errorText
           );
           failedOrders.push({
             orderNumber,
-            error: `EasyParcel API error - HTTP ${res.status}`,
+            error: `EasyParcel API error - HTTP ${response.status}`,
           });
           continue;
         }
 
-        const result = await res.json();
+        const result = await response.json();
 
-        // Extract the first parcel (common structure in EasyParcel response)
         const parcel = result?.result?.[0]?.parcel?.[0];
 
         if (!parcel || !parcel.awb) {
@@ -85,7 +83,6 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Prepare update payload with safe conversions
         const updateData = {
           trackingNumber: parcel.parcelno ? String(parcel.parcelno) : null,
           trackingUrl: parcel.tracking_url || null,
@@ -93,7 +90,7 @@ export async function POST(req: NextRequest) {
           awbPdfUrl: parcel.awb_id_link || null,
           orderWorkflowStatus: "awb_generated",
           deliveryStatus: "ready_for_pickup",
-          updated_at: new Date().toISOString(), // optional: force timestamp
+          updated_at: new Date().toISOString(),
         };
 
         const { error: updateError } = await supabase
@@ -114,7 +111,7 @@ export async function POST(req: NextRequest) {
         }
 
         console.log(`Successfully synced AWB for order ${orderNumber}`);
-        updated++;
+        updatedCount++;
       } catch (orderErr) {
         const errorMessage =
           orderErr instanceof Error ? orderErr.message : String(orderErr);
@@ -125,10 +122,9 @@ export async function POST(req: NextRequest) {
         });
       }
     }
-
     return NextResponse.json({
       success: true,
-      updated,
+      updated: updatedCount,
       totalOrders: orders.length,
       failedOrders: failedOrders.length > 0 ? failedOrders : undefined,
     });

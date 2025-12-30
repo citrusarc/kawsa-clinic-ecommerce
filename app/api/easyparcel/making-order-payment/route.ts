@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { supabase } from "@/utils/supabase/client";
 import { EasyParcelResponse } from "@/types";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
-const EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL =
+const EASYPARCEL_MAKING_ORDER_PAYMENT_URL =
   process.env.EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL!;
 
 export async function POST(req: NextRequest) {
@@ -13,11 +14,12 @@ export async function POST(req: NextRequest) {
 
     if (mode === "cron") {
       const cronSecret = req.headers.get("x-cron-secret");
-      if (cronSecret !== process.env.CRON_SECRET)
+      if (cronSecret !== process.env.CRON_SECRET) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
-    let ordersToProcess = [];
+    let ordersToProcess: any[] = [];
 
     if (mode === "cron") {
       const { data: orders, error } = await supabase
@@ -30,8 +32,9 @@ export async function POST(req: NextRequest) {
       if (error) throw error;
       ordersToProcess = orders || [];
     } else {
-      if (!orderId)
+      if (!orderId) {
         return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
+      }
 
       const { data: order, error } = await supabase
         .from("orders")
@@ -39,14 +42,15 @@ export async function POST(req: NextRequest) {
         .eq("id", orderId)
         .single();
 
-      if (error || !order)
+      if (error || !order) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      }
 
       ordersToProcess = [order];
     }
 
     let processedCount = 0;
-    const failedOrders = [];
+    const failedOrders: { orderNumber: string; error: string }[] = [];
 
     for (const order of ordersToProcess) {
       console.log(
@@ -61,19 +65,20 @@ export async function POST(req: NextRequest) {
       let result: EasyParcelResponse;
 
       try {
-        const response = await fetch(EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL, {
+        const response = await fetch(EASYPARCEL_MAKING_ORDER_PAYMENT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
 
         result = await response.json();
-        console.log("Payment response:", JSON.stringify(result));
+        console.log("Payment API response:", JSON.stringify(result));
 
         if (!response.ok || result.api_status !== "Success") {
           throw new Error("Payment API failed");
         }
       } catch (err) {
+        console.error(`Payment API error for order ${order.orderNumber}:`, err);
         failedOrders.push({
           orderNumber: order.orderNumber,
           error: "Payment API error",
@@ -84,7 +89,6 @@ export async function POST(req: NextRequest) {
       const paymentResult = result.result?.[0];
       const parcel = paymentResult?.parcel?.[0];
 
-      // // CHANGE: AWB MAY NOT EXIST YET — THIS IS NOT FAILURE
       if (!parcel?.awb) {
         console.log(
           `Payment successful, AWB pending for order ${order.orderNumber}`
@@ -93,7 +97,7 @@ export async function POST(req: NextRequest) {
         await supabase
           .from("orders")
           .update({
-            orderWorkflowStatus: "payment_done_awb_pending", // // CHANGE
+            orderWorkflowStatus: "payment_done_awb_pending",
           })
           .eq("id", order.id);
 
@@ -101,7 +105,6 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // // CHANGE: AWB exists → normal update
       await supabase
         .from("orders")
         .update({
@@ -127,7 +130,10 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("EasyParcel making-order-payment error:", err);
     return NextResponse.json(
-      { error: "Internal error", details: String(err) },
+      {
+        error: "Internal server error",
+        details: err instanceof Error ? err.message : String(err),
+      },
       { status: 500 }
     );
   }

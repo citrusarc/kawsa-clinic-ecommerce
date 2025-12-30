@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { supabase } from "@/utils/supabase/client";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    let ordersToProcess = [];
+    let ordersToProcess: any[] = [];
 
     if (mode === "cron") {
       const { data: orders, error } = await supabase
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
         .is("easyparcelOrderNumber", null);
 
       if (error) throw error;
-      ordersToProcess = orders;
+      ordersToProcess = orders || [];
     } else {
       if (!orderId) {
         return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
@@ -43,18 +44,17 @@ export async function POST(req: NextRequest) {
         .eq("id", orderId)
         .single();
 
-      if (error || !order)
+      if (error || !order) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      }
 
       ordersToProcess = [order];
     }
 
-    // // Added tracking for processed orders
     let processedCount = 0;
-    const failedOrders = [];
+    const failedOrders: { orderNumber: string; error: any }[] = [];
 
     for (const order of ordersToProcess) {
-      // // Added logging for debugging
       console.log(`Processing order ${order.orderNumber} (ID: ${order.id})`);
 
       if (!order.serviceId) {
@@ -136,9 +136,8 @@ export async function POST(req: NextRequest) {
         ],
       };
 
-      // // Added better error handling for API response
-      let response;
-      let result;
+      let response: Response;
+      let result: any;
 
       try {
         response = await fetch(EASYPARCEL_MAKING_ORDER_URL, {
@@ -164,19 +163,9 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // // Improved response validation
-      if (!response.ok) {
+      if (!response.ok || result?.api_status !== "Success") {
         console.error(
-          `EasyParcel API error for order ${order.orderNumber}:`,
-          result
-        );
-        failedOrders.push({ orderNumber: order.orderNumber, error: result });
-        continue;
-      }
-
-      if (result?.api_status !== "Success") {
-        console.error(
-          `EasyParcel API returned non-success for order ${order.orderNumber}:`,
+          `EasyParcel API returned error for order ${order.orderNumber}:`,
           result
         );
         failedOrders.push({ orderNumber: order.orderNumber, error: result });
@@ -184,9 +173,10 @@ export async function POST(req: NextRequest) {
       }
 
       const epOrder = result?.result?.[0];
+
       if (!epOrder?.order_number) {
         console.error(
-          `No order_number in result for order ${order.orderNumber}:`,
+          `No order_number in EasyParcel response for order ${order.orderNumber}:`,
           result
         );
         failedOrders.push({
@@ -196,7 +186,6 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // // Update database with better error handling
       const { error: updateError } = await supabase
         .from("orders")
         .update({
@@ -222,7 +211,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // // Return detailed response
     return NextResponse.json({
       success: true,
       processedCount,
@@ -231,6 +219,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("EasyParcel making-order error:", err);
+
     return NextResponse.json(
       {
         error: "Internal server error",
