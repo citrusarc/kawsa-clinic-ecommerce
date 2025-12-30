@@ -24,14 +24,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    if (order.paymentStatus === "paid") {
-      console.log("Order already paid, skipping:", reference);
+    if (
+      order.paymentStatus === "paid" &&
+      (order.orderWorkflowStatus === "payment_confirmed" ||
+        order.easyparcelOrderNumber)
+    ) {
+      console.log("Webhook already processed, skipping:", reference);
       return NextResponse.json({ received: true });
     }
 
     switch (status) {
       case "paid": {
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from("orders")
           .update({
             chipPurchaseId,
@@ -42,12 +46,49 @@ export async function POST(req: NextRequest) {
               null,
             paymentStatus: "paid",
             orderStatus: "processing",
+            orderWorkflowStatus: "payment_confirmed",
           })
           .eq("id", order.id);
 
-        if (error) {
-          console.error("Failed to update PAID order:", error);
-          break;
+        if (updateError) {
+          console.error("Failed to update PAID order:", updateError);
+          return NextResponse.json({ received: true });
+        }
+
+        if (order.easyparcelOrderNumber) {
+          console.log(
+            "EasyParcel already created, skipping making-order:",
+            reference
+          );
+          return NextResponse.json({ received: true });
+        }
+
+        try {
+          const epResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_SITE_URL}/api/easyparcel/making-order`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId: order.id }),
+            }
+          );
+
+          const epResult = await epResponse.json();
+
+          if (!epResponse.ok || epResult?.error) {
+            console.error("EasyParcel making-order failed:", epResult);
+          } else {
+            console.log(
+              "EasyParcel making-order triggered successfully:",
+              reference
+            );
+          }
+        } catch (epError) {
+          console.error(
+            "Failed to trigger EasyParcel making-order:",
+            reference,
+            epError
+          );
         }
 
         break;
@@ -85,7 +126,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (err) {
-    console.error("🔥 Webhook error:", err);
+    console.error("🔥 CHIP webhook error:", err);
     return NextResponse.json({ received: true });
   }
 }

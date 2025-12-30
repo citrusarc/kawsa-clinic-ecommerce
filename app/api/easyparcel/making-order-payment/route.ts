@@ -24,9 +24,8 @@ export async function POST(req: NextRequest) {
         .from("orders")
         .select("*")
         .eq("orderWorkflowStatus", "easyparcel_order_created")
-        .not("easyparcelOrderNumber", "is", null)
-        .is("trackingNumber", null)
-        .eq("paymentStatus", "paid");
+        .eq("paymentStatus", "paid")
+        .is("trackingNumber", null);
 
       if (error) throw error;
       ordersToProcess = orders || [];
@@ -34,196 +33,101 @@ export async function POST(req: NextRequest) {
       if (!orderId)
         return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
 
-      const { data: order, error: orderError } = await supabase
+      const { data: order, error } = await supabase
         .from("orders")
         .select("*")
         .eq("id", orderId)
         .single();
 
-      if (orderError || !order)
+      if (error || !order)
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
       ordersToProcess = [order];
     }
 
-    // // Added tracking for processed orders
     let processedCount = 0;
     const failedOrders = [];
 
     for (const order of ordersToProcess) {
-      // // Added detailed logging
       console.log(
-        `Processing payment for order ${order.orderNumber} (ID: ${order.id})`
+        `Processing payment for order ${order.orderNumber} (${order.easyparcelOrderNumber})`
       );
-      console.log(
-        `Order status: ${order.orderWorkflowStatus}, EasyParcel Order: ${order.easyparcelOrderNumber}`
-      );
-
-      if (order.orderWorkflowStatus !== "easyparcel_order_created") {
-        console.log(
-          `Skipping order ${order.orderNumber} - wrong status: ${order.orderWorkflowStatus}`
-        );
-        continue;
-      }
-
-      if (!order.easyparcelOrderNumber || order.trackingNumber) {
-        console.log(
-          `Skipping order ${order.orderNumber} - no EP order or already has tracking`
-        );
-        continue;
-      }
 
       const payload = {
         api: EASYPARCEL_API_KEY,
         bulk: [{ order_no: order.easyparcelOrderNumber }],
       };
 
-      // // Added better error handling
-      let response;
       let result: EasyParcelResponse;
 
       try {
-        console.log(
-          `Calling EasyParcel payment API for order ${order.orderNumber}`
-        );
-        response = await fetch(EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL, {
+        const response = await fetch(EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
 
         result = await response.json();
-        console.log(
-          `EasyParcel payment API response for order ${order.orderNumber}:`,
-          JSON.stringify(result)
-        );
-      } catch (fetchError) {
-        console.error(
-          `Fetch error for order ${order.orderNumber}:`,
-          fetchError
-        );
-        failedOrders.push({
-          orderNumber: order.orderNumber,
-          easyparcelOrderNumber: order.easyparcelOrderNumber,
-          error: "Fetch failed",
-          details:
-            fetchError instanceof Error
-              ? fetchError.message
-              : String(fetchError),
-        });
-        continue;
-      }
+        console.log("Payment response:", JSON.stringify(result));
 
-      // // Improved response validation
-      if (!response.ok) {
-        console.error(
-          `EasyParcel payment API HTTP error for order ${order.orderNumber}:`,
-          response.status,
-          result
-        );
+        if (!response.ok || result.api_status !== "Success") {
+          throw new Error("Payment API failed");
+        }
+      } catch (err) {
         failedOrders.push({
           orderNumber: order.orderNumber,
-          easyparcelOrderNumber: order.easyparcelOrderNumber,
-          error: `HTTP ${response.status}`,
-          details: result,
-        });
-        continue;
-      }
-
-      if (result?.api_status !== "Success") {
-        console.error(
-          `EasyParcel payment API returned non-success for order ${order.orderNumber}:`,
-          result
-        );
-        failedOrders.push({
-          orderNumber: order.orderNumber,
-          easyparcelOrderNumber: order.easyparcelOrderNumber,
-          error: "API Status not Success",
-          details: result,
+          error: "Payment API error",
         });
         continue;
       }
 
       const paymentResult = result.result?.[0];
+      const parcel = paymentResult?.parcel?.[0];
 
-      // // Added better validation for payment result
-      if (!paymentResult) {
-        console.error(`No payment result for order ${order.orderNumber}`);
-        failedOrders.push({
-          orderNumber: order.orderNumber,
-          easyparcelOrderNumber: order.easyparcelOrderNumber,
-          error: "No payment result",
-        });
-        continue;
-      }
-
-      const parcelInfo = paymentResult?.parcel?.[0];
-
-      if (!parcelInfo?.awb) {
-        console.error(
-          `No AWB in parcel info for order ${order.orderNumber}:`,
-          paymentResult
+      // // CHANGE: AWB MAY NOT EXIST YET — THIS IS NOT FAILURE
+      if (!parcel?.awb) {
+        console.log(
+          `Payment successful, AWB pending for order ${order.orderNumber}`
         );
-        failedOrders.push({
-          orderNumber: order.orderNumber,
-          easyparcelOrderNumber: order.easyparcelOrderNumber,
-          error: "No AWB in response",
-          details: paymentResult,
-        });
+
+        await supabase
+          .from("orders")
+          .update({
+            orderWorkflowStatus: "payment_done_awb_pending", // // CHANGE
+          })
+          .eq("id", order.id);
+
+        processedCount++;
         continue;
       }
 
-      // // Update database with better error handling
-      console.log(
-        `Updating order ${order.orderNumber} with AWB: ${parcelInfo.awb}`
-      );
-
-      const { error: updateError } = await supabase
+      // // CHANGE: AWB exists → normal update
+      await supabase
         .from("orders")
         .update({
-          trackingNumber: parcelInfo.parcelno,
-          trackingUrl: parcelInfo.tracking_url,
-          awbNumber: parcelInfo.awb,
-          awbPdfUrl: parcelInfo.awb_id_link,
+          trackingNumber: parcel.parcelno,
+          trackingUrl: parcel.tracking_url,
+          awbNumber: parcel.awb,
+          awbPdfUrl: parcel.awb_id_link,
           orderWorkflowStatus: "awb_generated",
           deliveryStatus: "ready_for_pickup",
           orderStatus: "processing",
         })
         .eq("id", order.id);
 
-      if (updateError) {
-        console.error(
-          `Failed to update order ${order.orderNumber}:`,
-          updateError
-        );
-        failedOrders.push({
-          orderNumber: order.orderNumber,
-          easyparcelOrderNumber: order.easyparcelOrderNumber,
-          error: "Database update failed",
-          details: updateError,
-        });
-      } else {
-        console.log(
-          `Successfully processed payment for order ${order.orderNumber}`
-        );
-        processedCount++;
-      }
+      processedCount++;
     }
 
-    // // Return detailed response
     return NextResponse.json({
       success: true,
       processedCount,
       totalOrders: ordersToProcess.length,
-      failedOrders: failedOrders.length > 0 ? failedOrders : undefined,
+      failedOrders: failedOrders.length ? failedOrders : undefined,
     });
   } catch (err) {
     console.error("EasyParcel making-order-payment error:", err);
     return NextResponse.json(
-      {
-        error: "Internal server error",
-        details: err instanceof Error ? err.message : String(err),
-      },
+      { error: "Internal error", details: String(err) },
       { status: 500 }
     );
   }
