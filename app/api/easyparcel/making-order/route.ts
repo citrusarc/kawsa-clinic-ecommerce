@@ -24,7 +24,10 @@ export async function POST(req: NextRequest) {
         .from("orders")
         .select("*")
         .eq("paymentStatus", "paid")
-        .eq("orderWorkflowStatus", "payment_confirmed")
+        .in("orderWorkflowStatus", [
+          "pending_easyparcel_order",
+          "payment_confirmed",
+        ])
         .is("easyparcelOrderNumber", null);
       if (error) throw error;
       ordersToProcess = orders;
@@ -48,7 +51,12 @@ export async function POST(req: NextRequest) {
     for (const order of ordersToProcess) {
       if (!order.serviceId) continue;
 
-      if (order.orderWorkflowStatus !== "payment_confirmed") continue;
+      if (
+        !["pending_easyparcel_order", "payment_confirmed"].includes(
+          order.orderWorkflowStatus
+        )
+      )
+        continue;
 
       const { data: items } = await supabase
         .from("order_items")
