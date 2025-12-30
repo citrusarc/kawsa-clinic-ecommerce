@@ -72,9 +72,16 @@ export async function POST(req: NextRequest) {
         }
 
         const result = await response.json();
-        const parcel = result?.result?.[0]?.parcel?.[0];
+        const parcels = result?.result?.[0]?.parcel;
 
-        if (!parcel?.awb) {
+        if (!parcels || !Array.isArray(parcels) || parcels.length === 0) {
+          continue;
+        }
+
+        // Get the first parcel with an AWB (in case of multiple parcels)
+        const parcel = parcels.find((p: any) => p?.awb) || parcels[0];
+
+        if (!parcel || !parcel.awb) {
           continue;
         }
 
@@ -83,7 +90,7 @@ export async function POST(req: NextRequest) {
           .update({
             trackingNumber: parcel.parcelno ? String(parcel.parcelno) : null,
             trackingUrl: parcel.tracking_url || null,
-            awbNumber: String(parcel.awb),
+            awbNumber: parcel.awb ? String(parcel.awb) : null,
             awbPdfUrl: parcel.awb_id_link || null,
             orderWorkflowStatus: "awb_generated",
             deliveryStatus: "ready_for_pickup",
