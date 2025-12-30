@@ -7,49 +7,17 @@ import { NavArrowLeft, NavArrowRight, StarSolid } from "iconoir-react";
 
 import { supabase } from "@/utils/supabase/client";
 import { spectral } from "@/config/font";
-import { ProductsItem, ProductVariant, VariantOption } from "@/types";
+import {
+  ProductsItem,
+  ProductVariant,
+  VariantOption,
+  ProductDetailsItem,
+  ProductDetailsProps,
+} from "@/types";
 import { useCart } from "@/components/store/Cart";
 import { useCheckout } from "@/components/store/Checkout";
 import { Stepper } from "@/components/ui/Stepper";
 import { Toast } from "@/components/ui/Toast";
-
-interface ProductDetailsProps {
-  params: Promise<{ id: string }>;
-}
-
-interface SupabaseProduct {
-  id: string;
-  src: string;
-  alt: string;
-  name: string;
-  description: string | string[];
-  additionalInfo1: string | string[];
-  additionalInfo2: string | string[];
-  currency: string;
-  status: {
-    isHidden: boolean;
-    isDisabled: boolean;
-    isComingSoon: boolean;
-    isPromo: boolean;
-    isBestSeller: boolean;
-  };
-  product_variants: {
-    id: string;
-    variantName: string;
-    variant_options: {
-      id: string;
-      optionName: string;
-      weight: number;
-      width?: number;
-      length?: number;
-      height?: number;
-      currency: string;
-      unitPrice: number;
-      originalPrice?: number;
-      currentPrice?: number;
-    }[];
-  }[];
-}
 
 export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   const { id } = use(params);
@@ -129,13 +97,13 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
             status: prod.status,
             variants: prod.product_variants.map(
               (
-                variant: SupabaseProduct["product_variants"][number]
+                variant: ProductDetailsItem["product_variants"][number]
               ): ProductVariant => ({
                 id: variant.id,
                 variantName: variant.variantName,
                 options: variant.variant_options.map(
                   (
-                    option: SupabaseProduct["product_variants"][number]["variant_options"][number]
+                    option: ProductDetailsItem["product_variants"][number]["variant_options"][number]
                   ): VariantOption => ({
                     id: option.id,
                     optionName: option.optionName,
@@ -193,7 +161,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
               (item) => !item.status?.isHidden && !item.status?.isDisabled
             )
             .map(
-              (item: SupabaseProduct): ProductsItem => ({
+              (item: ProductDetailsItem): ProductsItem => ({
                 id: item.id,
                 src: item.src,
                 alt: item.alt,
@@ -211,13 +179,13 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                 status: item.status,
                 variants: item.product_variants.map(
                   (
-                    variant: SupabaseProduct["product_variants"][number]
+                    variant: ProductDetailsItem["product_variants"][number]
                   ): ProductVariant => ({
                     id: variant.id,
                     variantName: variant.variantName,
                     options: variant.variant_options.map(
                       (
-                        option: SupabaseProduct["product_variants"][number]["variant_options"][number]
+                        option: ProductDetailsItem["product_variants"][number]["variant_options"][number]
                       ): VariantOption => ({
                         id: option.id,
                         optionName: option.optionName,

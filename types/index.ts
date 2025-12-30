@@ -57,6 +57,72 @@ export type ProductsItem = {
   variants: ProductVariant[];
 };
 
+export type ProductDetailsItem = {
+  id: string;
+  src: string;
+  alt: string;
+  name: string;
+  description: string | string[];
+  additionalInfo1: string | string[];
+  additionalInfo2: string | string[];
+  currency: string;
+  status: {
+    isHidden: boolean;
+    isDisabled: boolean;
+    isComingSoon: boolean;
+    isPromo: boolean;
+    isBestSeller: boolean;
+  };
+  product_variants: {
+    id: string;
+    variantName: string;
+    variant_options: {
+      id: string;
+      optionName: string;
+      weight: number;
+      width?: number;
+      length?: number;
+      height?: number;
+      currency: string;
+      unitPrice: number;
+      originalPrice?: number;
+      currentPrice?: number;
+    }[];
+  }[];
+};
+
+export type ProductDetailsProps = {
+  params: Promise<{ id: string }>;
+};
+
+export type GetProductsItem = {
+  id: string;
+  src: string;
+  alt: string;
+  name: string;
+  description: string | string[];
+  additionalInfo1: string | string[];
+  additionalInfo2: string | string[];
+  currency: string;
+  status: { isHidden: boolean; isDisabled: boolean; isComingSoon: boolean };
+  product_variants: {
+    id: string;
+    variantName: string;
+    variant_options: {
+      id: string;
+      optionName: string;
+      weight: number;
+      width?: number;
+      length?: number;
+      height?: number;
+      currency: string;
+      unitPrice: number;
+      originalPrice?: number;
+      currentPrice?: number;
+    }[];
+  }[];
+};
+
 export type IngredientsItem = {
   id: string;
   src: string;
@@ -66,6 +132,12 @@ export type IngredientsItem = {
   additionalInfo1?: string[];
   additionalInfo2?: string[];
   position: string;
+};
+
+export type IngredientsDetailsPageProps = {
+  params: {
+    id: string;
+  };
 };
 
 export type TestimonialSet = {
@@ -229,6 +301,22 @@ export type EasyParcelRateItem = {
   courierName: string;
   shipmentTotalRates: number | string;
   deliveryDays?: string;
+};
+
+export type EasyParcelParcel = {
+  parcelno: string;
+  tracking_url: string;
+  awb: string;
+  awb_id_link: string;
+};
+export type EasyParcelResult = {
+  messagenow: string;
+  parcel: EasyParcelParcel[];
+};
+export type EasyParcelResponse = {
+  api_status: string;
+  error_remark?: string;
+  result?: EasyParcelResult[];
 };
 
 export type StepperProps = {

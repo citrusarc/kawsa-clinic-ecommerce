@@ -1,12 +1,8 @@
 import Image from "next/image";
+
 import { spectral } from "@/config/font";
 import { ingredients } from "@/data/ingredients";
-
-interface IngredientsDetailsPageProps {
-  params: {
-    id: string;
-  };
-}
+import { IngredientsDetailsPageProps } from "@/types";
 
 export default async function IngredientsDetailsPage({
   params,

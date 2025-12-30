@@ -1,33 +1,10 @@
 import { supabase } from "@/utils/supabase/client";
-import { ProductsItem, ProductVariant, VariantOption } from "@/types";
-
-interface SupabaseProduct {
-  id: string;
-  src: string;
-  alt: string;
-  name: string;
-  description: string | string[];
-  additionalInfo1: string | string[];
-  additionalInfo2: string | string[];
-  currency: string;
-  status: { isHidden: boolean; isDisabled: boolean; isComingSoon: boolean };
-  product_variants: {
-    id: string;
-    variantName: string;
-    variant_options: {
-      id: string;
-      optionName: string;
-      weight: number;
-      width?: number;
-      length?: number;
-      height?: number;
-      currency: string;
-      unitPrice: number;
-      originalPrice?: number;
-      currentPrice?: number;
-    }[];
-  }[];
-}
+import {
+  ProductsItem,
+  ProductVariant,
+  VariantOption,
+  GetProductsItem,
+} from "@/types";
 
 export async function getProducts(): Promise<ProductsItem[]> {
   const { data, error } = await supabase.from("products").select(`
@@ -63,7 +40,7 @@ export async function getProducts(): Promise<ProductsItem[]> {
   }
 
   const transformedData: ProductsItem[] = data.map(
-    (product: SupabaseProduct) => ({
+    (product: GetProductsItem) => ({
       id: product.id,
       src: product.src,
       alt: product.alt,

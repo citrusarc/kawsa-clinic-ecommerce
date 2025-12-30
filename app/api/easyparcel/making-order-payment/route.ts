@@ -1,25 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { supabase } from "@/utils/supabase/client";
+import { EasyParcelResponse } from "@/types";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL =
   process.env.EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL!;
-
-interface EasyParcelParcel {
-  parcelno: string;
-  tracking_url: string;
-  awb: string;
-  awb_id_link: string;
-}
-interface EasyParcelResult {
-  messagenow: string;
-  parcel: EasyParcelParcel[];
-}
-interface EasyParcelResponse {
-  api_status: string;
-  error_remark?: string;
-  result?: EasyParcelResult[];
-}
 
 export async function POST(req: NextRequest) {
   try {
