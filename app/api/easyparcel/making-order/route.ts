@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     // // Added tracking for processed orders
     let processedCount = 0;
-    let failedOrders = [];
+    const failedOrders = [];
 
     for (const order of ordersToProcess) {
       // // Added logging for debugging

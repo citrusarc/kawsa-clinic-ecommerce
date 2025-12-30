@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     }
 
     let processedCount = 0;
-    let failedEmails = [];
+    const failedEmails = [];
 
     for (const order of ordersToProcess) {
       // // Added detailed logging
