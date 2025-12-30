@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
           "payment_confirmed",
         ])
         .is("easyparcelOrderNumber", null);
+
       if (error) throw error;
       ordersToProcess = orders;
     } else {
@@ -48,22 +49,39 @@ export async function POST(req: NextRequest) {
       ordersToProcess = [order];
     }
 
+    // // Added tracking for processed orders
+    let processedCount = 0;
+    let failedOrders = [];
+
     for (const order of ordersToProcess) {
-      if (!order.serviceId) continue;
+      // // Added logging for debugging
+      console.log(`Processing order ${order.orderNumber} (ID: ${order.id})`);
+
+      if (!order.serviceId) {
+        console.log(`Skipping order ${order.orderNumber} - no serviceId`);
+        continue;
+      }
 
       if (
         !["pending_easyparcel_order", "payment_confirmed"].includes(
           order.orderWorkflowStatus
         )
-      )
+      ) {
+        console.log(
+          `Skipping order ${order.orderNumber} - wrong status: ${order.orderWorkflowStatus}`
+        );
         continue;
+      }
 
       const { data: items } = await supabase
         .from("order_items")
         .select("*")
         .eq("orderId", order.id);
 
-      if (!items || items.length === 0) continue;
+      if (!items || items.length === 0) {
+        console.log(`Skipping order ${order.orderNumber} - no items`);
+        continue;
+      }
 
       const totalWeight = Number(
         items
@@ -76,7 +94,10 @@ export async function POST(req: NextRequest) {
           .toFixed(2)
       );
 
-      if (totalWeight <= 0) continue;
+      if (totalWeight <= 0) {
+        console.log(`Skipping order ${order.orderNumber} - invalid weight`);
+        continue;
+      }
 
       const payload = {
         api: EASYPARCEL_API_KEY,
@@ -92,7 +113,6 @@ export async function POST(req: NextRequest) {
               0
             ),
             service_id: order.serviceId,
-
             pick_name: "DRKAY MEDIBEAUTY SDN BHD",
             pick_contact: "+60123456789",
             pick_addr1: "39-02, Jalan Padi Emas 1/8",
@@ -100,7 +120,6 @@ export async function POST(req: NextRequest) {
             pick_state: "Johor",
             pick_code: "81200",
             pick_country: "MY",
-
             send_name: order.fullName,
             send_contact: order.phoneNumber,
             send_email: order.email,
@@ -110,7 +129,6 @@ export async function POST(req: NextRequest) {
             send_state: order.state,
             send_code: String(order.postcode),
             send_country: "MY",
-
             collect_date: new Date().toISOString().split("T")[0],
             sms: true,
             reference: String(order.orderNumber),
@@ -118,19 +136,68 @@ export async function POST(req: NextRequest) {
         ],
       };
 
-      const response = await fetch(EASYPARCEL_MAKING_ORDER_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // // Added better error handling for API response
+      let response;
+      let result;
 
-      const result = await response.json();
-      if (!response.ok || result?.api_status !== "Success") continue;
+      try {
+        response = await fetch(EASYPARCEL_MAKING_ORDER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        result = await response.json();
+        console.log(
+          `EasyParcel API response for order ${order.orderNumber}:`,
+          JSON.stringify(result)
+        );
+      } catch (fetchError) {
+        console.error(
+          `Fetch error for order ${order.orderNumber}:`,
+          fetchError
+        );
+        failedOrders.push({
+          orderNumber: order.orderNumber,
+          error: "Fetch failed",
+        });
+        continue;
+      }
+
+      // // Improved response validation
+      if (!response.ok) {
+        console.error(
+          `EasyParcel API error for order ${order.orderNumber}:`,
+          result
+        );
+        failedOrders.push({ orderNumber: order.orderNumber, error: result });
+        continue;
+      }
+
+      if (result?.api_status !== "Success") {
+        console.error(
+          `EasyParcel API returned non-success for order ${order.orderNumber}:`,
+          result
+        );
+        failedOrders.push({ orderNumber: order.orderNumber, error: result });
+        continue;
+      }
 
       const epOrder = result?.result?.[0];
-      if (!epOrder?.order_number) continue;
+      if (!epOrder?.order_number) {
+        console.error(
+          `No order_number in result for order ${order.orderNumber}:`,
+          result
+        );
+        failedOrders.push({
+          orderNumber: order.orderNumber,
+          error: "No order_number",
+        });
+        continue;
+      }
 
-      await supabase
+      // // Update database with better error handling
+      const { error: updateError } = await supabase
         .from("orders")
         .update({
           easyparcelOrderNumber: epOrder.order_number,
@@ -139,13 +206,36 @@ export async function POST(req: NextRequest) {
           orderStatus: "processing",
         })
         .eq("id", order.id);
+
+      if (updateError) {
+        console.error(
+          `Failed to update order ${order.orderNumber}:`,
+          updateError
+        );
+        failedOrders.push({
+          orderNumber: order.orderNumber,
+          error: updateError,
+        });
+      } else {
+        console.log(`Successfully processed order ${order.orderNumber}`);
+        processedCount++;
+      }
     }
 
-    return NextResponse.json({ success: true });
+    // // Return detailed response
+    return NextResponse.json({
+      success: true,
+      processedCount,
+      totalOrders: ordersToProcess.length,
+      failedOrders: failedOrders.length > 0 ? failedOrders : undefined,
+    });
   } catch (err) {
     console.error("EasyParcel making-order error:", err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        details: err instanceof Error ? err.message : String(err),
+      },
       { status: 500 }
     );
   }

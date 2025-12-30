@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
           deliveryStatus,
           orderStatus,
           emailSent,
+          orderWorkflowStatus,
           order_items (*)
         `
         )
@@ -55,7 +56,15 @@ export async function POST(req: NextRequest) {
         .eq("orderWorkflowStatus", "awb_generated")
         .eq("emailSent", false);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching orders:", error);
+        throw error;
+      }
+
+      // // Added logging for debugging
+      console.log(
+        `Found ${orders?.length || 0} orders ready for email confirmation`
+      );
       ordersToProcess = (orders ?? []) as OrderSuccessBody[];
     } else {
       if (!orderNumber)
@@ -90,6 +99,7 @@ export async function POST(req: NextRequest) {
           deliveryStatus,
           orderStatus,
           emailSent,
+          orderWorkflowStatus,
           order_items (*)
         `
         )
@@ -103,12 +113,41 @@ export async function POST(req: NextRequest) {
     }
 
     let processedCount = 0;
+    let failedEmails = [];
 
     for (const order of ordersToProcess) {
-      if (order.orderWorkflowStatus !== "awb_generated") continue;
-      if (order.emailSent) continue;
+      // // Added detailed logging
+      console.log(
+        `Processing email for order ${order.orderNumber} (ID: ${order.id})`
+      );
+      console.log(
+        `Order workflow status: ${order.orderWorkflowStatus}, emailSent: ${order.emailSent}, AWB: ${order.awbNumber}`
+      );
+
+      if (order.orderWorkflowStatus !== "awb_generated") {
+        console.log(
+          `Skipping order ${order.orderNumber} - wrong workflow status: ${order.orderWorkflowStatus}`
+        );
+        continue;
+      }
+
+      if (order.emailSent) {
+        console.log(`Skipping order ${order.orderNumber} - email already sent`);
+        continue;
+      }
+
       if (!order.awbNumber) {
         console.log(`Skipping order ${order.orderNumber} - AWB not ready`);
+        continue;
+      }
+
+      // // Added validation for required email fields
+      if (!order.email) {
+        console.error(`Order ${order.orderNumber} has no email address`);
+        failedEmails.push({
+          orderNumber: order.orderNumber,
+          error: "No email address",
+        });
         continue;
       }
 
@@ -123,51 +162,111 @@ export async function POST(req: NextRequest) {
         .filter(Boolean)
         .join(", ");
 
-      const html = orderEmailConfirmationTemplate({
-        orderId: order.id,
-        orderNumber: order.orderNumber,
-        fullName: order.fullName,
-        email: order.email,
-        phoneNumber: order.phoneNumber,
-        address,
-        paymentMethod: order.paymentMethod,
-        paymentStatus: order.paymentStatus,
-        subTotalPrice: order.subTotalPrice,
-        shippingFee: order.shippingFee,
-        totalPrice: order.totalPrice,
-        courierName: order.courierName,
-        trackingUrl: order.trackingUrl,
-        awbNumber: order.awbNumber,
-        deliveryStatus: order.deliveryStatus,
-        orderStatus: order.orderStatus,
-        items: order.order_items ?? [],
-      } as OrderEmailConfirmationTemplateProps);
+      // // Added try-catch for email template generation
+      let html;
+      try {
+        html = orderEmailConfirmationTemplate({
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          fullName: order.fullName,
+          email: order.email,
+          phoneNumber: order.phoneNumber,
+          address,
+          paymentMethod: order.paymentMethod,
+          paymentStatus: order.paymentStatus,
+          subTotalPrice: order.subTotalPrice,
+          shippingFee: order.shippingFee,
+          totalPrice: order.totalPrice,
+          courierName: order.courierName,
+          trackingUrl: order.trackingUrl,
+          awbNumber: order.awbNumber,
+          deliveryStatus: order.deliveryStatus,
+          orderStatus: order.orderStatus,
+          items: order.order_items ?? [],
+        } as OrderEmailConfirmationTemplateProps);
+      } catch (templateError) {
+        console.error(
+          `Failed to generate email template for order ${order.orderNumber}:`,
+          templateError
+        );
+        failedEmails.push({
+          orderNumber: order.orderNumber,
+          error: "Template generation failed",
+          details:
+            templateError instanceof Error
+              ? templateError.message
+              : String(templateError),
+        });
+        continue;
+      }
 
-      const info = await transporter.sendMail({
-        from: `"Kawsa Clinic" <${process.env.EMAIL_USER}>`,
-        to: order.email,
-        subject: `Your order ${order.orderNumber} is on the way 🚚`,
-        html,
-      });
+      // // Added better error handling for email sending
+      try {
+        console.log(
+          `Sending email to ${order.email} for order ${order.orderNumber}`
+        );
 
-      console.log(`Email sent to ${order.email}:`, info.messageId);
+        const info = await transporter.sendMail({
+          from: `"Kawsa Clinic" <${process.env.EMAIL_USER}>`,
+          to: order.email,
+          subject: `Your order ${order.orderNumber} is on the way 🚚`,
+          html,
+        });
 
-      await supabase
-        .from("orders")
-        .update({ emailSent: true, orderWorkflowStatus: "email_sent" })
-        .eq("id", order.id);
+        console.log(`Email sent to ${order.email}:`, info.messageId);
 
-      processedCount++;
+        // // Update database with better error handling
+        const { error: updateError } = await supabase
+          .from("orders")
+          .update({ emailSent: true, orderWorkflowStatus: "email_sent" })
+          .eq("id", order.id);
+
+        if (updateError) {
+          console.error(
+            `Failed to update order ${order.orderNumber} after sending email:`,
+            updateError
+          );
+          failedEmails.push({
+            orderNumber: order.orderNumber,
+            error: "Database update failed (email was sent)",
+            details: updateError,
+          });
+        } else {
+          console.log(
+            `Successfully processed email for order ${order.orderNumber}`
+          );
+          processedCount++;
+        }
+      } catch (emailError) {
+        console.error(
+          `Failed to send email for order ${order.orderNumber}:`,
+          emailError
+        );
+        failedEmails.push({
+          orderNumber: order.orderNumber,
+          error: "Email sending failed",
+          details:
+            emailError instanceof Error
+              ? emailError.message
+              : String(emailError),
+        });
+      }
     }
 
+    // // Return detailed response
     return NextResponse.json({
       success: true,
-      processedOrders: processedCount,
+      processedCount,
+      totalOrders: ordersToProcess.length,
+      failedEmails: failedEmails.length > 0 ? failedEmails : undefined,
     });
   } catch (err) {
     console.error("Email error:", err);
     return NextResponse.json(
-      { error: "Failed to send email" },
+      {
+        error: "Failed to send email",
+        details: err instanceof Error ? err.message : String(err),
+      },
       { status: 500 }
     );
   }
