@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import { supabase } from "@/utils/supabase/client";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
@@ -73,16 +72,41 @@ export async function POST(req: NextRequest) {
         }
 
         const result = await response.json();
-        const parcel = result?.result?.[0]?.parcel?.[0];
 
-        if (!parcel?.awb) {
+        // // Ensure result structure is valid
+        const orderResult = result?.result?.[0];
+        if (!orderResult) {
+          failedOrders.push({
+            orderNumber,
+            error: "Invalid EasyParcel response structure",
+          });
+          continue;
+        }
+
+        // // Ensure parcel array exists and has at least 1 item
+        const parcelList = Array.isArray(orderResult.parcel)
+          ? orderResult.parcel
+          : [];
+
+        if (parcelList.length === 0) {
+          // // Multi-item orders often return empty parcel array initially
+          console.log(`AWB not ready yet for ${orderNumber}`);
+          continue;
+        }
+
+        // // Take the first parcel safely
+        const parcel = parcelList[0];
+
+        // // Guard against missing awb / parcelno
+        if (!parcel?.awb || !parcel?.parcelno) {
+          console.log(`Parcel exists but AWB missing for ${orderNumber}`);
           continue;
         }
 
         const { error: updateError } = await supabase
           .from("orders")
           .update({
-            trackingNumber: parcel.parcelno ? String(parcel.parcelno) : null,
+            trackingNumber: String(parcel.parcelno),
             trackingUrl: parcel.tracking_url || null,
             awbNumber: String(parcel.awb),
             awbPdfUrl: parcel.awb_id_link || null,

@@ -58,14 +58,12 @@ export async function POST(req: NextRequest) {
       };
 
       let result: EasyParcelResponse;
-
       try {
         const response = await fetch(EASYPARCEL_MAKING_ORDER_PAYMENT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-
         result = await response.json();
 
         if (!response.ok || result.api_status !== "Success") {
@@ -80,10 +78,17 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const paymentResult = result.result?.[0];
-      const parcel = paymentResult?.parcel?.[0];
+      const paymentResult = result?.result?.[0];
 
-      if (!parcel?.awb) {
+      // // Normalize parcel array - handle multi-item orders
+      const parcelList = Array.isArray(paymentResult?.parcel)
+        ? paymentResult.parcel
+        : [];
+
+      const parcel = parcelList[0];
+
+      // // Multi-item orders may not have parcel data immediately
+      if (!parcel || !parcel.awb) {
         await supabase
           .from("orders")
           .update({

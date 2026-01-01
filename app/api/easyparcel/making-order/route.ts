@@ -98,9 +98,16 @@ export async function POST(req: NextRequest) {
         bulk: [
           {
             weight: totalWeight,
-            width: Math.max(...items.map((i) => Math.ceil(i.itemWidth || 0))),
-            length: Math.max(...items.map((i) => Math.ceil(i.itemLength || 0))),
-            height: Math.max(...items.map((i) => Math.ceil(i.itemHeight || 0))),
+            // // EasyParcel rejects 0 dimensions for multi-item parcels - use minimum of 1
+            width: Math.max(
+              ...items.map((i) => Math.ceil(Number(i.itemWidth) || 1))
+            ),
+            length: Math.max(
+              ...items.map((i) => Math.ceil(Number(i.itemLength) || 1))
+            ),
+            height: Math.max(
+              ...items.map((i) => Math.ceil(Number(i.itemHeight) || 1))
+            ),
             content: "skincare",
             value: items.reduce(
               (sum, item) => sum + Number(item.itemTotalPrice || 0),
@@ -139,8 +146,8 @@ export async function POST(req: NextRequest) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-
         result = await response.json();
+
         console.log(
           `EasyParcel API response for order ${order.orderNumber}:`,
           JSON.stringify(result)
