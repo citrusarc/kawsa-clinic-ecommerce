@@ -31,14 +31,15 @@ export async function POST(req: NextRequest) {
       console.log("✓ No pending AWB orders found");
       return NextResponse.json({
         success: true,
-        updated: 0,
+        updatedCount: 0,
         message: "No pending AWB orders",
       });
     }
 
-    console.log(
-      `\n🔄 Found ${orders.length} orders in payment_done_awb_pending status`
-    );
+    console.log(`\n${"=".repeat(70)}`);
+    console.log(`🔄 AWB SYNC CRON JOB - ${new Date().toISOString()}`);
+    console.log(`   Found ${orders.length} order(s) waiting for AWB`);
+    console.log(`${"=".repeat(70)}\n`);
 
     let updatedCount = 0;
     const failedOrders: { orderNumber: string; error: string }[] = [];
@@ -47,7 +48,8 @@ export async function POST(req: NextRequest) {
       const orderNumber = String(order.orderNumber ?? "UNKNOWN");
       const easyparcelOrderNo = String(order.easyparcelOrderNumber ?? "");
 
-      console.log(`\n--- Processing order ${orderNumber} ---`);
+      console.log(`\n━━━ Checking order ${orderNumber} ━━━`);
+      console.log(`   EasyParcel Order: ${easyparcelOrderNo}`);
 
       try {
         if (!easyparcelOrderNo.trim()) {
@@ -59,7 +61,7 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        console.log(`📞 Calling parcel status API for: ${easyparcelOrderNo}`);
+        console.log(`📞 Calling parcel status API...`);
 
         const response = await fetch(EASYPARCEL_PARCEL_STATUS_URL, {
           method: "POST",
@@ -73,7 +75,7 @@ export async function POST(req: NextRequest) {
         if (!response.ok) {
           const errorText = await response.text().catch(() => "Unknown error");
           console.error(
-            `❌ EasyParcel API failed (HTTP ${response.status}):`,
+            `❌ API call failed (HTTP ${response.status}):`,
             errorText
           );
           failedOrders.push({
@@ -96,54 +98,60 @@ export async function POST(req: NextRequest) {
         }
 
         const orderResult = result?.result?.[0];
-        console.log(`📋 Order result:`, JSON.stringify(orderResult, null, 2));
 
         if (!orderResult || orderResult.status !== "Success") {
           console.log(`❌ Order result status not Success`);
           failedOrders.push({
             orderNumber,
-            error:
-              orderResult?.remarks || "Invalid EasyParcel response structure",
+            error: orderResult?.remarks || "Invalid response structure",
           });
           continue;
         }
 
-        // According to docs: orderResult.parcel[] → { parcel_number, ship_status, awb, awb_id_link }
-        // But your logs show: orderResult.result[] → { parcel_number, ship_status, awb, awb_id_link }
+        // Try both possible field names
         let parcelList = [];
         if (Array.isArray(orderResult.parcel)) {
           parcelList = orderResult.parcel;
-          console.log(`📦 Using "parcel" field from status response`);
+          console.log(
+            `📦 Found ${parcelList.length} parcel(s) in "parcel" field`
+          );
         } else if (Array.isArray(orderResult.result)) {
           parcelList = orderResult.result;
-          console.log(`📦 Using "result" field from status response`);
+          console.log(
+            `📦 Found ${parcelList.length} parcel(s) in "result" field`
+          );
         }
-
-        console.log(`📦 Parcel list length: ${parcelList.length}`);
-        console.log(`📦 Parcel data:`, JSON.stringify(parcelList, null, 2));
-
-        if (parcelList.length === 0) {
-          console.log(`⏳ AWB not ready yet (empty parcel array)`);
-          continue;
-        }
-
-        // Check for parcels with AWB (awb can be empty string when not ready)
-        const parcelsWithAwb = parcelList.filter(
-          (p: EasyParcelItem) =>
-            p?.awb && p?.awb.trim() !== "" && p?.parcel_number
-        );
 
         console.log(
-          `✅ Parcels with AWB: ${parcelsWithAwb.length}/${parcelList.length}`
+          `📦 Full parcel data:`,
+          JSON.stringify(parcelList, null, 2)
         );
 
-        if (parcelsWithAwb.length === 0) {
-          console.log(`⏳ Parcels exist but AWB still missing or empty`);
+        if (parcelList.length === 0) {
+          console.log(`⏳ Still waiting - empty parcel array`);
+          console.log(`   → Will check again on next cron run`);
           continue;
         }
 
-        // Update order with AWB info
+        // Filter parcels that have AWB ready (awb can be empty string)
+        const parcelsWithAwb = parcelList.filter(
+          (p: EasyParcelItem) =>
+            p?.awb && p.awb.trim() !== "" && p?.parcel_number
+        );
+
+        console.log(`📊 Parcel status:`);
+        console.log(`   - Total parcels: ${parcelList.length}`);
+        console.log(`   - Parcels with AWB: ${parcelsWithAwb.length}`);
+
+        if (parcelsWithAwb.length === 0) {
+          console.log(`⏳ Still waiting - AWB not generated yet`);
+          console.log(`   → Will check again on next cron run`);
+          continue;
+        }
+
+        // AWB is ready! Update order
         const parcel = parcelsWithAwb[0];
+
         const updateData = {
           trackingNumber: parcel.parcel_number,
           trackingUrl: parcel.tracking_url || null,
@@ -154,10 +162,8 @@ export async function POST(req: NextRequest) {
           orderStatus: "processing",
         };
 
-        console.log(
-          `💾 Updating order with:`,
-          JSON.stringify(updateData, null, 2)
-        );
+        console.log(`✅ AWB is ready! Updating order...`);
+        console.log(`💾 Update data:`, JSON.stringify(updateData, null, 2));
 
         const { error: updateError } = await supabase
           .from("orders")
@@ -173,9 +179,11 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        console.log(
-          `✅ Successfully updated order ${orderNumber} to awb_generated`
-        );
+        console.log(`🎉 Successfully updated order ${orderNumber}`);
+        console.log(`   - AWB: ${parcel.awb}`);
+        console.log(`   - Tracking: ${parcel.parcel_number}`);
+        console.log(`   - Status: ${parcel.ship_status || "ready_for_pickup"}`);
+
         updatedCount++;
       } catch (orderErr) {
         const errorMessage = getErrorMessage(orderErr);
@@ -187,14 +195,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    console.log(`\n${"=".repeat(70)}`);
+    console.log(`🎉 SYNC COMPLETE`);
+    console.log(`   - Updated: ${updatedCount}/${orders.length} orders`);
     console.log(
-      `\n🎉 Sync complete: ${updatedCount}/${orders.length} orders updated`
+      `   - Still waiting: ${
+        orders.length - updatedCount - failedOrders.length
+      }`
     );
+    console.log(`   - Failed: ${failedOrders.length}`);
+    console.log(`${"=".repeat(70)}\n`);
 
     return NextResponse.json({
       success: true,
       updatedCount,
       totalOrders: orders.length,
+      stillWaiting: orders.length - updatedCount - failedOrders.length,
       failedOrders: failedOrders.length > 0 ? failedOrders : undefined,
     });
   } catch (err) {
