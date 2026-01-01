@@ -84,14 +84,10 @@ export async function POST(req: NextRequest) {
       console.log(`\n=== DEBUG ORDER ${order.orderNumber} ===`);
       console.log("Full result:", JSON.stringify(result, null, 2));
       console.log("Payment result:", JSON.stringify(paymentResult, null, 2));
-      console.log(
-        "Parcel data:",
-        JSON.stringify(paymentResult?.parcel, null, 2)
-      );
       console.log("=== END DEBUG ===\n");
 
-      // Check if parcel data exists
-      if (!paymentResult || !paymentResult.parcel) {
+      // Check if parcel data exists - EasyParcel returns it in "result", not "parcel"
+      if (!paymentResult || !paymentResult.result) {
         console.log(
           `❌ AWB pending for order ${order.orderNumber} - no parcel data`
         );
@@ -105,10 +101,10 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // EasyParcel returns parcel as an array, get the first item
-      const parcelList: EasyParcelItem[] = Array.isArray(paymentResult.parcel)
-        ? paymentResult.parcel
-        : [paymentResult.parcel];
+      // EasyParcel returns parcel data in "result" array, get the first item
+      const parcelList = Array.isArray(paymentResult.result)
+        ? paymentResult.result
+        : [paymentResult.result];
 
       console.log(`Parcel list length: ${parcelList.length}`);
 

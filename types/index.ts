@@ -320,6 +320,7 @@ export type EasyParcelParcel = {
 };
 export type EasyParcelResult = {
   messagenow: string;
+  result: string;
   parcel: EasyParcelParcel[];
 };
 export type EasyParcelResponse = {

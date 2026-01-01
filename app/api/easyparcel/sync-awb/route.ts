@@ -109,9 +109,9 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Get parcel data
-        const parcelList = Array.isArray(orderResult.parcel)
-          ? orderResult.parcel
+        // Get parcel data - EasyParcel returns it in "result", not "parcel"
+        const parcelList = Array.isArray(orderResult.result)
+          ? orderResult.result
           : [];
 
         console.log(`📦 Parcel list length: ${parcelList.length}`);
