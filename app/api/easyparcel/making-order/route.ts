@@ -82,6 +82,25 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // ============ DEBUG: ORDER ITEMS ============
+      console.log(`\n📦 ORDER ITEMS DEBUG for ${order.orderNumber}:`);
+      console.log(`   Total items in order: ${items.length}`);
+
+      items.forEach((item, index) => {
+        console.log(`\n   Item ${index + 1}:`);
+        console.log(`     - Name: ${item.itemName}`);
+        console.log(`     - Quantity: ${item.itemQuantity}`);
+        console.log(
+          `     - Weight: ${item.itemWeight} kg × ${item.itemQuantity} = ${
+            Number(item.itemWeight) * Number(item.itemQuantity)
+          } kg`
+        );
+        console.log(
+          `     - Dimensions: ${item.itemWidth}cm × ${item.itemLength}cm × ${item.itemHeight}cm`
+        );
+        console.log(`     - Price: RM ${item.itemTotalPrice}`);
+      });
+
       const totalWeight = items.reduce(
         (sum, item) =>
           sum + Number(item.itemWeight || 0) * Number(item.itemQuantity || 1),
@@ -93,25 +112,66 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      const maxWidth = Math.max(
+        ...items.map((i) => Math.ceil(Number(i.itemWidth) || 1))
+      );
+      const maxLength = Math.max(
+        ...items.map((i) => Math.ceil(Number(i.itemLength) || 1))
+      );
+      const maxHeight = Math.max(
+        ...items.map((i) => Math.ceil(Number(i.itemHeight) || 1))
+      );
+      const totalValue = items.reduce(
+        (sum, item) => sum + Number(item.itemTotalPrice || 0),
+        0
+      );
+
+      console.log(`\n   📊 CALCULATED PARCEL DIMENSIONS:`);
+      console.log(`     - Total Weight: ${totalWeight} kg`);
+      console.log(`     - Width (max): ${maxWidth} cm`);
+      console.log(`     - Length (max): ${maxLength} cm`);
+      console.log(`     - Height (max): ${maxHeight} cm`);
+      console.log(`     - Total Value: RM ${totalValue}`);
+
+      // Check for potential issues
+      if (maxWidth <= 1 || maxLength <= 1 || maxHeight <= 1) {
+        console.log(
+          `\n   ⚠️  WARNING: One or more dimensions = 1cm (default fallback)`
+        );
+        console.log(`      This might indicate missing dimension data!`);
+      }
+
+      if (totalWeight < 0.1 && items.length > 1) {
+        console.log(
+          `\n   ⚠️  WARNING: Total weight < 0.1kg for ${items.length} items`
+        );
+        console.log(`      This seems unusually light!`);
+      }
+
+      if (items.length > 1) {
+        const allSameQty = items.every(
+          (item) => item.itemQuantity === items[0].itemQuantity
+        );
+        console.log(`\n   📋 MULTI-ITEM ORDER ANALYSIS:`);
+        console.log(
+          `     - All items have same quantity: ${allSameQty ? "YES" : "NO"}`
+        );
+        console.log(
+          `     - Quantities: ${items.map((i) => i.itemQuantity).join(", ")}`
+        );
+      }
+      // ============ END DEBUG ============
+
       const payload = {
         api: EASYPARCEL_API_KEY,
         bulk: [
           {
             weight: totalWeight,
-            width: Math.max(
-              ...items.map((i) => Math.ceil(Number(i.itemWidth) || 1))
-            ),
-            length: Math.max(
-              ...items.map((i) => Math.ceil(Number(i.itemLength) || 1))
-            ),
-            height: Math.max(
-              ...items.map((i) => Math.ceil(Number(i.itemHeight) || 1))
-            ),
+            width: maxWidth,
+            length: maxLength,
+            height: maxHeight,
             content: "skincare",
-            value: items.reduce(
-              (sum, item) => sum + Number(item.itemTotalPrice || 0),
-              0
-            ),
+            value: totalValue,
             service_id: order.serviceId,
             pick_name: "DRKAY MEDIBEAUTY SDN BHD",
             pick_contact: "+60123456789",
@@ -136,6 +196,11 @@ export async function POST(req: NextRequest) {
         ],
       };
 
+      console.log(
+        `\n📤 SENDING TO EASYPARCEL:`,
+        JSON.stringify(payload.bulk[0], null, 2)
+      );
+
       let response;
       let result;
       try {
@@ -146,8 +211,8 @@ export async function POST(req: NextRequest) {
         });
         result = await response.json();
         console.log(
-          `EasyParcel API response for order ${order.orderNumber}:`,
-          JSON.stringify(result)
+          `\n📥 EasyParcel API response for order ${order.orderNumber}:`,
+          JSON.stringify(result, null, 2)
         );
       } catch (fetchError) {
         console.error(
@@ -212,7 +277,7 @@ export async function POST(req: NextRequest) {
           error: updateError,
         });
       } else {
-        console.log(`Successfully processed order ${order.orderNumber}`);
+        console.log(`✅ Successfully processed order ${order.orderNumber}`);
         processedCount++;
       }
     }
