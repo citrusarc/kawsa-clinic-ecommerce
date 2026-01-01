@@ -51,13 +51,11 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // // Changed to use EPParcelStatusBulk endpoint with bulk array format
         const response = await fetch(EASYPARCEL_PARCEL_STATUS_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             api: EASYPARCEL_API_KEY,
-            // // Changed from single order_no to bulk array format
             bulk: [{ order_no: easyparcelOrderNo }],
           }),
         });
@@ -77,7 +75,6 @@ export async function POST(req: NextRequest) {
 
         const result = await response.json();
 
-        // // Changed to check api_status instead of result structure
         if (result?.api_status !== "Success") {
           failedOrders.push({
             orderNumber,
@@ -86,10 +83,8 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // // Changed to access result array from EPParcelStatusBulk response
         const orderResult = result?.result?.[0];
 
-        // // Changed to check status field from EPParcelStatusBulk response
         if (!orderResult || orderResult.status !== "Success") {
           failedOrders.push({
             orderNumber,
@@ -99,38 +94,44 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // // Ensure parcel array exists and has at least 1 item
+        // Ensure parcel array exists and has at least 1 item
         const parcelList = Array.isArray(orderResult.parcel)
           ? orderResult.parcel
           : [];
 
         if (parcelList.length === 0) {
-          // // Multi-item orders often return empty parcel array initially
+          // Multi-item orders often return empty parcel array initially
           console.log(`AWB not ready yet for ${orderNumber}`);
           continue;
         }
 
-        // // Take the first parcel safely
-        const parcel = parcelList[0];
+        // Process all parcels for multi-item orders
+        const parcels = parcelList.filter(
+          (p: any) => p?.awb && p?.parcel_number
+        );
 
-        // // Changed field names to match EPParcelStatusBulk response (parcel_number instead of parcelno)
-        if (!parcel?.awb || !parcel?.parcel_number) {
-          console.log(`Parcel exists but AWB missing for ${orderNumber}`);
+        if (parcels.length === 0) {
+          console.log(`Parcels exist but AWB missing for ${orderNumber}`);
           continue;
         }
+
+        // For multi-item orders, store all tracking info
+        // Using first parcel's AWB as primary (common practice)
+        const primaryParcel = parcels[0];
+        const allTrackingNumbers = parcels
+          .map((p: any) => p.parcel_number)
+          .join(", ");
+        const allAwbNumbers = parcels.map((p: any) => p.awb).join(", ");
 
         const { error: updateError } = await supabase
           .from("orders")
           .update({
-            // // Changed from parcel.parcelno to parcel.parcel_number
-            trackingNumber: String(parcel.parcel_number),
-            // // Note: EPParcelStatusBulk doesn't return tracking_url, only awb_id_link
+            trackingNumber: allTrackingNumbers,
             trackingUrl: null,
-            awbNumber: String(parcel.awb),
-            awbPdfUrl: parcel.awb_id_link || null,
+            awbNumber: allAwbNumbers,
+            awbPdfUrl: primaryParcel.awb_id_link || null,
             orderWorkflowStatus: "awb_generated",
-            // // Changed to map ship_status to deliveryStatus
-            deliveryStatus: parcel.ship_status || "ready_for_pickup",
+            deliveryStatus: primaryParcel.ship_status || "ready_for_pickup",
           })
           .eq("id", order.id);
 
@@ -146,6 +147,9 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
+        console.log(
+          `✓ Updated order ${orderNumber} with ${parcels.length} parcel(s)`
+        );
         updatedCount++;
       } catch (orderErr) {
         const errorMessage = getErrorMessage(orderErr);
