@@ -138,7 +138,6 @@ export async function POST(req: NextRequest) {
 
       let response;
       let result;
-
       try {
         response = await fetch(EASYPARCEL_MAKING_ORDER_URL, {
           method: "POST",
@@ -146,7 +145,6 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify(payload),
         });
         result = await response.json();
-
         console.log(
           `EasyParcel API response for order ${order.orderNumber}:`,
           JSON.stringify(result)

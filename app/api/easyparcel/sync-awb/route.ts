@@ -84,7 +84,6 @@ export async function POST(req: NextRequest) {
         }
 
         const result = await response.json();
-
         console.log(`📦 API Response:`, JSON.stringify(result, null, 2));
 
         if (result?.api_status !== "Success") {
@@ -109,10 +108,16 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Get parcel data - EasyParcel returns it in "result", not "parcel"
-        const parcelList = Array.isArray(orderResult.result)
-          ? orderResult.result
-          : [];
+        // According to docs: orderResult.parcel[] → { parcel_number, ship_status, awb, awb_id_link }
+        // But your logs show: orderResult.result[] → { parcel_number, ship_status, awb, awb_id_link }
+        let parcelList = [];
+        if (Array.isArray(orderResult.parcel)) {
+          parcelList = orderResult.parcel;
+          console.log(`📦 Using "parcel" field from status response`);
+        } else if (Array.isArray(orderResult.result)) {
+          parcelList = orderResult.result;
+          console.log(`📦 Using "result" field from status response`);
+        }
 
         console.log(`📦 Parcel list length: ${parcelList.length}`);
         console.log(`📦 Parcel data:`, JSON.stringify(parcelList, null, 2));
@@ -122,9 +127,10 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Check for parcels with AWB
+        // Check for parcels with AWB (awb can be empty string when not ready)
         const parcelsWithAwb = parcelList.filter(
-          (p: EasyParcelItem) => p?.awb && p?.parcel_number
+          (p: EasyParcelItem) =>
+            p?.awb && p?.awb.trim() !== "" && p?.parcel_number
         );
 
         console.log(
@@ -132,24 +138,26 @@ export async function POST(req: NextRequest) {
         );
 
         if (parcelsWithAwb.length === 0) {
-          console.log(`⏳ Parcels exist but AWB still missing`);
+          console.log(`⏳ Parcels exist but AWB still missing or empty`);
           continue;
         }
 
         // Update order with AWB info
-        const primaryParcel = parcelsWithAwb[0];
-
+        const parcel = parcelsWithAwb[0];
         const updateData = {
-          trackingNumber: primaryParcel.parcel_number,
-          trackingUrl: primaryParcel.tracking_url || null,
-          awbNumber: primaryParcel.awb,
-          awbPdfUrl: primaryParcel.awb_id_link || null,
+          trackingNumber: parcel.parcel_number,
+          trackingUrl: parcel.tracking_url || null,
+          awbNumber: parcel.awb,
+          awbPdfUrl: parcel.awb_id_link || null,
           orderWorkflowStatus: "awb_generated",
-          deliveryStatus: primaryParcel.ship_status || "ready_for_pickup",
+          deliveryStatus: parcel.ship_status || "ready_for_pickup",
           orderStatus: "processing",
         };
 
-        console.log(`💾 Updating order with:`, updateData);
+        console.log(
+          `💾 Updating order with:`,
+          JSON.stringify(updateData, null, 2)
+        );
 
         const { error: updateError } = await supabase
           .from("orders")
