@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
         console.log(`     - Price: RM ${item.itemTotalPrice}`);
       });
 
+      // ============ FIXED: Better dimension handling ============
       const totalWeight = items.reduce(
         (sum, item) =>
           sum + Number(item.itemWeight || 0) * Number(item.itemQuantity || 1),
@@ -112,14 +113,59 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Use realistic defaults for missing dimensions
+      const DEFAULT_SERUM_BOTTLE = { width: 5, length: 5, height: 12 }; // 5x5x12cm serum bottle
+      const DEFAULT_MASK_PACK = { width: 15, length: 20, height: 1 }; // 15x20x1cm flat mask
+      const DEFAULT_CREAM_JAR = { width: 8, length: 8, height: 6 }; // 8x8x6cm cream jar
+
+      // Get dimensions for each item with smart defaults
+      const itemDimensions = items.map((item) => {
+        let width = Number(item.itemWidth) || 0;
+        let length = Number(item.itemLength) || 0;
+        let height = Number(item.itemHeight) || 0;
+
+        // If any dimension is missing or = 1 (fallback), use smart defaults based on item name
+        if (width <= 1 || length <= 1 || height <= 1) {
+          const itemName = (item.itemName || "").toLowerCase();
+
+          if (
+            itemName.includes("serum") ||
+            itemName.includes("toner") ||
+            itemName.includes("essence")
+          ) {
+            // Bottle-shaped products
+            width = DEFAULT_SERUM_BOTTLE.width;
+            length = DEFAULT_SERUM_BOTTLE.length;
+            height = DEFAULT_SERUM_BOTTLE.height;
+          } else if (itemName.includes("mask") || itemName.includes("sheet")) {
+            // Flat products
+            width = DEFAULT_MASK_PACK.width;
+            length = DEFAULT_MASK_PACK.length;
+            height = DEFAULT_MASK_PACK.height;
+          } else {
+            // Default for creams, gels, etc.
+            width = DEFAULT_CREAM_JAR.width;
+            length = DEFAULT_CREAM_JAR.length;
+            height = DEFAULT_CREAM_JAR.height;
+          }
+
+          console.log(
+            `   ℹ️  Using default dimensions for "${item.itemName}": ${width}×${length}×${height}cm`
+          );
+        }
+
+        return { width, length, height };
+      });
+
+      // Calculate parcel dimensions (max of all items)
       const maxWidth = Math.max(
-        ...items.map((i) => Math.ceil(Number(i.itemWidth) || 1))
+        ...itemDimensions.map((d) => Math.ceil(d.width))
       );
       const maxLength = Math.max(
-        ...items.map((i) => Math.ceil(Number(i.itemLength) || 1))
+        ...itemDimensions.map((d) => Math.ceil(d.length))
       );
       const maxHeight = Math.max(
-        ...items.map((i) => Math.ceil(Number(i.itemHeight) || 1))
+        ...itemDimensions.map((d) => Math.ceil(d.height))
       );
       const totalValue = items.reduce(
         (sum, item) => sum + Number(item.itemTotalPrice || 0),
@@ -133,19 +179,14 @@ export async function POST(req: NextRequest) {
       console.log(`     - Height (max): ${maxHeight} cm`);
       console.log(`     - Total Value: RM ${totalValue}`);
 
-      // Check for potential issues
-      if (maxWidth <= 1 || maxLength <= 1 || maxHeight <= 1) {
-        console.log(
-          `\n   ⚠️  WARNING: One or more dimensions = 1cm (default fallback)`
-        );
-        console.log(`      This might indicate missing dimension data!`);
-      }
-
-      if (totalWeight < 0.1 && items.length > 1) {
-        console.log(
-          `\n   ⚠️  WARNING: Total weight < 0.1kg for ${items.length} items`
-        );
-        console.log(`      This seems unusually light!`);
+      // Validation: Ensure dimensions are reasonable
+      if (maxWidth < 1 || maxLength < 1 || maxHeight < 1) {
+        console.log(`\n   ❌ ERROR: Invalid dimensions after calculation`);
+        failedOrders.push({
+          orderNumber: order.orderNumber,
+          error: "Invalid parcel dimensions",
+        });
+        continue;
       }
 
       if (items.length > 1) {
@@ -160,7 +201,7 @@ export async function POST(req: NextRequest) {
           `     - Quantities: ${items.map((i) => i.itemQuantity).join(", ")}`
         );
       }
-      // ============ END DEBUG ============
+      // ============ END FIXED ============
 
       const payload = {
         api: EASYPARCEL_API_KEY,
