@@ -316,6 +316,7 @@ export type EasyParcelParcel = {
   tracking_url: string;
   awb: string;
   awb_id_link: string;
+  ship_status: string;
 };
 export type EasyParcelResult = {
   messagenow: string;

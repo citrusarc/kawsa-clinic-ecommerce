@@ -80,14 +80,12 @@ export async function POST(req: NextRequest) {
 
       const paymentResult = result?.result?.[0];
 
-      // // Normalize parcel array - handle multi-item orders
       const parcelList = Array.isArray(paymentResult?.parcel)
         ? paymentResult.parcel
         : [];
 
       const parcel = parcelList[0];
 
-      // // Multi-item orders may not have parcel data immediately
       if (!parcel || !parcel.awb) {
         await supabase
           .from("orders")
