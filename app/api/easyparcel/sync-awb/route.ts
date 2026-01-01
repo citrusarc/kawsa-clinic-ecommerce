@@ -1,8 +1,10 @@
+// /api/easyparcel/sync-awb/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
-const EASYPARCEL_GET_ORDER_URL = process.env.EASYPARCEL_DEMO_GET_ORDER_URL!;
+const EASYPARCEL_PARCEL_STATUS_URL =
+  process.env.EASYPARCEL_DEMO_PARCEL_STATUS_URL!;
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -49,12 +51,14 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        const response = await fetch(EASYPARCEL_GET_ORDER_URL, {
+        // // Changed to use EPParcelStatusBulk endpoint with bulk array format
+        const response = await fetch(EASYPARCEL_PARCEL_STATUS_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             api: EASYPARCEL_API_KEY,
-            order_no: easyparcelOrderNo,
+            // // Changed from single order_no to bulk array format
+            bulk: [{ order_no: easyparcelOrderNo }],
           }),
         });
 
@@ -73,12 +77,24 @@ export async function POST(req: NextRequest) {
 
         const result = await response.json();
 
-        // // Ensure result structure is valid
-        const orderResult = result?.result?.[0];
-        if (!orderResult) {
+        // // Changed to check api_status instead of result structure
+        if (result?.api_status !== "Success") {
           failedOrders.push({
             orderNumber,
-            error: "Invalid EasyParcel response structure",
+            error: result?.error_remark || "API returned non-success status",
+          });
+          continue;
+        }
+
+        // // Changed to access result array from EPParcelStatusBulk response
+        const orderResult = result?.result?.[0];
+
+        // // Changed to check status field from EPParcelStatusBulk response
+        if (!orderResult || orderResult.status !== "Success") {
+          failedOrders.push({
+            orderNumber,
+            error:
+              orderResult?.remarks || "Invalid EasyParcel response structure",
           });
           continue;
         }
@@ -97,8 +113,8 @@ export async function POST(req: NextRequest) {
         // // Take the first parcel safely
         const parcel = parcelList[0];
 
-        // // Guard against missing awb / parcelno
-        if (!parcel?.awb || !parcel?.parcelno) {
+        // // Changed field names to match EPParcelStatusBulk response (parcel_number instead of parcelno)
+        if (!parcel?.awb || !parcel?.parcel_number) {
           console.log(`Parcel exists but AWB missing for ${orderNumber}`);
           continue;
         }
@@ -106,12 +122,15 @@ export async function POST(req: NextRequest) {
         const { error: updateError } = await supabase
           .from("orders")
           .update({
-            trackingNumber: String(parcel.parcelno),
-            trackingUrl: parcel.tracking_url || null,
+            // // Changed from parcel.parcelno to parcel.parcel_number
+            trackingNumber: String(parcel.parcel_number),
+            // // Note: EPParcelStatusBulk doesn't return tracking_url, only awb_id_link
+            trackingUrl: null,
             awbNumber: String(parcel.awb),
             awbPdfUrl: parcel.awb_id_link || null,
             orderWorkflowStatus: "awb_generated",
-            deliveryStatus: "ready_for_pickup",
+            // // Changed to map ship_status to deliveryStatus
+            deliveryStatus: parcel.ship_status || "ready_for_pickup",
           })
           .eq("id", order.id);
 
