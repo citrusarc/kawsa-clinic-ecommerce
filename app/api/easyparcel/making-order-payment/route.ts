@@ -80,39 +80,55 @@ export async function POST(req: NextRequest) {
 
       const paymentResult = result?.result?.[0];
 
+      // DEBUG: Log the entire response structure
+      console.log(`\n=== DEBUG ORDER ${order.orderNumber} ===`);
+      console.log("Full result:", JSON.stringify(result, null, 2));
+      console.log("Payment result:", JSON.stringify(paymentResult, null, 2));
+      console.log(
+        "Parcel data:",
+        JSON.stringify(paymentResult?.parcel, null, 2)
+      );
+      console.log("=== END DEBUG ===\n");
+
       // Check if parcel data exists
       if (!paymentResult || !paymentResult.parcel) {
+        console.log(
+          `❌ AWB pending for order ${order.orderNumber} - no parcel data`
+        );
         await supabase
           .from("orders")
           .update({
             orderWorkflowStatus: "payment_done_awb_pending",
           })
           .eq("id", order.id);
-        console.log(
-          `AWB pending for order ${order.orderNumber} - no parcel data`
-        );
         processedCount++;
         continue;
       }
 
       // EasyParcel returns parcel as an array, get the first item
-      const parcelList: EasyParcelItem[] = Array.isArray(paymentResult.parcel)
+      const parcelList = Array.isArray(paymentResult.parcel)
         ? paymentResult.parcel
         : [paymentResult.parcel];
 
+      console.log(`Parcel list length: ${parcelList.length}`);
+
       const parcel = parcelList[0];
+      console.log(`First parcel:`, JSON.stringify(parcel, null, 2));
 
       // Check if AWB is ready
       if (!parcel || !parcel.awb || !parcel.parcel_number) {
+        console.log(
+          `❌ AWB pending for order ${order.orderNumber} - AWB not ready yet`
+        );
+        console.log(`Parcel exists: ${!!parcel}`);
+        console.log(`Has AWB: ${!!parcel?.awb}`);
+        console.log(`Has parcel_number: ${!!parcel?.parcel_number}`);
         await supabase
           .from("orders")
           .update({
             orderWorkflowStatus: "payment_done_awb_pending",
           })
           .eq("id", order.id);
-        console.log(
-          `AWB pending for order ${order.orderNumber} - AWB not ready yet`
-        );
         processedCount++;
         continue;
       }
