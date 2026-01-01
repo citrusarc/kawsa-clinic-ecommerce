@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       }
 
       // EasyParcel returns parcel as an array, get the first item
-      const parcelList = Array.isArray(paymentResult.parcel)
+      const parcelList: EasyParcelItem[] = Array.isArray(paymentResult.parcel)
         ? paymentResult.parcel
         : [paymentResult.parcel];
 
