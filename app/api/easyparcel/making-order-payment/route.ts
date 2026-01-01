@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
-import { EasyParcelResponse } from "@/types";
+import { EasyParcelResponse, EasyParcelItem } from "@/types";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_MAKING_ORDER_PAYMENT_URL =
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
       }
 
       // EasyParcel returns parcel as an array, get the first item
-      const parcelList = Array.isArray(paymentResult.parcel)
+      const parcelList: EasyParcelItem[] = Array.isArray(paymentResult.parcel)
         ? paymentResult.parcel
         : [paymentResult.parcel];
 
