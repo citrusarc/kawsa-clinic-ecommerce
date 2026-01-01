@@ -80,37 +80,60 @@ export async function POST(req: NextRequest) {
 
       const paymentResult = result?.result?.[0];
 
-      const parcelList = Array.isArray(paymentResult?.parcel)
-        ? paymentResult.parcel
-        : [];
-
-      const parcel = parcelList[0];
-
-      if (!parcel || !parcel.awb) {
+      // Check if parcel data exists
+      if (!paymentResult || !paymentResult.parcel) {
         await supabase
           .from("orders")
           .update({
             orderWorkflowStatus: "payment_done_awb_pending",
           })
           .eq("id", order.id);
-
+        console.log(
+          `AWB pending for order ${order.orderNumber} - no parcel data`
+        );
         processedCount++;
         continue;
       }
 
+      // EasyParcel returns parcel as an array, get the first item
+      const parcelList = Array.isArray(paymentResult.parcel)
+        ? paymentResult.parcel
+        : [paymentResult.parcel];
+
+      const parcel = parcelList[0];
+
+      // Check if AWB is ready
+      if (!parcel || !parcel.awb || !parcel.parcel_number) {
+        await supabase
+          .from("orders")
+          .update({
+            orderWorkflowStatus: "payment_done_awb_pending",
+          })
+          .eq("id", order.id);
+        console.log(
+          `AWB pending for order ${order.orderNumber} - AWB not ready yet`
+        );
+        processedCount++;
+        continue;
+      }
+
+      // AWB is ready - update order
       await supabase
         .from("orders")
         .update({
-          trackingNumber: parcel.parcelno,
-          trackingUrl: parcel.tracking_url,
+          trackingNumber: parcel.parcel_number,
+          trackingUrl: parcel.tracking_url || null,
           awbNumber: parcel.awb,
-          awbPdfUrl: parcel.awb_id_link,
+          awbPdfUrl: parcel.awb_id_link || null,
           orderWorkflowStatus: "awb_generated",
-          deliveryStatus: "ready_for_pickup",
+          deliveryStatus: parcel.ship_status || "ready_for_pickup",
           orderStatus: "processing",
         })
         .eq("id", order.id);
 
+      console.log(
+        `✓ Updated order ${order.orderNumber} with AWB ${parcel.awb}`
+      );
       processedCount++;
     }
 

@@ -312,7 +312,7 @@ export type EasyParcelItem = {
 };
 
 export type EasyParcelParcel = {
-  parcelno: string;
+  parcel_number: string;
   tracking_url: string;
   awb: string;
   awb_id_link: string;
