@@ -1,6 +1,6 @@
-// /api/easyparcel/sync-awb/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
+import { EasyParcelItem } from "@/types";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_PARCEL_STATUS_URL =
@@ -84,7 +84,6 @@ export async function POST(req: NextRequest) {
         }
 
         const orderResult = result?.result?.[0];
-
         if (!orderResult || orderResult.status !== "Success") {
           failedOrders.push({
             orderNumber,
@@ -106,8 +105,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Process all parcels for multi-item orders
+        // // Fixed type from any to EasyParcelParcelItem
         const parcels = parcelList.filter(
-          (p: any) => p?.awb && p?.parcel_number
+          (params: EasyParcelItem) => params?.awb && params?.parcel_number
         );
 
         if (parcels.length === 0) {
@@ -118,10 +118,14 @@ export async function POST(req: NextRequest) {
         // For multi-item orders, store all tracking info
         // Using first parcel's AWB as primary (common practice)
         const primaryParcel = parcels[0];
+        // // Fixed type from any to EasyParcelParcelItem
         const allTrackingNumbers = parcels
-          .map((p: any) => p.parcel_number)
+          .map((p: EasyParcelItem) => p.parcel_number)
           .join(", ");
-        const allAwbNumbers = parcels.map((p: any) => p.awb).join(", ");
+        // // Fixed type from any to EasyParcelParcelItem
+        const allAwbNumbers = parcels
+          .map((p: EasyParcelItem) => p.awb)
+          .join(", ");
 
         const { error: updateError } = await supabase
           .from("orders")

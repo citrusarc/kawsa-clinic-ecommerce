@@ -303,6 +303,14 @@ export type EasyParcelRateItem = {
   deliveryDays?: string;
 };
 
+export type EasyParcelItem = {
+  awb?: string;
+  parcel_number?: string;
+  awb_id_link?: string;
+  ship_status?: string;
+  [key: string]: unknown;
+};
+
 export type EasyParcelParcel = {
   parcelno: string;
   tracking_url: string;
