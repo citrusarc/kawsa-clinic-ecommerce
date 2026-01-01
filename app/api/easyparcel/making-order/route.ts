@@ -98,7 +98,6 @@ export async function POST(req: NextRequest) {
         bulk: [
           {
             weight: totalWeight,
-            // // EasyParcel rejects 0 dimensions for multi-item parcels - use minimum of 1
             width: Math.max(
               ...items.map((i) => Math.ceil(Number(i.itemWidth) || 1))
             ),
