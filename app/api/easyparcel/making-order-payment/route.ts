@@ -51,6 +51,10 @@ export async function POST(req: NextRequest) {
     const failedOrders = [];
 
     for (const order of ordersToProcess) {
+      console.log(
+        `\n━━━ Processing payment for order ${order.orderNumber} ━━━`
+      );
+
       const paymentPayload = {
         api: EASYPARCEL_API_KEY,
         bulk: [{ order_no: order.easyparcelOrderNumber }],
@@ -65,11 +69,16 @@ export async function POST(req: NextRequest) {
         });
         result = await response.json();
 
+        console.log(
+          `💳 Payment API response:`,
+          JSON.stringify(result, null, 2)
+        );
+
         if (!response.ok || result.api_status !== "Success") {
           throw new Error("Payment API failed");
         }
       } catch (err) {
-        console.error("Payment API error:", err);
+        console.error("❌ Payment API error:", err);
         failedOrders.push({
           orderNumber: order.orderNumber,
           error: "Payment API error",
@@ -78,7 +87,9 @@ export async function POST(req: NextRequest) {
       }
 
       const paymentResult = result?.result?.[0];
+
       if (!paymentResult) {
+        console.log(`❌ No payment result for order ${order.orderNumber}`);
         failedOrders.push({
           orderNumber: order.orderNumber,
           error: "No payment result",
@@ -86,14 +97,28 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Try both possible structures (docs say "parcel", actual response uses "result")
       let parcelList = [];
       if (Array.isArray(paymentResult.parcel)) {
         parcelList = paymentResult.parcel;
+        console.log(
+          `📦 Found ${parcelList.length} parcel(s) in "parcel" field`
+        );
       } else if (Array.isArray(paymentResult.result)) {
         parcelList = paymentResult.result;
+        console.log(
+          `📦 Found ${parcelList.length} parcel(s) in "result" field`
+        );
       }
 
+      console.log(`📦 Full parcel data:`, JSON.stringify(parcelList, null, 2));
+
+      // Case 1: Empty parcel list - AWB not generated yet
       if (parcelList.length === 0) {
+        console.log(`⏳ AWB not ready yet - empty parcel list`);
+        console.log(`   → Setting status to payment_done_awb_pending`);
+        console.log(`   → Cron job will check again later`);
+
         await supabase
           .from("orders")
           .update({
@@ -101,15 +126,33 @@ export async function POST(req: NextRequest) {
             orderStatus: "processing",
           })
           .eq("id", order.id);
+
         processedCount++;
         continue;
       }
 
       const parcel = parcelList[0];
+
+      // Handle both field name variations
       const parcelNumber = parcel.parcel_number || parcel.parcelno;
       const awbNumber = parcel.awb;
+      const awbPdfUrl = parcel.awb_id_link;
+      const trackingUrl = parcel.tracking_url;
 
+      console.log(`📋 Extracted parcel data:`);
+      console.log(`   - Parcel Number: ${parcelNumber}`);
+      console.log(`   - AWB Number: ${awbNumber || "(empty)"}`);
+      console.log(`   - AWB PDF: ${awbPdfUrl || "(empty)"}`);
+      console.log(`   - Tracking URL: ${trackingUrl || "(empty)"}`);
+
+      // Case 2: Parcel exists but AWB not ready (empty string or null)
       if (!awbNumber || awbNumber.trim() === "" || !parcelNumber) {
+        console.log(`⏳ AWB not ready yet - parcel exists but AWB is empty`);
+        console.log(`   → Has parcel_number: ${!!parcelNumber}`);
+        console.log(`   → Has awb: ${!!awbNumber && awbNumber.trim() !== ""}`);
+        console.log(`   → Setting status to payment_done_awb_pending`);
+        console.log(`   → Cron job will check again later`);
+
         await supabase
           .from("orders")
           .update({
@@ -117,22 +160,30 @@ export async function POST(req: NextRequest) {
             orderStatus: "processing",
           })
           .eq("id", order.id);
+
         processedCount++;
         continue;
       }
 
-      await supabase
-        .from("orders")
-        .update({
-          trackingNumber: parcelNumber,
-          trackingUrl: parcel.tracking_url || null,
-          awbNumber: awbNumber,
-          awbPdfUrl: parcel.awb_id_link || null,
-          orderWorkflowStatus: "awb_generated",
-          deliveryStatus: parcel.ship_status || "ready_for_pickup",
-          orderStatus: "processing",
-        })
-        .eq("id", order.id);
+      // Case 3: AWB is ready! Update order with full tracking info
+      const updateData = {
+        trackingNumber: parcelNumber,
+        trackingUrl: trackingUrl || null,
+        awbNumber: awbNumber,
+        awbPdfUrl: awbPdfUrl || null,
+        orderWorkflowStatus: "awb_generated",
+        deliveryStatus: parcel.ship_status || "ready_for_pickup",
+        orderStatus: "processing",
+      };
+
+      console.log(`✅ AWB is ready! Updating order...`);
+      console.log(`💾 Update data:`, JSON.stringify(updateData, null, 2));
+
+      await supabase.from("orders").update(updateData).eq("id", order.id);
+
+      console.log(`🎉 Successfully updated order ${order.orderNumber}`);
+      console.log(`   - AWB: ${awbNumber}`);
+      console.log(`   - Tracking: ${parcelNumber}`);
 
       processedCount++;
     }
