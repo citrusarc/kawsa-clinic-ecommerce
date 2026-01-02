@@ -54,21 +54,13 @@ export async function POST(req: NextRequest) {
     const failedOrders = [];
 
     for (const order of ordersToProcess) {
-      console.log(`Processing order ${order.orderNumber} (ID: ${order.id})`);
-
-      if (!order.serviceId) {
-        console.log(`Skipping order ${order.orderNumber} - no serviceId`);
-        continue;
-      }
+      if (!order.serviceId) continue;
 
       if (
         !["pending_easyparcel_order", "payment_confirmed"].includes(
           order.orderWorkflowStatus
         )
       ) {
-        console.log(
-          `Skipping order ${order.orderNumber} - wrong status: ${order.orderWorkflowStatus}`
-        );
         continue;
       }
 
@@ -77,10 +69,7 @@ export async function POST(req: NextRequest) {
         .select("*")
         .eq("orderId", order.id);
 
-      if (!items || items.length === 0) {
-        console.log(`Skipping order ${order.orderNumber} - no items`);
-        continue;
-      }
+      if (!items || items.length === 0) continue;
 
       const totalWeight = items.reduce(
         (sum, item) =>
@@ -88,36 +77,27 @@ export async function POST(req: NextRequest) {
         0
       );
 
-      if (totalWeight <= 0) {
-        console.log(`Skipping order ${order.orderNumber} - invalid weight`);
-        continue;
-      }
-
-      // Use dimensions directly from database (no defaults)
-      const maxWidth = Math.max(
-        ...items.map((i) => Math.ceil(Number(i.itemWidth) || 1))
-      );
-      const maxLength = Math.max(
-        ...items.map((i) => Math.ceil(Number(i.itemLength) || 1))
-      );
-      const maxHeight = Math.max(
-        ...items.map((i) => Math.ceil(Number(i.itemHeight) || 1))
-      );
-      const totalValue = items.reduce(
-        (sum, item) => sum + Number(item.itemTotalPrice || 0),
-        0
-      );
+      if (totalWeight <= 0) continue;
 
       const payload = {
         api: EASYPARCEL_API_KEY,
         bulk: [
           {
             weight: totalWeight,
-            width: maxWidth,
-            length: maxLength,
-            height: maxHeight,
+            width: Math.max(
+              ...items.map((i) => Math.ceil(Number(i.itemWidth) || 1))
+            ),
+            length: Math.max(
+              ...items.map((i) => Math.ceil(Number(i.itemLength) || 1))
+            ),
+            height: Math.max(
+              ...items.map((i) => Math.ceil(Number(i.itemHeight) || 1))
+            ),
             content: "skincare",
-            value: totalValue,
+            value: items.reduce(
+              (sum, item) => sum + Number(item.itemTotalPrice || 0),
+              0
+            ),
             service_id: order.serviceId,
             pick_name: "DRKAY MEDIBEAUTY SDN BHD",
             pick_contact: "+60123456789",
@@ -151,10 +131,6 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify(payload),
         });
         result = await response.json();
-        console.log(
-          `EasyParcel API response for order ${order.orderNumber}:`,
-          JSON.stringify(result)
-        );
       } catch (fetchError) {
         console.error(
           `Fetch error for order ${order.orderNumber}:`,
@@ -167,7 +143,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      if (!response.ok) {
+      if (!response.ok || result?.api_status !== "Success") {
         console.error(
           `EasyParcel API error for order ${order.orderNumber}:`,
           result
@@ -176,21 +152,9 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      if (result?.api_status !== "Success") {
-        console.error(
-          `EasyParcel API returned non-success for order ${order.orderNumber}:`,
-          result
-        );
-        failedOrders.push({ orderNumber: order.orderNumber, error: result });
-        continue;
-      }
-
       const epOrder = result?.result?.[0];
       if (!epOrder?.order_number) {
-        console.error(
-          `No order_number in result for order ${order.orderNumber}:`,
-          result
-        );
+        console.error(`No order_number for ${order.orderNumber}`);
         failedOrders.push({
           orderNumber: order.orderNumber,
           error: "No order_number",
@@ -218,7 +182,6 @@ export async function POST(req: NextRequest) {
           error: updateError,
         });
       } else {
-        console.log(`✅ Successfully processed order ${order.orderNumber}`);
         processedCount++;
       }
     }
