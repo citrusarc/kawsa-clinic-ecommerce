@@ -82,26 +82,6 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // ============ DEBUG: ORDER ITEMS ============
-      console.log(`\n📦 ORDER ITEMS DEBUG for ${order.orderNumber}:`);
-      console.log(`   Total items in order: ${items.length}`);
-
-      items.forEach((item, index) => {
-        console.log(`\n   Item ${index + 1}:`);
-        console.log(`     - Name: ${item.itemName}`);
-        console.log(`     - Quantity: ${item.itemQuantity}`);
-        console.log(
-          `     - Weight: ${item.itemWeight} kg × ${item.itemQuantity} = ${
-            Number(item.itemWeight) * Number(item.itemQuantity)
-          } kg`
-        );
-        console.log(
-          `     - Dimensions: ${item.itemWidth}cm × ${item.itemLength}cm × ${item.itemHeight}cm`
-        );
-        console.log(`     - Price: RM ${item.itemTotalPrice}`);
-      });
-
-      // ============ FIXED: Better dimension handling ============
       const totalWeight = items.reduce(
         (sum, item) =>
           sum + Number(item.itemWeight || 0) * Number(item.itemQuantity || 1),
@@ -113,95 +93,20 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Use realistic defaults for missing dimensions
-      const DEFAULT_SERUM_BOTTLE = { width: 5, length: 5, height: 12 }; // 5x5x12cm serum bottle
-      const DEFAULT_MASK_PACK = { width: 15, length: 20, height: 1 }; // 15x20x1cm flat mask
-      const DEFAULT_CREAM_JAR = { width: 8, length: 8, height: 6 }; // 8x8x6cm cream jar
-
-      // Get dimensions for each item with smart defaults
-      const itemDimensions = items.map((item) => {
-        let width = Number(item.itemWidth) || 0;
-        let length = Number(item.itemLength) || 0;
-        let height = Number(item.itemHeight) || 0;
-
-        // If any dimension is missing or = 1 (fallback), use smart defaults based on item name
-        if (width <= 1 || length <= 1 || height <= 1) {
-          const itemName = (item.itemName || "").toLowerCase();
-
-          if (
-            itemName.includes("serum") ||
-            itemName.includes("toner") ||
-            itemName.includes("essence")
-          ) {
-            // Bottle-shaped products
-            width = DEFAULT_SERUM_BOTTLE.width;
-            length = DEFAULT_SERUM_BOTTLE.length;
-            height = DEFAULT_SERUM_BOTTLE.height;
-          } else if (itemName.includes("mask") || itemName.includes("sheet")) {
-            // Flat products
-            width = DEFAULT_MASK_PACK.width;
-            length = DEFAULT_MASK_PACK.length;
-            height = DEFAULT_MASK_PACK.height;
-          } else {
-            // Default for creams, gels, etc.
-            width = DEFAULT_CREAM_JAR.width;
-            length = DEFAULT_CREAM_JAR.length;
-            height = DEFAULT_CREAM_JAR.height;
-          }
-
-          console.log(
-            `   ℹ️  Using default dimensions for "${item.itemName}": ${width}×${length}×${height}cm`
-          );
-        }
-
-        return { width, length, height };
-      });
-
-      // Calculate parcel dimensions (max of all items)
+      // Use dimensions directly from database (no defaults)
       const maxWidth = Math.max(
-        ...itemDimensions.map((d) => Math.ceil(d.width))
+        ...items.map((i) => Math.ceil(Number(i.itemWidth) || 1))
       );
       const maxLength = Math.max(
-        ...itemDimensions.map((d) => Math.ceil(d.length))
+        ...items.map((i) => Math.ceil(Number(i.itemLength) || 1))
       );
       const maxHeight = Math.max(
-        ...itemDimensions.map((d) => Math.ceil(d.height))
+        ...items.map((i) => Math.ceil(Number(i.itemHeight) || 1))
       );
       const totalValue = items.reduce(
         (sum, item) => sum + Number(item.itemTotalPrice || 0),
         0
       );
-
-      console.log(`\n   📊 CALCULATED PARCEL DIMENSIONS:`);
-      console.log(`     - Total Weight: ${totalWeight} kg`);
-      console.log(`     - Width (max): ${maxWidth} cm`);
-      console.log(`     - Length (max): ${maxLength} cm`);
-      console.log(`     - Height (max): ${maxHeight} cm`);
-      console.log(`     - Total Value: RM ${totalValue}`);
-
-      // Validation: Ensure dimensions are reasonable
-      if (maxWidth < 1 || maxLength < 1 || maxHeight < 1) {
-        console.log(`\n   ❌ ERROR: Invalid dimensions after calculation`);
-        failedOrders.push({
-          orderNumber: order.orderNumber,
-          error: "Invalid parcel dimensions",
-        });
-        continue;
-      }
-
-      if (items.length > 1) {
-        const allSameQty = items.every(
-          (item) => item.itemQuantity === items[0].itemQuantity
-        );
-        console.log(`\n   📋 MULTI-ITEM ORDER ANALYSIS:`);
-        console.log(
-          `     - All items have same quantity: ${allSameQty ? "YES" : "NO"}`
-        );
-        console.log(
-          `     - Quantities: ${items.map((i) => i.itemQuantity).join(", ")}`
-        );
-      }
-      // ============ END FIXED ============
 
       const payload = {
         api: EASYPARCEL_API_KEY,
@@ -237,11 +142,6 @@ export async function POST(req: NextRequest) {
         ],
       };
 
-      console.log(
-        `\n📤 SENDING TO EASYPARCEL:`,
-        JSON.stringify(payload.bulk[0], null, 2)
-      );
-
       let response;
       let result;
       try {
@@ -252,8 +152,8 @@ export async function POST(req: NextRequest) {
         });
         result = await response.json();
         console.log(
-          `\n📥 EasyParcel API response for order ${order.orderNumber}:`,
-          JSON.stringify(result, null, 2)
+          `EasyParcel API response for order ${order.orderNumber}:`,
+          JSON.stringify(result)
         );
       } catch (fetchError) {
         console.error(
