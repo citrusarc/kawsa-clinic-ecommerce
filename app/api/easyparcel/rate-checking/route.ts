@@ -78,15 +78,15 @@ export async function POST(req: NextRequest) {
 
     const priorityCouriers = [
       "Poslaju National Courier",
-      // "J&T Express (Malaysia) Sdn. Bhd.",
-      // "DHL eCommerce",
-      // "Ninja Van", // //
-      // "City-Link Express (M) Sdn. Bhd.",
-      // "GDEX", // //
-      // "Skynet Express (M) Sdn. Bhd.",
-      // "Flash Malaysia Express Sdn. Bhd.",
-      // "SPX Xpress (Malaysia) Sdn Bhd",
-      // "Lazada Express (Malaysia) Sdn Bhd",
+      "J&T Express (Malaysia) Sdn. Bhd.",
+      "DHL eCommerce",
+      "Ninja Van", // //
+      "City-Link Express (M) Sdn. Bhd.",
+      "GDEX", // //
+      "Skynet Express (M) Sdn. Bhd.",
+      "Flash Malaysia Express Sdn. Bhd.",
+      "SPX Xpress (Malaysia) Sdn Bhd",
+      "Lazada Express (Malaysia) Sdn Bhd",
     ];
 
     const priorityCouriersAllRates = allRates.filter((r: RateCheckingItem) => {
