@@ -34,6 +34,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useCheckout } from "@/components/store/Checkout";
+import { Modal } from "@/components/ui/Modal";
 import { EasyParcelRateItem } from "@/types";
 
 const formSchema = z
@@ -80,10 +81,12 @@ function CheckoutPageContent() {
   const { items, subTotalPrice, shippingFee, totalPrice, setShippingFee } =
     useCheckout();
 
-  const params = useSearchParams();
+  const searchParams = useSearchParams();
+  const status = searchParams.get("status");
+  const error = status === "error" || status === "failed";
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const rateRequestIdRef = useRef(0);
   const availableRatesRef = useRef<EasyParcelRateItem[]>([]);
-  const error = params.get("status") === "error";
 
   const [hydrated, setHydrated] = useState(false);
   const [states, setStates] = useState<IState[]>([]);
@@ -185,7 +188,7 @@ function CheckoutPageContent() {
   }, [country, selectedState, states, allCountries, setValue]);
 
   useEffect(() => {
-    if (error) console.log("Payment failed → checkout restored");
+    if (error) setErrorMessage("Payment failed. Please try again.");
   }, [error]);
 
   const calculateEasyParcelShippingRate = useCallback(
@@ -312,10 +315,15 @@ function CheckoutPageContent() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!selectedServiceId) {
-      throw new Error("Shipping service not selected");
+      setErrorMessage(
+        "Please select a shipping service before placing your order."
+      );
+      return;
     }
 
     setSubmitting(true);
+    setErrorMessage(null);
+
     try {
       const selectedRate = availableRatesRef.current.find(
         (response) => response.serviceId === selectedServiceId
@@ -840,6 +848,13 @@ function CheckoutPageContent() {
           </div>
         </div>
       )}
+      <Modal
+        title="Booking Unsuccessful!"
+        message={errorMessage ?? ""}
+        CTA="Try Again"
+        isOpen={!!errorMessage}
+        onClose={() => setErrorMessage(null)}
+      />
     </section>
   );
 }

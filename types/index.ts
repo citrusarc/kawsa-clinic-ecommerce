@@ -354,4 +354,13 @@ export type ToastProps = {
   onClose?: () => void;
 };
 
+export type ModalProps = {
+  title?: string;
+  message?: string;
+  href?: string;
+  CTA?: string;
+  isOpen: boolean;
+  onClose: () => void;
+};
+
 export type ToastType = "default" | "success" | "error";
