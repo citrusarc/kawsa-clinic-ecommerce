@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
+import { transporter } from "@/utils/email";
+import { emailSendConfirmationTemplate } from "@/utils/email/emailSendConfirmation";
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,6 +55,28 @@ export async function POST(req: NextRequest) {
         if (updateError) {
           console.error("Failed to update PAID order:", updateError);
           return NextResponse.json({ received: true });
+        }
+
+        try {
+          await transporter.sendMail({
+            from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
+            to: order.email,
+            bcc: process.env.ADMIN_EMAIL
+              ? process.env.ADMIN_EMAIL.split(",").map((e) => e.trim())
+              : [],
+            subject: `Order Confirmation - ${order.orderNumber}`,
+            html: emailSendConfirmationTemplate({
+              orderNumber: order.orderNumber,
+              fullName: order.fullName,
+              subTotalPrice: order.subTotalPrice,
+              shippingFee: order.shippingFee,
+              totalPrice: order.totalPrice,
+              items: order.order_items,
+            }),
+          });
+          console.log("📧 Order confirmation email sent:", order.orderNumber);
+        } catch (emailError) {
+          console.error("Failed to send confirmation email:", emailError);
         }
 
         if (order.easyparcelOrderNumber) {
