@@ -849,7 +849,7 @@ function CheckoutPageContent() {
         </div>
       )}
       <Modal
-        title="Booking Unsuccessful!"
+        title="Order Unsuccessful!"
         message={errorMessage ?? ""}
         CTA="Try Again"
         isOpen={!!errorMessage}

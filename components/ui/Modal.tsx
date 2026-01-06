@@ -31,13 +31,13 @@ export function Modal({ title, message, CTA, isOpen, onClose }: ModalProps) {
         onClick={(e) => e.stopPropagation()}
         className="relative flex flex-col gap-4 p-4 w-full sm:w-96 rounded-2xl bg-white"
       >
-        <h2 className="text-xl sm:text-2xl font-semibold text-amber-500">
+        <h2 className="text-xl sm:text-2xl font-semibold text-violet-500">
           {title}
         </h2>
         <p className="text-neutral-600">{message}</p>
         <button
           onClick={onClose}
-          className="flex p-2 w-full items-center justify-center rounded-full cursor-pointer border text-white hover:text-amber-600 border-transparent hover:border-amber-600 bg-amber-500 hover:bg-white"
+          className="flex p-2 w-full items-center justify-center rounded-full cursor-pointer border text-white hover:text-violet-600 border-transparent hover:border-violet-600 bg-violet-500 hover:bg-white"
         >
           {CTA}
         </button>
