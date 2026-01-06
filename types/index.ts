@@ -274,6 +274,25 @@ export type OrderSuccessBody = {
   order_items: OrderItem[];
 };
 
+export type EmailSendConfirmationTemplateProps = {
+  orderNumber: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  subTotalPrice: number;
+  shippingFee: number;
+  totalPrice: number;
+  courierName: string;
+  trackingUrl?: string | null;
+  awbNumber?: string | null;
+  deliveryStatus: string;
+  orderStatus: string;
+  items: OrderItem[];
+};
+
 export type EmailSendTrackingTemplateProps = {
   orderNumber: string;
   fullName: string;
