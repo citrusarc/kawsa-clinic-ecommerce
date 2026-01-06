@@ -30,16 +30,28 @@ export function emailSendConfirmationTemplate({
   <hr style="margin:16px 0; border:none; border-top:1px solid #ccc;" />
 
   <h3 >Order Summary</h3>
- 
-
-  <ul>
-      ${items
-        .map(
-          (item) =>
-            `<li>${item.itemSrc} ${item.itemName} × ${item.itemQuantity}</li>` // //
-        )
-        .join("")}
-    </ul>
+  <div>
+    ${items
+      .map(
+        (item) => `
+      <div style="display:flex; gap:12px; margin-bottom:12px; align-items:flex-start;">
+        <div style="width:80px; height:80px; overflow:hidden; border-radius:12px; flex-shrink:0;">
+          <img src="${item.itemSrc}" alt="${
+          item.itemName
+        }" style="width:100%; height:100%; object-fit:cover;">
+        </div>
+        <div>
+          <p style="margin:0; font-weight:bold;">${item.itemName}</p>
+          <p style="margin:0; color:#6b7280;">Quantity: ${item.itemQuantity}</p>
+          <p style="margin:0; color:#7c3aed; font-weight:bold;">RM${item.itemTotalPrice.toFixed(
+            2
+          )}</p>
+        </div>
+      </div>
+    `
+      )
+      .join("")}
+  </div>
 
   <div style="margin-top:16px; border-top:1px solid #ccc; padding-top:16px;">
     <p style="margin:0; color:#6b7280;">Sub Total: RM ${subTotalPrice.toFixed(

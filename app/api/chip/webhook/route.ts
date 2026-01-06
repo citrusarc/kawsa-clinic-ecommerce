@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
               subTotalPrice: order.subTotalPrice,
               shippingFee: order.shippingFee,
               totalPrice: order.totalPrice,
-              items: order.order_items,
+              items: order.order_items ?? [],
             }),
           });
           console.log("📧 Order confirmation email sent:", order.orderNumber);
