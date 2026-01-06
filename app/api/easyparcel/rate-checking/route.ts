@@ -80,11 +80,12 @@ export async function POST(req: NextRequest) {
       "Poslaju National Courier",
       "J&T Express (Malaysia) Sdn. Bhd.",
       "DHL eCommerce",
-      "Ninja Van", // //
-      "City-Link Express (M) Sdn. Bhd.",
-      "GDEX", // //
-      "Skynet Express (M) Sdn. Bhd.",
+      "Ninja Logistics Sdn Bhd",
       "Flash Malaysia Express Sdn. Bhd.",
+      "KEX Express",
+      "Skynet Express (M) Sdn. Bhd.",
+      "Federal Express Services (M) Sdn Bhd",
+      "City-Link Express (M) Sdn. Bhd.",
       "SPX Xpress (Malaysia) Sdn Bhd",
       "Lazada Express (Malaysia) Sdn Bhd",
     ];
