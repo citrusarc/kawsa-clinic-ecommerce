@@ -17,7 +17,12 @@ export async function POST(req: NextRequest) {
 
     const { data: order, error: findError } = await supabase
       .from("orders")
-      .select("*")
+      .select(
+        `
+        *,
+        order_items (*)
+      `
+      )
       .eq("orderNumber", reference)
       .single();
 
