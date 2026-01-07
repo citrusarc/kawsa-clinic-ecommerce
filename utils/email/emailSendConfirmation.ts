@@ -48,15 +48,15 @@ export function emailSendConfirmationTemplate({
           .map(
             (item) => `
           <div style="margin: 0 0 16px 0; display: flex; align-items: flex-start;">
-            <div style="width: 96px; height: 96px; margin: 0 16px 0 0; flex-shrink: 0; border-radius: 12px; overflow: hidden;">
+            <div style="width: 96px; min-width: 96px; height: 96px; margin: 0 16px 0 0; flex-shrink: 0; border-radius: 12px; overflow: hidden;">
               <img 
                 src="${getAbsoluteImageUrl(item.itemSrc)}" 
                 alt="${item.itemName}" 
                 style="width: 100%; height: 100%; object-fit: cover;"
               />
             </div>
-            <div style="flex: 1;">
-              <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold;">${
+            <div style="flex: 1; min-width: 0;">
+              <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold; word-wrap: break-word;">${
                 item.itemName
               }</p>
               <p style="margin: 0 0 4px 0; font-size: 14px; color: #6b7280;">Quantity: ${
