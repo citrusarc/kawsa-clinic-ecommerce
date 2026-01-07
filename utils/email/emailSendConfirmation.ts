@@ -84,10 +84,14 @@ export function emailSendConfirmationTemplate({
         )}</p>
       </div>
       
-      <p style="margin: 24px 0 0 0; font-size: 14px;">Thank you for shopping with us!<br/>
-      Need help? Reach out to us at <a href="mailto:drkay.skincare@gmail.com" style="color: #7c3aed; text-decoration: none;">drkay.skincare@gmail.com</a> or call us at <a href="tel:+60182074771" style="color: #7c3aed; text-decoration: none;">+6018-2074771</a> / <a href="https://wasap.my/60138088912" style="color: #7c3aed; text-decoration: none;">+6013-8088912</a></p>
+      <p style="margin: 24px 0 0 0; font-size: 14px;">Thank you for shopping with us!
+      </p>
+      
     </div>
+    
   </div>
-</div>
+  <div style="padding: 0 96px;">
+  <p style="margin: 24px 0 0 0; font-size: 14px;">Need help? Reach out to us at <a href="mailto:drkay.skincare@gmail.com" style="color: #0000EE; text-decoration: none;">drkay.skincare@gmail.com</a> or contact us via Whatsapp at <a href="https://wasap.my/60182074771" style="color: #0000EE; text-decoration: none;">+6018-2074771</a> / <a href="https://wasap.my/60138088912" style="color: #0000EE; text-decoration: none;">+6013-8088912</a></p>
+</div></div>
   `;
 }
