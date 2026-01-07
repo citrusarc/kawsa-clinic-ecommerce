@@ -96,7 +96,7 @@ export function emailSendTrackingTemplate({
     
   </div>
   <div style="max-width: 560px; margin: 16px auto 0 auto; padding: 0;">
-  <p style="margin: 24px 0 0 0; font-size: 14px;">Need help? Reach out to us at <a href="mailto:drkay.skincare@gmail.com" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none;">drkay.skincare@gmail.com</a> or contact us via Whatsapp at <a href="https://wasap.my/60182074771" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none;">+6018-2074771</a> / <a href="https://wasap.my/60138088912" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none;">+6013-8088912</a></p>
+  <p style="font-size: 14px;">Need help? Reach out to us at <a href="mailto:drkay.skincare@gmail.com" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none;">drkay.skincare@gmail.com</a> or contact us via Whatsapp at <a href="https://wasap.my/60182074771" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none;">+6018-2074771</a> / <a href="https://wasap.my/60138088912" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none;">+6013-8088912</a></p>
 </div></div>
   `;
 }
