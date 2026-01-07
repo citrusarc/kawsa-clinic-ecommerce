@@ -130,8 +130,11 @@ export async function POST(req: NextRequest) {
 
       try {
         await transporter.sendMail({
-          from: `"Kawsa Clinic" <${process.env.EMAIL_USER}>`,
+          from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
           to: order.email,
+          bcc: process.env.ADMIN_EMAIL
+            ? process.env.ADMIN_EMAIL.split(",").map((e) => e.trim())
+            : [],
           subject: `Your order ${order.orderNumber} is on the way 🚚`,
           html: emailSendTrackingTemplate({
             orderNumber: order.orderNumber,
