@@ -42,9 +42,9 @@ export function emailSendTrackingTemplate({
       <p style="margin: 0 0 12px 0; font-size: 14px; ">
         Your order <span style="font-weight: bold;">${orderNumber}</span> has been processed and is on  its way
       </p>
-      <p style="margin: 0 0 12px 0; font-size: 14px;">Courier Name: <br /> ${courierName}</p>
-      <p style="margin: 0 0 12px 0; font-size: 14px;">Tracking Number:<br /> <a href="${trackingUrl}" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none;">${awbNumber}</a></p>
-      <p style="margin: 0 0 24px 0; font-size: 14px;">Delivery Address: <br /> ${address}</p>
+       <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: bold">Courier Name:<br /> <span style="font-weight:normal">${courierName}</span></p>
+      <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: bold">Tracking Number:<br /> <a href="${trackingUrl}" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none; font-weight: normal">${awbNumber}</a></p>
+      <p style="margin: 0 0 24px 0; font-size: 14px; font-weight: bold">Delivery Address:<br /> <span style="font-weight: normal">${address}</span></p>
       
       <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: bold;">Order Summary</h3>
       
