@@ -20,49 +20,49 @@ export function emailSendConfirmationTemplate({
   };
 
   return `
- <div style="background-color: #fafafa; padding: 24px; font-family: Arial, sans-serif;">
-  <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+<div style="margin: 0; padding: 24px; font-family: Arial, sans-serif; background-color: #fafafa;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 0; background: #fff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
     <div style="padding: 24px;">
       <img 
         src="https://kawsa-clinic-ecommerce.vercel.app/Images/brand-logo-black.png" 
         alt="Kawsa MD Formula Logo" 
-        style="width: 120px; height: auto; margin-bottom: 16px;" 
+        style="width: 120px; height: auto; margin: 0 0 16px 0;" 
       />
       
-      <h2 style="font-size: 20px; margin: 0 0 16px 0; font-weight: bold;">
+      <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: bold;">
         Your Order Has Been Confirmed!
       </h2>
       
-      <p style="font-size: 14px; margin: 0 0 12px 0;">Hi ${fullName},</p>
+      <p style="margin: 0 0 12px 0; font-size: 14px;">Hi ${fullName},</p>
       
-      <p style="font-size: 14px; margin: 0 0 24px 0; line-height: 1.5;">
+      <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.5;">
         Thank you for your purchase!<br/>
         We're happy to let you know that your order 
         <span style="font-weight: bold;">${orderNumber}</span> has been successfully confirmed.
       </p>
       
-      <h3 style="font-size: 16px; margin: 0 0 16px 0; font-weight: bold;">Order Summary</h3>
+      <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: bold;">Order Summary</h3>
       
       <div>
         ${items
           .map(
             (item) => `
-          <div style="display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-start;">
-            <div style="width: 96px; height: 96px; overflow: hidden; border-radius: 12px; flex-shrink: 0;">
+          <div style="margin: 0 0 16px 0; display: flex; align-items: flex-start;">
+            <div style="width: 96px; height: 96px; margin: 0 16px 0 0; flex-shrink: 0; border-radius: 12px; overflow: hidden;">
               <img 
                 src="${getAbsoluteImageUrl(item.itemSrc)}" 
                 alt="${item.itemName}" 
                 style="width: 100%; height: 100%; object-fit: cover;"
               />
             </div>
-            <div>
-              <p style="margin: 0 0 4px 0; font-weight: bold; font-size: 14px;">${
+            <div style="flex: 1;">
+              <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold;">${
                 item.itemName
               }</p>
-              <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 14px;">Quantity: ${
+              <p style="margin: 0 0 4px 0; font-size: 14px; color: #6b7280;">Quantity: ${
                 item.itemQuantity
               }</p>
-              <p style="margin: 0; color: #7c3aed; font-weight: bold; font-size: 14px;">RM${item.itemTotalPrice.toFixed(
+              <p style="margin: 0; font-size: 14px; font-weight: bold; color: #7c3aed;">RM${item.itemTotalPrice.toFixed(
                 2
               )}</p>
             </div>
@@ -72,14 +72,14 @@ export function emailSendConfirmationTemplate({
           .join("")}
       </div>
       
-      <div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
-        <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">Sub Total: RM ${subTotalPrice.toFixed(
+      <div style="margin: 16px 0 0 0; padding: 16px 0 0 0; border-top: 1px solid #e5e7eb;">
+        <p style="margin: 0 0 4px 0; font-size: 14px; color: #6b7280;">Sub Total: RM${subTotalPrice.toFixed(
           2
         )}</p>
-        <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">Shipping Fee: RM ${shippingFee.toFixed(
+        <p style="margin: 0 0 4px 0; font-size: 14px; color: #6b7280;">Shipping Fee: RM${shippingFee.toFixed(
           2
         )}</p>
-        <p style="margin: 12px 0 0 0; font-size: 16px; font-weight: bold;">Total: RM ${totalPrice.toFixed(
+        <p style="margin: 8px 0 0 0; font-size: 16px; font-weight: bold;">Total: RM${totalPrice.toFixed(
           2
         )}</p>
       </div>
