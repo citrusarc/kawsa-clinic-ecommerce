@@ -48,11 +48,11 @@ export function emailSendConfirmationTemplate({
           .map(
             (item) => `
           <div style="margin: 0 0 16px 0; display: flex; align-items: flex-start;">
-            <div style="width: 96px; min-width: 96px; height: 96px; margin: 0 12px 0 0; flex-shrink: 0; border-radius: 12px; overflow: hidden;">
+            <div style="width: 96px; min-width: 96px; height: 96px; min-height: 96px; margin: 0 16px 0 0; flex-shrink: 0; border-radius: 12px; overflow: hidden;">
               <img 
                 src="${getAbsoluteImageUrl(item.itemSrc)}" 
                 alt="${item.itemName}" 
-                style="width: 100%; height: 100%; object-fit: cover;"
+                style="width: 96px; height: 96px; object-fit: cover; display: block;"
               />
             </div>
             <div style="flex: 1; min-width: 0;">
