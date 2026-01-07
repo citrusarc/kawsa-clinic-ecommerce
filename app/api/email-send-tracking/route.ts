@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
 import { transporter } from "@/utils/email";
 import { emailSendTrackingTemplate } from "@/utils/email/emailSendTrackingTemplate";
-import type { OrderSuccessBody, EmailSendTrackingTemplateProps } from "@/types";
+import type { OrderSuccessBody } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
@@ -128,49 +128,23 @@ export async function POST(req: NextRequest) {
         .filter(Boolean)
         .join(", ");
 
-      let html: string;
-      try {
-        html = emailSendTrackingTemplate({
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          fullName: order.fullName,
-          email: order.email,
-          phoneNumber: order.phoneNumber,
-          address,
-          paymentMethod: order.paymentMethod,
-          paymentStatus: order.paymentStatus,
-          subTotalPrice: order.subTotalPrice,
-          shippingFee: order.shippingFee,
-          totalPrice: order.totalPrice,
-          courierName: order.courierName,
-          trackingUrl: order.trackingUrl,
-          awbNumber: order.awbNumber,
-          deliveryStatus: order.deliveryStatus,
-          orderStatus: order.orderStatus,
-          items: order.order_items ?? [],
-        } as EmailSendTrackingTemplateProps);
-      } catch (templateError) {
-        console.error(
-          `Failed to generate email template for order ${order.orderNumber}:`,
-          templateError
-        );
-        failedEmails.push({
-          orderNumber: order.orderNumber,
-          error: "Template generation failed",
-          details:
-            templateError instanceof Error
-              ? templateError.message
-              : String(templateError),
-        });
-        continue;
-      }
-
       try {
         await transporter.sendMail({
           from: `"Kawsa Clinic" <${process.env.EMAIL_USER}>`,
           to: order.email,
           subject: `Your order ${order.orderNumber} is on the way 🚚`,
-          html,
+          html: emailSendTrackingTemplate({
+            orderNumber: order.orderNumber,
+            fullName: order.fullName,
+            address,
+            courierName: order.courierName,
+            trackingUrl: order.trackingUrl,
+            awbNumber: order.awbNumber,
+            subTotalPrice: order.subTotalPrice,
+            shippingFee: order.shippingFee,
+            totalPrice: order.totalPrice,
+            items: order.order_items ?? [],
+          }),
         });
 
         const { error: updateError } = await supabase
@@ -190,6 +164,7 @@ export async function POST(req: NextRequest) {
           });
         } else {
           processedCount++;
+          console.log("Tracking email sent:", order.orderNumber);
         }
       } catch (emailError) {
         console.error(

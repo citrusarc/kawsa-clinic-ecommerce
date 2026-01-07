@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
               items: order.order_items ?? [],
             }),
           });
-          console.log("📧 Order confirmation email sent:", order.orderNumber);
+          console.log("Order confirmation email sent:", order.orderNumber);
         } catch (emailError) {
           console.error("Failed to send confirmation email:", emailError);
         }
