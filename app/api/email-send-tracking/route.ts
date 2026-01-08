@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 
 import { supabase } from "@/utils/supabase/client";
 import { transporter } from "@/utils/email";
@@ -192,11 +193,28 @@ export async function POST(req: NextRequest) {
         }
 
         // 2. Generate Pickup PDF
+        let browser;
         try {
-          const browser = await puppeteer.launch({
+          console.log(`Starting Puppeteer for order ${order.orderNumber}...`);
+
+          const isProduction = process.env.NODE_ENV === "production";
+
+          browser = await puppeteer.launch({
+            args: isProduction
+              ? chromium.args
+              : ["--no-sandbox", "--disable-setuid-sandbox"],
+            executablePath: isProduction
+              ? await chromium.executablePath()
+              : process.platform === "win32"
+              ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+              : process.platform === "darwin"
+              ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+              : "/usr/bin/google-chrome",
             headless: true,
-            args: ["--no-sandbox", "--disable-setuid-sandbox"],
           });
+
+          console.log(`✓ Browser launched for ${order.orderNumber}`);
+
           const page = await browser.newPage();
 
           const pickupHtml = generatePickupPdfHtml({
@@ -211,6 +229,7 @@ export async function POST(req: NextRequest) {
           });
 
           await page.setContent(pickupHtml, { waitUntil: "networkidle0" });
+
           const pickupPdfBuffer = await page.pdf({
             format: "A4",
             printBackground: true,
@@ -222,6 +241,10 @@ export async function POST(req: NextRequest) {
             },
           });
 
+          console.log(
+            `✓ PDF generated for ${order.orderNumber}, size: ${pickupPdfBuffer.length} bytes`
+          );
+
           await browser.close();
 
           attachments.push({
@@ -229,12 +252,32 @@ export async function POST(req: NextRequest) {
             content: pickupPdfBuffer,
             contentType: "application/pdf",
           });
+
+          console.log(
+            `✓ Pickup PDF added to attachments for ${order.orderNumber}`
+          );
         } catch (pdfError) {
           console.error(
             `Failed to generate pickup PDF for ${order.orderNumber}:`,
             pdfError
           );
+          if (pdfError instanceof Error) {
+            console.error(`Error message: ${pdfError.message}`);
+            console.error(`Error stack: ${pdfError.stack}`);
+          }
+        } finally {
+          if (browser) {
+            try {
+              await browser.close();
+            } catch (closeError) {
+              console.error(`Error closing browser: ${closeError}`);
+            }
+          }
         }
+
+        console.log(
+          `Sending email with ${attachments.length} attachments for ${order.orderNumber}`
+        );
 
         await transporter.sendMail({
           from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
