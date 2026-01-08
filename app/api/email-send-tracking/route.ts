@@ -1,9 +1,12 @@
+export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from "next/server";
 
 import { supabase } from "@/utils/supabase/client";
 import { transporter } from "@/utils/email";
 import { emailSendTrackingTemplate } from "@/utils/email/emailSendTrackingTemplate";
 import { emailSendOrderTemplate } from "@/utils/email/emailSendOrderTemplate";
+import { generatePickupOrderPdf } from "@/utils/email/generatePickupOrderPdf";
 import type { OrderSuccessBody, EmailAttachment } from "@/types";
 
 export async function POST(req: NextRequest) {
@@ -185,6 +188,30 @@ export async function POST(req: NextRequest) {
               awbError
             );
           }
+        }
+
+        try {
+          const pickupOrderPdf = await generatePickupOrderPdf({
+            orderNumber: order.orderNumber,
+            createdAt: formattedCreatedAt,
+            fullName: order.fullName,
+            awbNumber: order.awbNumber,
+            items: (order.order_items ?? []).map((item) => ({
+              itemName: item.itemName,
+              itemQuantity: item.itemQuantity,
+            })),
+          });
+
+          attachments.push({
+            filename: `Pickup_Order_${order.orderNumber || "UNKNOWN"}.pdf`,
+            content: pickupOrderPdf,
+            contentType: "application/pdf",
+          });
+        } catch (pdfError) {
+          console.error(
+            `Failed to generate Pickup Order PDF for ${order.orderNumber}:`,
+            pdfError
+          );
         }
 
         await transporter.sendMail({
