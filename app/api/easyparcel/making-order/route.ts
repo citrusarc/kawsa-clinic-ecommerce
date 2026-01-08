@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
             pick_country: "MY",
             send_name: order.fullName,
             send_contact: order.phoneNumber,
-            send_email: order.email,
+            send_email: false,
             send_addr1: order.addressLine1,
             send_addr2: order.addressLine2 || "",
             send_city: order.city,
