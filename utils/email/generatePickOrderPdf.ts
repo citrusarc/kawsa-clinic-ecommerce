@@ -53,7 +53,7 @@ export async function generatePickOrderPdf({
   items.forEach((item, index) => {
     const line = `${index + 1}. ${item.itemName} - Qty: ${item.itemQuantity}`;
     page.drawText(line, { x: 50, y, size: fontSizeText, font });
-    y -= fontSizeText + 3;
+    y -= fontSizeText + 5;
   });
 
   const pdfBytes = await pdfDoc.save();
