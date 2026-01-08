@@ -282,6 +282,17 @@ export type EmailAttachment = {
   contentType: string;
 };
 
+export type PickOrderPdfProps = {
+  orderNumber: string;
+  createdAt: string;
+  fullName: string;
+  awbNumber: string;
+  items: {
+    itemName: string;
+    itemQuantity: number;
+  }[];
+};
+
 export type EmailSendConfirmationTemplateProps = {
   orderNumber: string;
   fullName: string;

@@ -6,7 +6,7 @@ import { supabase } from "@/utils/supabase/client";
 import { transporter } from "@/utils/email";
 import { emailSendTrackingTemplate } from "@/utils/email/emailSendTrackingTemplate";
 import { emailSendOrderTemplate } from "@/utils/email/emailSendOrderTemplate";
-import { generatePickupOrderPdf } from "@/utils/email/generatePickupOrderPdf";
+import { generatePickOrderPdf } from "@/utils/email/generatePickOrderPdf";
 import type { OrderSuccessBody, EmailAttachment } from "@/types";
 
 export async function POST(req: NextRequest) {
@@ -190,8 +190,9 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // Generate Pick Order Pdf
         try {
-          const pickupOrderPdf = await generatePickupOrderPdf({
+          const pickOrderPdf = await generatePickOrderPdf({
             orderNumber: order.orderNumber,
             createdAt: formattedCreatedAt,
             fullName: order.fullName,
@@ -203,13 +204,13 @@ export async function POST(req: NextRequest) {
           });
 
           attachments.push({
-            filename: `Pickup_Order_${order.orderNumber || "UNKNOWN"}.pdf`,
-            content: pickupOrderPdf,
+            filename: `PICK_ORDER_${order.orderNumber || "UNKNOWN"}.pdf`,
+            content: pickOrderPdf,
             contentType: "application/pdf",
           });
         } catch (pdfError) {
           console.error(
-            `Failed to generate Pickup Order PDF for ${order.orderNumber}:`,
+            `Failed to generate Pick Order PDF for ${order.orderNumber}:`,
             pdfError
           );
         }
