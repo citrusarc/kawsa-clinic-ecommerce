@@ -276,6 +276,12 @@ export type OrderSuccessBody = {
   order_items: OrderItem[];
 };
 
+export type EmailAttachment = {
+  filename: string;
+  content: Buffer | Uint8Array;
+  contentType: string;
+};
+
 export type EmailSendConfirmationTemplateProps = {
   orderNumber: string;
   fullName: string;

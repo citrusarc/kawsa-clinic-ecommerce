@@ -8,7 +8,7 @@ import {
   emailSendOrderTemplate,
   generatePickupPdfHtml,
 } from "@/utils/email/emailSendOrderTemplate";
-import type { OrderSuccessBody } from "@/types";
+import type { OrderSuccessBody, EmailAttachment } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
             })
           : "N/A";
 
-        const attachments: any[] = [];
+        const attachments: EmailAttachment[] = [];
 
         // 1. Fetch AWB PDF from URL if available
         if (order.awbPdfUrl && order.awbPdfUrl !== "#") {
@@ -266,7 +266,7 @@ export async function POST(req: NextRequest) {
 
         if (updateError) {
           console.error(
-            `Tracking email sent to customer and order details sent to admin for order: ${order.orderNumber}`,
+            `Failed to update order ${order.orderNumber} after sending email:`,
             updateError
           );
           failedEmails.push({
@@ -276,7 +276,9 @@ export async function POST(req: NextRequest) {
           });
         } else {
           processedCount++;
-          console.log("Tracking email sent:", order.orderNumber);
+          console.log(
+            `Tracking email sent to customer and order details sent to admin for order: ${order.orderNumber}`
+          );
         }
       } catch (emailError) {
         console.error(
