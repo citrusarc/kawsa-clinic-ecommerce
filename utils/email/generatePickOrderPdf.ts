@@ -22,7 +22,7 @@ export async function generatePickOrderPdf({
 
   let y = height - 50;
 
-  page.drawText(`Pick Order - ${orderNumber}`, {
+  page.drawText(`PICK ORDER - ${orderNumber}`, {
     x: 50,
     y,
     size: fontSizeTitle,
