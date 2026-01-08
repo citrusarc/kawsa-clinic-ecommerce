@@ -38,7 +38,7 @@ export function emailSendConfirmationTemplate({
       <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.5;">
         Thank you for your purchase!<br/>
         We're happy to let you know that your order 
-        <span style="font-weight: bold;">${orderNumber}</span> has been successfully confirmed.
+        <span style="font-weight: bold;">${orderNumber}</span> has been successfully confirmed and is being processed.
       </p>
       
       <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: bold;">Order Summary</h3>
