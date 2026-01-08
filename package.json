@@ -23,7 +23,7 @@
     "next": "15.5.7",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.12",
-    "pdfkit": "^0.17.2",
+    "pdf-lib": "^1.17.1",
     "react": "19.1.0",
     "react-country-flag": "^3.1.0",
     "react-dom": "19.1.0",
