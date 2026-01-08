@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import puppeteer from "puppeteer";
 
 import { supabase } from "@/utils/supabase/client";
 import { transporter } from "@/utils/email";
 import { emailSendTrackingTemplate } from "@/utils/email/emailSendTrackingTemplate";
-import { emailSendOrderTemplate } from "@/utils/email/emailSendOrderTemplate";
+import {
+  emailSendOrderTemplate,
+  generatePickupPdfHtml,
+} from "@/utils/email/emailSendOrderTemplate";
 import type { OrderSuccessBody } from "@/types";
 
 export async function POST(req: NextRequest) {
@@ -165,6 +169,73 @@ export async function POST(req: NextRequest) {
             })
           : "N/A";
 
+        const attachments: any[] = [];
+
+        // 1. Fetch AWB PDF from URL if available
+        if (order.awbPdfUrl && order.awbPdfUrl !== "#") {
+          try {
+            const awbResponse = await fetch(order.awbPdfUrl);
+            if (awbResponse.ok) {
+              const awbBuffer = await awbResponse.arrayBuffer();
+              attachments.push({
+                filename: `AWB_${order.orderNumber}.pdf`,
+                content: Buffer.from(awbBuffer),
+                contentType: "application/pdf",
+              });
+            }
+          } catch (awbError) {
+            console.error(
+              `Failed to fetch AWB PDF for ${order.orderNumber}:`,
+              awbError
+            );
+          }
+        }
+
+        // 2. Generate Pickup PDF
+        try {
+          const browser = await puppeteer.launch({
+            headless: true,
+            args: ["--no-sandbox", "--disable-setuid-sandbox"],
+          });
+          const page = await browser.newPage();
+
+          const pickupHtml = generatePickupPdfHtml({
+            orderNumber: order.orderNumber,
+            createdAt: formattedCreatedAt,
+            fullName: order.fullName,
+            awbNumber: order.awbNumber || "N/A",
+            items: (order.order_items ?? []).map((item) => ({
+              itemName: item.itemName,
+              itemQuantity: item.itemQuantity,
+            })),
+          });
+
+          await page.setContent(pickupHtml, { waitUntil: "networkidle0" });
+          const pickupPdfBuffer = await page.pdf({
+            format: "A4",
+            printBackground: true,
+            margin: {
+              top: "20mm",
+              right: "20mm",
+              bottom: "20mm",
+              left: "20mm",
+            },
+          });
+
+          await browser.close();
+
+          attachments.push({
+            filename: `Pickup_${order.orderNumber}.pdf`,
+            content: pickupPdfBuffer,
+            contentType: "application/pdf",
+          });
+        } catch (pdfError) {
+          console.error(
+            `Failed to generate pickup PDF for ${order.orderNumber}:`,
+            pdfError
+          );
+        }
+
         await transporter.sendMail({
           from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
           to: "citrusarc.studio@gmail.com", // //
@@ -185,6 +256,7 @@ export async function POST(req: NextRequest) {
             totalPrice: order.totalPrice,
             items: order.order_items ?? [],
           }),
+          attachments,
         });
 
         const { error: updateError } = await supabase
