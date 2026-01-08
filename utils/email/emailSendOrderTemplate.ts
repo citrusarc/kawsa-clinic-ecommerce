@@ -1,13 +1,21 @@
-import { EmailSendConfirmationTemplateProps } from "@/types";
+import { EmailSendOrderTemplateProps } from "@/types";
 
-export function emailSendConfirmationTemplate({
+export function emailSendOrderTemplate({
   orderNumber,
+  createdAt,
   fullName,
-  items,
+  email,
+  phoneNumber,
+  address,
+  courierName,
+  awbNumber,
+  trackingUrl,
+  awbPdfUrl,
   subTotalPrice,
   shippingFee,
   totalPrice,
-}: EmailSendConfirmationTemplateProps) {
+  items,
+}: EmailSendOrderTemplateProps) {
   const getAbsoluteImageUrl = (src: string) => {
     if (!src) return "";
     if (src.startsWith("http://") || src.startsWith("https://")) {
@@ -20,7 +28,7 @@ export function emailSendConfirmationTemplate({
   };
 
   return `
-<div style="margin: 0; padding: 12px; font-family: Arial, sans-serif; background-color: #fafafa;">
+  <div style="margin: 0; padding: 12px; font-family: Arial, sans-serif; background-color: #fafafa;">
   <div style="max-width: 600px; margin: 0 auto; padding: 0; background: #fff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
     <div style="padding: 24px;">
       <img 
@@ -30,18 +38,51 @@ export function emailSendConfirmationTemplate({
       />
       
       <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: bold;">
-        Your Order Has Been Confirmed!
+        New Order ${orderNumber}
       </h2>
       
-      <p style="margin: 0 0 12px 0; font-size: 14px;">Hi ${fullName},</p>
+      <table style="width:100%; border-collapse:collapse; margin: 12px 0 24px 0; font-size:14px;">
+        <tbody>
+          <tr style="background-color:#ffffff;">
+            <td style="padding:8px; font-weight:bold; width:40%;">Order Number</td>
+            <td style="padding:8px;">${orderNumber}</td>
+          </tr>
+          <tr style="background-color:#f9f9f9;">
+            <td style="padding:8px; font-weight:bold;">Order Created</td>
+            <td style="padding:8px;">${createdAt}</td>
+          </tr>
+          <tr style="background-color:#ffffff;">
+            <td style="padding:8px; font-weight:bold;">Name</td>
+            <td style="padding:8px;">${fullName}</td>
+          </tr>
+          <tr style="background-color:#f9f9f9;">
+            <td style="padding:8px; font-weight:bold;">Email</td>
+            <td style="padding:8px;">${email}</td>
+          </tr>
+          <tr style="background-color:#ffffff;">
+            <td style="padding:8px; font-weight:bold;">Phone Number</td>
+            <td style="padding:8px;">${phoneNumber}</td>
+          </tr>
+          <tr style="background-color:#f9f9f9;">
+            <td style="padding:8px; font-weight:bold;">Address</td>
+            <td style="padding:8px;">${address}</td>
+          </tr>
+          <tr style="background-color:#ffffff;">
+            <td style="padding:8px; font-weight:bold;">Courier Name</td>
+            <td style="padding:8px;">${courierName}</td>
+          </tr>
+          <tr style="background-color:#f9f9f9;">
+            <td style="padding:8px; font-weight:bold;">Tracking Number</td>
+            <td style="padding:8px;"><a href="${trackingUrl}" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none; font-weight: normal">${awbNumber}</a></td>
+          </tr>
+          <tr style="background-color:#ffffff;">
+            <td style="padding:8px; font-weight:bold;">Air Waybill</td>
+            <td style="padding:8px;"><a href="${awbPdfUrl}" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none; font-weight: normal">Download Air Waybill</a></td>
+          </tr>
+        </tbody>
+      </table>
       
-      <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.5;">
-        Thank you for your purchase!<br/>
-        We're happy to let you know that your order 
-        <span style="font-weight: bold;">${orderNumber}</span> has been successfully confirmed.
-      </p>
-      
-      <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: bold;">Order Summary</h3>
+      <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: bold;">Order Items</h3>
       
       <div>
         ${items
@@ -83,15 +124,9 @@ export function emailSendConfirmationTemplate({
           2
         )}</p>
       </div>
-      
-      <p style="margin: 24px 0 0 0; font-size: 14px;">Thank you for shopping with us!
       </p>
-      
     </div>
-    
   </div>
-  <div style="max-width: 560px; margin: 16px auto 0 auto; padding: 0;">
-  <p style="font-size: 14px;">Need help? Reach out to us at <a href="mailto:drkay.skincare@gmail.com" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none;">drkay.skincare@gmail.com</a> or contact us via Whatsapp at <a href="https://wasap.my/60182074771" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none;">+6018-2074771</a> / <a href="https://wasap.my/60138088912" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none;">+6013-8088912</a></p>
-</div></div>
+  </div>
   `;
 }

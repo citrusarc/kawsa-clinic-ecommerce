@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
 import { transporter } from "@/utils/email";
 import { emailSendTrackingTemplate } from "@/utils/email/emailSendTrackingTemplate";
+import { emailSendOrderTemplate } from "@/utils/email/emailSendOrderTemplate";
 import type { OrderSuccessBody } from "@/types";
 
 export async function POST(req: NextRequest) {
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
       courierName,
       trackingUrl,
       awbNumber,
+      awbPdfUrl,
       subTotalPrice,
       shippingFee,
       totalPrice,
@@ -41,7 +43,8 @@ export async function POST(req: NextRequest) {
       orderStatus,
       emailSent,
       orderWorkflowStatus,
-      order_items (*)
+      order_items (*),
+      createdAt
     `;
 
     let ordersToProcess: OrderSuccessBody[] = [];
@@ -61,7 +64,9 @@ export async function POST(req: NextRequest) {
       }
 
       console.log(
-        `Found ${orders?.length || 0} orders ready for email confirmation`
+        `Found ${
+          orders?.length || 0
+        } orders ready for email tracking and email order`
       );
       ordersToProcess = (orders ?? []) as OrderSuccessBody[];
     } else {
@@ -150,6 +155,38 @@ export async function POST(req: NextRequest) {
           }),
         });
 
+        const formattedCreatedAt = order.createdAt
+          ? new Date(order.createdAt).toLocaleString("en-MY", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "N/A";
+
+        await transporter.sendMail({
+          from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
+          to: "citrusarc.studio@gmail.com", // //
+          subject: `New Order Received - ${order.orderNumber}`,
+          html: emailSendOrderTemplate({
+            orderNumber: order.orderNumber,
+            createdAt: formattedCreatedAt,
+            fullName: order.fullName,
+            email: order.email,
+            phoneNumber: order.phoneNumber,
+            address,
+            courierName: order.courierName,
+            awbNumber: order.awbNumber,
+            trackingUrl: order.trackingUrl,
+            awbPdfUrl: order.awbPdfUrl || "#",
+            subTotalPrice: order.subTotalPrice,
+            shippingFee: order.shippingFee,
+            totalPrice: order.totalPrice,
+            items: order.order_items ?? [],
+          }),
+        });
+
         const { error: updateError } = await supabase
           .from("orders")
           .update({ emailSent: true, orderWorkflowStatus: "email_sent" })
@@ -157,7 +194,7 @@ export async function POST(req: NextRequest) {
 
         if (updateError) {
           console.error(
-            `Failed to update order ${order.orderNumber} after sending email:`,
+            `Tracking email sent to customer and order details sent to admin for order: ${order.orderNumber}`,
             updateError
           );
           failedEmails.push({

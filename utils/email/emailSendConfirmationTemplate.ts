@@ -1,17 +1,13 @@
-import { EmailSendTrackingTemplateProps } from "@/types";
+import { EmailSendConfirmationTemplateProps } from "@/types";
 
-export function emailSendTrackingTemplate({
+export function emailSendConfirmationTemplate({
   orderNumber,
   fullName,
-  address,
-  courierName,
-  trackingUrl,
-  awbNumber,
   subTotalPrice,
   shippingFee,
   totalPrice,
   items,
-}: EmailSendTrackingTemplateProps) {
+}: EmailSendConfirmationTemplateProps) {
   const getAbsoluteImageUrl = (src: string) => {
     if (!src) return "";
     if (src.startsWith("http://") || src.startsWith("https://")) {
@@ -24,7 +20,7 @@ export function emailSendTrackingTemplate({
   };
 
   return `
- <div style="margin: 0; padding: 12px; font-family: Arial, sans-serif; background-color: #fafafa;">
+<div style="margin: 0; padding: 12px; font-family: Arial, sans-serif; background-color: #fafafa;">
   <div style="max-width: 600px; margin: 0 auto; padding: 0; background: #fff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
     <div style="padding: 24px;">
       <img 
@@ -34,17 +30,16 @@ export function emailSendTrackingTemplate({
       />
       
       <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: bold;">
-        Your Parcel Is On Its Way!
+        Your Order Has Been Confirmed!
       </h2>
       
       <p style="margin: 0 0 12px 0; font-size: 14px;">Hi ${fullName},</p>
       
-      <p style="margin: 0 0 12px 0; font-size: 14px;">
-        Your order <span style="font-weight: bold;">${orderNumber}</span> has been processed and is on  its way
+      <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.5;">
+        Thank you for your purchase!<br/>
+        We're happy to let you know that your order 
+        <span style="font-weight: bold;">${orderNumber}</span> has been successfully confirmed.
       </p>
-       <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: bold">Courier Name:<br /> <span style="font-weight:normal">${courierName}</span></p>
-      <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: bold">Tracking Number:<br /> <a href="${trackingUrl}" target="_blank" rel="noopener noreferrer" style="color: #0000EE; text-decoration: none; font-weight: normal">${awbNumber}</a></p>
-      <p style="margin: 0 0 24px 0; font-size: 14px; font-weight: bold">Delivery Address:<br /> <span style="font-weight: normal">${address}</span></p>
       
       <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: bold;">Order Summary</h3>
       

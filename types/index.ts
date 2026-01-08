@@ -267,16 +267,35 @@ export type OrderSuccessBody = {
   courierName: string;
   trackingUrl: string | null;
   awbNumber: string | null;
+  awbPdfUrl: string;
   deliveryStatus: string;
   orderStatus: string;
   orderWorkflowStatus: string;
   emailSent: boolean;
+  createdAt: string;
   order_items: OrderItem[];
 };
 
 export type EmailSendConfirmationTemplateProps = {
   orderNumber: string;
   fullName: string;
+  subTotalPrice: number;
+  shippingFee: number;
+  totalPrice: number;
+  items: OrderItem[];
+};
+
+export type EmailSendOrderTemplateProps = {
+  orderNumber: string;
+  createdAt: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+  courierName: string;
+  trackingUrl: string | null;
+  awbNumber: string;
+  awbPdfUrl: string;
   subTotalPrice: number;
   shippingFee: number;
   totalPrice: number;
