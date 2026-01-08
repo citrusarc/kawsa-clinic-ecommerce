@@ -1,7 +1,9 @@
+export const runtime = "nodejs"; // //
+export const dynamic = "force-dynamic"; // //
+
 import { NextRequest, NextResponse } from "next/server";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
-
 import { supabase } from "@/utils/supabase/client";
 import { transporter } from "@/utils/email";
 import { emailSendTrackingTemplate } from "@/utils/email/emailSendTrackingTemplate";
@@ -63,16 +65,7 @@ export async function POST(req: NextRequest) {
         .eq("orderWorkflowStatus", "awb_generated")
         .eq("emailSent", false);
 
-      if (error) {
-        console.error("Error fetching orders:", error);
-        throw error;
-      }
-
-      console.log(
-        `Found ${
-          orders?.length || 0
-        } orders ready for email tracking and email order`
-      );
+      if (error) throw error;
       ordersToProcess = (orders ?? []) as OrderSuccessBody[];
     } else {
       if (!orderNumber) {
@@ -99,31 +92,12 @@ export async function POST(req: NextRequest) {
     const failedEmails = [];
 
     for (const order of ordersToProcess) {
-      console.log(`Processing email for order ${order.orderNumber}`);
-
-      if (order.orderWorkflowStatus !== "awb_generated") {
-        console.log(
-          `Skipping order ${order.orderNumber} - wrong workflow status: ${order.orderWorkflowStatus}`
-        );
-        continue;
-      }
-
-      if (order.emailSent) {
-        console.log(`Skipping order ${order.orderNumber} - email already sent`);
-        continue;
-      }
-
-      if (!order.awbNumber) {
-        console.log(`Skipping order ${order.orderNumber} - AWB not ready`);
-        continue;
-      }
-
-      if (!order.email) {
-        console.error(`Order ${order.orderNumber} has no email address`);
-        failedEmails.push({
-          orderNumber: order.orderNumber,
-          error: "No email address",
-        });
+      if (
+        order.orderWorkflowStatus !== "awb_generated" ||
+        order.emailSent ||
+        !order.awbNumber ||
+        !order.email
+      ) {
         continue;
       }
 
@@ -139,6 +113,7 @@ export async function POST(req: NextRequest) {
         .join(", ");
 
       try {
+        // ================= CUSTOMER EMAIL =================
         await transporter.sendMail({
           from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
           to: order.email,
@@ -172,7 +147,7 @@ export async function POST(req: NextRequest) {
 
         const attachments: EmailAttachment[] = [];
 
-        // 1. Fetch AWB PDF from URL if available
+        // ================= AWB PDF =================
         if (order.awbPdfUrl && order.awbPdfUrl !== "#") {
           try {
             const awbResponse = await fetch(order.awbPdfUrl);
@@ -184,44 +159,38 @@ export async function POST(req: NextRequest) {
                 contentType: "application/pdf",
               });
             }
-          } catch (awbError) {
-            console.error(
-              `Failed to fetch AWB PDF for ${order.orderNumber}:`,
-              awbError
-            );
-          }
+          } catch {}
         }
 
-        // 2. Generate Pickup PDF
+        // ================= PICKUP PDF =================
         let browser;
         try {
-          console.log(`Starting Puppeteer for order ${order.orderNumber}...`);
-
           const isProduction = process.env.NODE_ENV === "production";
 
           browser = await puppeteer.launch({
             args: isProduction
-              ? chromium.args
+              ? chromium.args // //
               : ["--no-sandbox", "--disable-setuid-sandbox"],
+
             executablePath: isProduction
-              ? await chromium.executablePath()
+              ? await chromium.executablePath() // //
               : process.platform === "win32"
               ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
               : process.platform === "darwin"
               ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
               : "/usr/bin/google-chrome",
-            headless: true,
+
+            headless: true, // // FIX: always use Puppeteer headless
           });
 
-          console.log(`✓ Browser launched for ${order.orderNumber}`);
-
           const page = await browser.newPage();
+          await page.setViewport({ width: 794, height: 1123 }); // //
 
           const pickupHtml = generatePickupPdfHtml({
             orderNumber: order.orderNumber,
             createdAt: formattedCreatedAt,
             fullName: order.fullName,
-            awbNumber: order.awbNumber || "N/A",
+            awbNumber: order.awbNumber,
             items: (order.order_items ?? []).map((item) => ({
               itemName: item.itemName,
               itemQuantity: item.itemQuantity,
@@ -241,44 +210,25 @@ export async function POST(req: NextRequest) {
             },
           });
 
-          console.log(
-            `✓ PDF generated for ${order.orderNumber}, size: ${pickupPdfBuffer.length} bytes`
-          );
-
-          await browser.close();
-
           attachments.push({
             filename: `Pickup_${order.orderNumber}.pdf`,
             content: pickupPdfBuffer,
             contentType: "application/pdf",
           });
-
-          console.log(
-            `✓ Pickup PDF added to attachments for ${order.orderNumber}`
-          );
         } catch (pdfError) {
           console.error(
             `Failed to generate pickup PDF for ${order.orderNumber}:`,
             pdfError
           );
-          if (pdfError instanceof Error) {
-            console.error(`Error message: ${pdfError.message}`);
-            console.error(`Error stack: ${pdfError.stack}`);
-          }
         } finally {
           if (browser) {
             try {
               await browser.close();
-            } catch (closeError) {
-              console.error(`Error closing browser: ${closeError}`);
-            }
+            } catch {}
           }
         }
 
-        console.log(
-          `Sending email with ${attachments.length} attachments for ${order.orderNumber}`
-        );
-
+        // ================= ADMIN EMAIL =================
         await transporter.sendMail({
           from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
           to: "citrusarc.studio@gmail.com", // //
@@ -302,36 +252,16 @@ export async function POST(req: NextRequest) {
           attachments,
         });
 
-        const { error: updateError } = await supabase
+        await supabase
           .from("orders")
           .update({ emailSent: true, orderWorkflowStatus: "email_sent" })
           .eq("id", order.id);
 
-        if (updateError) {
-          console.error(
-            `Failed to update order ${order.orderNumber} after sending email:`,
-            updateError
-          );
-          failedEmails.push({
-            orderNumber: order.orderNumber,
-            error: "Database update failed (email was sent)",
-            details: updateError,
-          });
-        } else {
-          processedCount++;
-          console.log(
-            `Tracking email sent to customer and order details sent to admin for order: ${order.orderNumber}`
-          );
-        }
+        processedCount++;
       } catch (emailError) {
-        console.error(
-          `Failed to send email for order ${order.orderNumber}:`,
-          emailError
-        );
         failedEmails.push({
           orderNumber: order.orderNumber,
-          error: "Email sending failed",
-          details:
+          error:
             emailError instanceof Error
               ? emailError.message
               : String(emailError),
@@ -343,15 +273,11 @@ export async function POST(req: NextRequest) {
       success: true,
       processedCount,
       totalOrders: ordersToProcess.length,
-      failedEmails: failedEmails.length > 0 ? failedEmails : undefined,
+      failedEmails: failedEmails.length ? failedEmails : undefined,
     });
-  } catch (err) {
-    console.error("Email error:", err);
+  } catch {
     return NextResponse.json(
-      {
-        error: "Failed to send email",
-        details: err instanceof Error ? err.message : String(err),
-      },
+      { error: "Failed to send email" },
       { status: 500 }
     );
   }
