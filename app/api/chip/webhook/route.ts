@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase/client";
 import { transporter } from "@/utils/email";
-import { emailSendConfirmationTemplate } from "@/utils/email/emailSendConfirmation";
+import { emailSendConfirmationTemplate } from "@/utils/email/emailSendConfirmationTemplate";
 
 export async function POST(req: NextRequest) {
   try {
