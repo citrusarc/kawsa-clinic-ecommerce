@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { sql } from "@/utils/neon/client";
 
 export async function GET(req: NextRequest) {
@@ -12,38 +13,46 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const data = await sql`
-    SELECT 
-      o.id,
-      o."easyparcelOrderNumber",
-      o."orderNumber",
-      o."subTotalPrice",
-      o."shippingFee",
-      o."totalPrice",
-      o."courierName",
-      o."trackingNumber",
-      o."trackingUrl",
-      o."awbNumber",
-      o."awbPdfUrl",
-      o."deliveryStatus",
-      json_agg(
-        json_build_object(
-          'id', oi.id,
-          'itemSrc', oi."itemSrc",
-          'itemName', oi."itemName",
-          'itemQuantity', oi."itemQuantity",
-          'itemTotalPrice', oi."itemTotalPrice"
-        )
-      ) as order_items
-    FROM orders o
-    LEFT JOIN order_items oi ON o.id = oi."orderId"
-    WHERE o."orderNumber" = ${orderNumber}
-    GROUP BY o.id
-  `;
+  try {
+    const data = await sql`
+      SELECT 
+        o.id,
+        o."easyparcelOrderNumber",
+        o."orderNumber",
+        o."subTotalPrice",
+        o."shippingFee",
+        o."totalPrice",
+        o."courierName",
+        o."trackingNumber",
+        o."trackingUrl",
+        o."awbNumber",
+        o."awbPdfUrl",
+        o."deliveryStatus",
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', oi.id,
+              'itemSrc', oi."itemSrc",
+              'itemName', oi."itemName",
+              'itemQuantity', oi."itemQuantity",
+              'itemTotalPrice', oi."itemTotalPrice"
+            )
+          ) FILTER (WHERE oi.id IS NOT NULL),
+          '[]'::json
+        ) as order_items
+      FROM orders o
+      LEFT JOIN order_items oi ON oi."orderId" = o.id
+      WHERE o."orderNumber" = ${orderNumber}
+      GROUP BY o.id
+    `;
 
-  if (!data || data.length === 0) {
+    if (!data || data.length === 0) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(data[0]);
+  } catch (error) {
+    console.error("Error fetching order:", error);
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
-
-  return NextResponse.json(data[0]);
 }

@@ -1,5 +1,7 @@
 export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from "next/server";
+
 import { sql } from "@/utils/neon/client";
 import { transporter } from "@/utils/email";
 import { emailSendTrackingTemplate } from "@/utils/email/emailSendTrackingTemplate";
@@ -25,9 +27,20 @@ export async function POST(req: NextRequest) {
       const orders = await sql`
         SELECT 
           o.*,
-          json_agg(oi.*) as order_items
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'id', oi.id,
+                'itemSrc', oi."itemSrc",
+                'itemName', oi."itemName",
+                'itemQuantity', oi."itemQuantity",
+                'itemTotalPrice', oi."itemTotalPrice"
+              )
+            ) FILTER (WHERE oi.id IS NOT NULL),
+            '[]'::json
+          ) as order_items
         FROM orders o
-        LEFT JOIN order_items oi ON o.id = oi."orderId"
+        LEFT JOIN order_items oi ON oi."orderId" = o.id
         WHERE o."paymentStatus" = 'paid'
           AND o."awbNumber" IS NOT NULL
           AND o."orderWorkflowStatus" = 'awb_generated'
@@ -49,20 +62,32 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const order = await sql`
+      const orderData = await sql`
         SELECT 
           o.*,
-          json_agg(oi.*) as order_items
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'id', oi.id,
+                'itemSrc', oi."itemSrc",
+                'itemName', oi."itemName",
+                'itemQuantity', oi."itemQuantity",
+                'itemTotalPrice', oi."itemTotalPrice"
+              )
+            ) FILTER (WHERE oi.id IS NOT NULL),
+            '[]'::json
+          ) as order_items
         FROM orders o
-        LEFT JOIN order_items oi ON o.id = oi."orderId"
+        LEFT JOIN order_items oi ON oi."orderId" = o.id
         WHERE o."orderNumber" = ${orderNumber}
         GROUP BY o.id
       `;
 
-      if (!order || order.length === 0) {
+      if (!orderData || orderData.length === 0) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
       }
-      ordersToProcess = [order[0] as OrderSuccessBody];
+
+      ordersToProcess = [orderData[0] as OrderSuccessBody];
     }
 
     let processedCount = 0;
@@ -172,6 +197,7 @@ export async function POST(req: NextRequest) {
               itemQuantity: item.itemQuantity,
             })),
           });
+
           attachments.push({
             filename: `PICK_ORDER_${order.orderNumber || "UNKNOWN"}.pdf`,
             content: pickOrderPdf,
@@ -207,7 +233,6 @@ export async function POST(req: NextRequest) {
           attachments,
         });
 
-        // // Update order using Neon SQL
         await sql`
           UPDATE orders
           SET "emailSent" = true,

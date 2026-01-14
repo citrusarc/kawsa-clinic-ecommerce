@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { sql } from "@/utils/neon/client";
 import { OrderItem, OrderBody } from "@/types";
 
@@ -31,8 +32,8 @@ export async function POST(req: NextRequest) {
     }
 
     const totalPrice = Number(subTotalPrice || 0) + Number(shippingFee || 0);
+    const orderNumber = "ORD-" + Date.now();
 
-    // 1. Create order using Neon SQL
     const orderData = await sql`
       INSERT INTO orders (
         "orderNumber",
@@ -58,13 +59,14 @@ export async function POST(req: NextRequest) {
         "trackingNumber",
         "deliveryStatus",
         "orderStatus"
-      ) VALUES (
-        ${"ORD-" + Date.now()},
+      )
+      VALUES (
+        ${orderNumber},
         ${fullName},
         ${email},
         ${phoneNumber},
         ${addressLine1},
-        ${addressLine2},
+        ${addressLine2 || null},
         ${city},
         ${state},
         ${postcode},
@@ -72,7 +74,7 @@ export async function POST(req: NextRequest) {
         ${subTotalPrice},
         ${shippingFee},
         ${totalPrice},
-        ${paymentMethod},
+        ${paymentMethod || null},
         'pending',
         ${easyparcel?.rateId || null},
         ${easyparcel?.serviceId || null},
@@ -87,6 +89,7 @@ export async function POST(req: NextRequest) {
     `;
 
     if (!orderData || orderData.length === 0) {
+      console.error("Order insert error");
       return NextResponse.json(
         { error: "Failed to create order" },
         { status: 500 }
@@ -96,8 +99,24 @@ export async function POST(req: NextRequest) {
     const order = orderData[0];
     const orderId = order.id;
 
-    // 2. Insert order items using Neon SQL
-    for (const item of items) {
+    const orderItemsValues = items.map((item: OrderItem) => ({
+      orderId,
+      productId: item.productId || null,
+      variantId: item.variantId || null,
+      variantOptionId: item.variantOptionId || null,
+      itemSrc: item.itemSrc,
+      itemName: item.itemName,
+      itemWeight: item.itemWeight,
+      itemWidth: item.itemWidth,
+      itemLength: item.itemLength,
+      itemHeight: item.itemHeight,
+      itemCurrency: item.itemCurrency,
+      itemUnitPrice: item.itemUnitPrice,
+      itemQuantity: item.itemQuantity,
+      itemTotalPrice: item.itemUnitPrice * item.itemQuantity,
+    }));
+
+    for (const itemData of orderItemsValues) {
       await sql`
         INSERT INTO order_items (
           "orderId",
@@ -114,21 +133,22 @@ export async function POST(req: NextRequest) {
           "itemUnitPrice",
           "itemQuantity",
           "itemTotalPrice"
-        ) VALUES (
-          ${orderId},
-          ${item.productId || null},
-          ${item.variantId || null},
-          ${item.variantOptionId || null},
-          ${item.itemSrc},
-          ${item.itemName},
-          ${item.itemWeight},
-          ${item.itemWidth},
-          ${item.itemLength},
-          ${item.itemHeight},
-          ${item.itemCurrency},
-          ${item.itemUnitPrice},
-          ${item.itemQuantity},
-          ${item.itemUnitPrice * item.itemQuantity}
+        )
+        VALUES (
+          ${itemData.orderId},
+          ${itemData.productId},
+          ${itemData.variantId},
+          ${itemData.variantOptionId},
+          ${itemData.itemSrc},
+          ${itemData.itemName},
+          ${itemData.itemWeight},
+          ${itemData.itemWidth},
+          ${itemData.itemLength},
+          ${itemData.itemHeight},
+          ${itemData.itemCurrency},
+          ${itemData.itemUnitPrice},
+          ${itemData.itemQuantity},
+          ${itemData.itemTotalPrice}
         )
       `;
     }
@@ -136,7 +156,7 @@ export async function POST(req: NextRequest) {
     const SUCCESS_REDIRECT = `${process.env.NEXT_PUBLIC_SITE_URL}/order-success?status=success`;
     const FAILURE_REDIRECT = `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?status=error`;
 
-    // 3. Create CHIP payload
+    // Create CHIP payload
     const chipPayload = {
       client: {
         email,
@@ -159,7 +179,7 @@ export async function POST(req: NextRequest) {
         currency: "MYR",
       },
       brand_id: CHIP_BRAND_ID,
-      reference: order.orderNumber,
+      reference: orderNumber,
       send_receipt: true,
       platform: "web",
       success_redirect: SUCCESS_REDIRECT,
@@ -167,7 +187,7 @@ export async function POST(req: NextRequest) {
       ...(paymentMethod ? { payment_method_whitelist: [paymentMethod] } : {}),
     };
 
-    // 4. Call CHIP
+    // Call CHIP
     let chipData;
     try {
       const chipResponse = await fetch(CHIP_API_URL, {
@@ -205,19 +225,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Update orders with CHIP purchase_id using Neon SQL
     await sql`
       UPDATE orders
       SET "chipPurchaseId" = ${chipData?.id || null},
           "paymentStatus" = 'pending',
           "orderStatus" = 'awaiting_payment',
-          "paymentMethod" = ${paymentMethod}
+          "paymentMethod" = ${paymentMethod || null}
       WHERE id = ${orderId}
     `;
 
     return NextResponse.json({
       orderId,
-      orderNumber: order.orderNumber,
+      orderNumber: orderNumber,
       success: true,
       checkout_url: chipData?.checkout_url || null,
       message: "Order created successfully!",

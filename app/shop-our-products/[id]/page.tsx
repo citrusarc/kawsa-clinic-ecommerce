@@ -3,12 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, use } from "react";
 import { NavArrowLeft, NavArrowRight, StarSolid } from "iconoir-react";
-import { sql } from "@/utils/neon/client";
 import { spectral } from "@/config/font";
 import {
   ProductsItem,
   ProductVariant,
   VariantOption,
+  // // Removed: ProductDetailsItem (unused)
   ProductDetailsProps,
 } from "@/types";
 import { useCart } from "@/components/store/Cart";
@@ -16,43 +16,75 @@ import { useCheckout } from "@/components/store/Checkout";
 import { Stepper } from "@/components/ui/Stepper";
 import { Toast } from "@/components/ui/Toast";
 
-interface DbVariantOption {
-  id: string;
-  optionName: string;
-  weight: number;
-  width: number;
-  length: number;
-  height: number;
-  currency: string;
-  unitPrice: number;
-  originalPrice: number;
-  currentPrice: number;
-}
-
-interface DbProductVariant {
-  id: string;
-  variantName: string;
-  variant_options: DbVariantOption[];
-}
-
-interface DbProduct {
-  id: string;
-  src: string;
-  alt: string;
-  name: string;
-  description: string | string[];
-  additionalinfo1: string | string[];
-  additionalinfo2: string | string[];
-  currency: string;
-  status: {
-    isPromo?: boolean;
-    isHidden?: boolean;
-    isDisabled?: boolean;
-    isBestSeller?: boolean;
-    isComingSoon?: boolean;
+// // Added: Type for API response
+type ApiProductResponse = {
+  product: {
+    id: string;
+    src: string;
+    alt: string;
+    name: string;
+    description: string | string[];
+    additionalInfo1: string | string[];
+    additionalInfo2: string | string[];
+    currency: string;
+    status: {
+      isHidden?: boolean;
+      isDisabled?: boolean;
+      isComingSoon?: boolean;
+      isPromo?: boolean;
+      isBestSeller?: boolean;
+    };
+    product_variants: Array<{
+      id: string;
+      variantName: string;
+      variant_options: Array<{
+        id: string;
+        optionName: string;
+        weight: number;
+        width?: number;
+        length?: number;
+        height?: number;
+        currency: string;
+        unitPrice: number;
+        originalPrice?: number;
+        currentPrice?: number;
+      }>;
+    }>;
   };
-  product_variants: DbProductVariant[];
-}
+  otherProducts: Array<{
+    id: string;
+    src: string;
+    alt: string;
+    name: string;
+    description: string | string[];
+    additionalInfo1: string | string[];
+    additionalInfo2: string | string[];
+    currency: string;
+    status: {
+      isHidden?: boolean;
+      isDisabled?: boolean;
+      isComingSoon?: boolean;
+      isPromo?: boolean;
+      isBestSeller?: boolean;
+    };
+    product_variants: Array<{
+      id: string;
+      variantName: string;
+      variant_options: Array<{
+        id: string;
+        optionName: string;
+        weight: number;
+        width?: number;
+        length?: number;
+        height?: number;
+        currency: string;
+        unitPrice: number;
+        originalPrice?: number;
+        currentPrice?: number;
+      }>;
+    }>;
+  }>;
+};
 
 export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   const { id } = use(params);
@@ -83,127 +115,65 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // // Using Neon SQL queries instead of Supabase
-        const prodData = await sql`
-          SELECT 
-            p.*,
-            json_agg(
-              json_build_object(
-                'id', pv.id,
-                'variantName', pv."variantName",
-                'variant_options', (
-                  SELECT json_agg(
-                    json_build_object(
-                      'id', vo.id,
-                      'optionName', vo."optionName",
-                      'weight', vo.weight,
-                      'width', vo.width,
-                      'length', vo.length,
-                      'height', vo.height,
-                      'currency', vo.currency,
-                      'unitPrice', vo."unitPrice",
-                      'originalPrice', vo."originalPrice",
-                      'currentPrice', vo."currentPrice"
-                    )
-                  )
-                  FROM variant_options vo
-                  WHERE vo."variantId" = pv.id
-                )
-              )
-            ) as product_variants
-          FROM products p
-          LEFT JOIN product_variants pv ON p.id = pv."productId"
-          WHERE p.id = ${id}
-          GROUP BY p.id
-        `;
-
-        if (!prodData || prodData.length === 0) {
-          throw new Error("Product not found");
+        const response = await fetch(`/api/products/${id}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch product`);
         }
 
-        // // Type assertion for database response
-        const prod = prodData[0] as DbProduct;
+        // // Changed: Use ApiProductResponse type instead of any
+        const data: ApiProductResponse = await response.json();
+        const { product: prod, otherProducts } = data;
 
-        const transformedProduct: ProductsItem = {
-          id: prod.id,
-          src: prod.src,
-          alt: prod.alt,
-          name: prod.name,
-          description: Array.isArray(prod.description)
-            ? prod.description
-            : JSON.parse(prod.description || "[]"),
-          additionalInfo1: Array.isArray(prod.additionalinfo1)
-            ? prod.additionalinfo1
-            : JSON.parse(prod.additionalinfo1 || "[]"),
-          additionalInfo2: Array.isArray(prod.additionalinfo2)
-            ? prod.additionalinfo2
-            : JSON.parse(prod.additionalinfo2 || "[]"),
-          currency: prod.currency,
-          status: prod.status,
-          variants: (prod.product_variants || []).map(
-            (variant): ProductVariant => ({
-              id: variant.id,
-              variantName: variant.variantName,
-              options: (variant.variant_options || []).map(
-                (option): VariantOption => ({
-                  id: option.id,
-                  optionName: option.optionName,
-                  weight: option.weight,
-                  width: option.width,
-                  height: option.height,
-                  length: option.length,
-                  currency: option.currency,
-                  unitPrice: option.unitPrice,
-                  originalPrice: option.originalPrice,
-                  currentPrice: option.currentPrice,
-                })
-              ),
-            })
-          ),
-        };
-
-        setProduct(transformedProduct);
-        setSelectedOption(transformedProduct.variants[0]?.options[0] || null);
-
-        // // Fetch other products
-        const othersData = await sql`
-          SELECT 
-            p.*,
-            json_agg(
-              json_build_object(
-                'id', pv.id,
-                'variantName', pv."variantName",
-                'variant_options', (
-                  SELECT json_agg(
-                    json_build_object(
-                      'id', vo.id,
-                      'optionName', vo."optionName",
-                      'weight', vo.weight,
-                      'width', vo.width,
-                      'length', vo.length,
-                      'height', vo.height,
-                      'currency', vo.currency,
-                      'unitPrice', vo."unitPrice",
-                      'originalPrice', vo."originalPrice",
-                      'currentPrice', vo."currentPrice"
-                    )
-                  )
-                  FROM variant_options vo
-                  WHERE vo."variantId" = pv.id
-                )
-              )
-            ) as product_variants
-          FROM products p
-          LEFT JOIN product_variants pv ON p.id = pv."productId"
-          WHERE p.id != ${id}
-          GROUP BY p.id
-        `;
+        if (prod) {
+          const transformedProduct: ProductsItem = {
+            id: prod.id,
+            src: prod.src,
+            alt: prod.alt,
+            name: prod.name,
+            description: Array.isArray(prod.description)
+              ? prod.description
+              : JSON.parse(prod.description || "[]"),
+            additionalInfo1: Array.isArray(prod.additionalInfo1)
+              ? prod.additionalInfo1
+              : JSON.parse(prod.additionalInfo1 || "[]"),
+            additionalInfo2: Array.isArray(prod.additionalInfo2)
+              ? prod.additionalInfo2
+              : JSON.parse(prod.additionalInfo2 || "[]"),
+            currency: prod.currency,
+            status: prod.status,
+            // // Changed: Properly type variant
+            variants: prod.product_variants.map(
+              (variant): ProductVariant => ({
+                id: variant.id,
+                variantName: variant.variantName,
+                // // Changed: Properly type option
+                options: variant.variant_options.map(
+                  (option): VariantOption => ({
+                    id: option.id,
+                    optionName: option.optionName,
+                    weight: option.weight,
+                    width: option.width,
+                    height: option.height,
+                    length: option.length,
+                    currency: option.currency,
+                    unitPrice: option.unitPrice,
+                    originalPrice: option.originalPrice,
+                    currentPrice: option.currentPrice,
+                  })
+                ),
+              })
+            ),
+          };
+          setProduct(transformedProduct);
+          setSelectedOption(transformedProduct.variants[0]?.options[0] || null);
+        }
 
         setProducts(
-          ((othersData as DbProduct[]) || [])
+          (otherProducts || [])
             .filter(
               (item) => !item.status?.isHidden && !item.status?.isDisabled
             )
+            // // Changed: Properly type item
             .map(
               (item): ProductsItem => ({
                 id: item.id,
@@ -213,19 +183,21 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                 description: Array.isArray(item.description)
                   ? item.description
                   : JSON.parse(item.description || "[]"),
-                additionalInfo1: Array.isArray(item.additionalinfo1)
-                  ? item.additionalinfo1
-                  : JSON.parse(item.additionalinfo1 || "[]"),
-                additionalInfo2: Array.isArray(item.additionalinfo2)
-                  ? item.additionalinfo2
-                  : JSON.parse(item.additionalinfo2 || "[]"),
+                additionalInfo1: Array.isArray(item.additionalInfo1)
+                  ? item.additionalInfo1
+                  : JSON.parse(item.additionalInfo1 || "[]"),
+                additionalInfo2: Array.isArray(item.additionalInfo2)
+                  ? item.additionalInfo2
+                  : JSON.parse(item.additionalInfo2 || "[]"),
                 currency: item.currency,
                 status: item.status,
-                variants: (item.product_variants || []).map(
+                // // Changed: Properly type variant
+                variants: item.product_variants.map(
                   (variant): ProductVariant => ({
                     id: variant.id,
                     variantName: variant.variantName,
-                    options: (variant.variant_options || []).map(
+                    // // Changed: Properly type option
+                    options: variant.variant_options.map(
                       (option): VariantOption => ({
                         id: option.id,
                         optionName: option.optionName,

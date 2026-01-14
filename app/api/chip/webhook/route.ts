@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { sql } from "@/utils/neon/client";
 import { transporter } from "@/utils/email";
 import { emailSendConfirmationTemplate } from "@/utils/email/emailSendConfirmationTemplate";
@@ -18,9 +19,20 @@ export async function POST(req: NextRequest) {
     const orderData = await sql`
       SELECT 
         o.*,
-        json_agg(oi.*) as order_items
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', oi.id,
+              'itemSrc', oi."itemSrc",
+              'itemName', oi."itemName",
+              'itemQuantity', oi."itemQuantity",
+              'itemTotalPrice', oi."itemTotalPrice"
+            )
+          ) FILTER (WHERE oi.id IS NOT NULL),
+          '[]'::json
+        ) as order_items
       FROM orders o
-      LEFT JOIN order_items oi ON o.id = oi."orderId"
+      LEFT JOIN order_items oi ON oi."orderId" = o.id
       WHERE o."orderNumber" = ${reference}
       GROUP BY o.id
     `;
@@ -115,6 +127,7 @@ export async function POST(req: NextRequest) {
         }
         break;
       }
+
       case "error":
       case "cancelled":
       case "blocked": {
@@ -129,17 +142,19 @@ export async function POST(req: NextRequest) {
         }
         break;
       }
+
       case "created":
       case "viewed":
         console.log("CHIP status ignored:", status, reference);
         break;
+
       default:
         console.warn(`Unknown CHIP status '${status}' for order ${reference}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (err) {
-    console.error("CHIP webhook error:", err);
+    console.error("🔥 CHIP webhook error:", err);
     return NextResponse.json({ received: true });
   }
 }

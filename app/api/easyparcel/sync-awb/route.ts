@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { sql } from "@/utils/neon/client";
 import { EasyParcelItem } from "@/types";
 
@@ -93,7 +94,6 @@ export async function POST(req: NextRequest) {
 
         const parcel = parcelsWithAwb[0];
 
-        // // Update order using Neon SQL
         await sql`
           UPDATE orders
           SET "trackingNumber" = ${parcel.parcel_number},

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { sql } from "@/utils/neon/client";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
@@ -26,21 +27,23 @@ export async function POST(req: NextRequest) {
           AND "paymentStatus" = 'paid'
           AND "trackingNumber" IS NULL
       `;
+
       ordersToProcess = orders || [];
     } else {
       if (!orderId) {
         return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
       }
 
-      const order = await sql`
+      const orderData = await sql`
         SELECT * FROM orders
         WHERE id = ${orderId}
       `;
 
-      if (!order || order.length === 0) {
+      if (!orderData || orderData.length === 0) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
       }
-      ordersToProcess = [order[0]];
+
+      ordersToProcess = [orderData[0]];
     }
 
     let processedCount = 0;
