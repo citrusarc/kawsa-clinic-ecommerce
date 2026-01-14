@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { sql } from "@/utils/neon/client";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_MAKING_ORDER_PAYMENT_URL =
@@ -20,31 +20,27 @@ export async function POST(req: NextRequest) {
     let ordersToProcess = [];
 
     if (mode === "cron") {
-      const { data: orders, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("orderWorkflowStatus", "easyparcel_order_created")
-        .eq("paymentStatus", "paid")
-        .is("trackingNumber", null);
-
-      if (error) throw error;
+      const orders = await sql`
+        SELECT * FROM orders
+        WHERE "orderWorkflowStatus" = 'easyparcel_order_created'
+          AND "paymentStatus" = 'paid'
+          AND "trackingNumber" IS NULL
+      `;
       ordersToProcess = orders || [];
     } else {
       if (!orderId) {
         return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
       }
 
-      const { data: order, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("id", orderId)
-        .single();
+      const order = await sql`
+        SELECT * FROM orders
+        WHERE id = ${orderId}
+      `;
 
-      if (error || !order) {
+      if (!order || order.length === 0) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
       }
-
-      ordersToProcess = [order];
+      ordersToProcess = [order[0]];
     }
 
     let processedCount = 0;
@@ -63,9 +59,7 @@ export async function POST(req: NextRequest) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(paymentPayload),
         });
-
         result = await response.json();
-
         if (!response.ok || result.api_status !== "Success") {
           throw new Error("Payment API failed");
         }
@@ -95,14 +89,12 @@ export async function POST(req: NextRequest) {
       }
 
       if (parcelList.length === 0) {
-        await supabase
-          .from("orders")
-          .update({
-            orderWorkflowStatus: "payment_done_awb_pending",
-            orderStatus: "processing",
-          })
-          .eq("id", order.id);
-
+        await sql`
+          UPDATE orders
+          SET "orderWorkflowStatus" = 'payment_done_awb_pending',
+              "orderStatus" = 'processing'
+          WHERE id = ${order.id}
+        `;
         processedCount++;
         continue;
       }
@@ -112,39 +104,27 @@ export async function POST(req: NextRequest) {
       const awbNumber = parcel.awb;
 
       if (!awbNumber || awbNumber.trim() === "" || !parcelNumber) {
-        await supabase
-          .from("orders")
-          .update({
-            orderWorkflowStatus: "payment_done_awb_pending",
-            orderStatus: "processing",
-          })
-          .eq("id", order.id);
-
+        await sql`
+          UPDATE orders
+          SET "orderWorkflowStatus" = 'payment_done_awb_pending',
+              "orderStatus" = 'processing'
+          WHERE id = ${order.id}
+        `;
         processedCount++;
         continue;
       }
 
-      const { error: updateError } = await supabase
-        .from("orders")
-        .update({
-          trackingNumber: parcelNumber,
-          trackingUrl: parcel.tracking_url || null,
-          awbNumber: awbNumber,
-          awbPdfUrl: parcel.awb_id_link || null,
-          orderWorkflowStatus: "awb_generated",
-          deliveryStatus: parcel.ship_status || "ready_for_pickup",
-          orderStatus: "processing",
-        })
-        .eq("id", order.id);
-
-      if (updateError) {
-        console.error("Database update failed:", updateError);
-        failedOrders.push({
-          orderNumber: order.orderNumber,
-          error: "Database update failed",
-        });
-        continue;
-      }
+      await sql`
+        UPDATE orders
+        SET "trackingNumber" = ${parcelNumber},
+            "trackingUrl" = ${parcel.tracking_url || null},
+            "awbNumber" = ${awbNumber},
+            "awbPdfUrl" = ${parcel.awb_id_link || null},
+            "orderWorkflowStatus" = 'awb_generated',
+            "deliveryStatus" = ${parcel.ship_status || "ready_for_pickup"},
+            "orderStatus" = 'processing'
+        WHERE id = ${order.id}
+      `;
 
       processedCount++;
     }

@@ -1,23 +1,58 @@
 "use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, use } from "react";
 import { NavArrowLeft, NavArrowRight, StarSolid } from "iconoir-react";
-
-import { supabase } from "@/utils/supabase/client";
+import { sql } from "@/utils/neon/client";
 import { spectral } from "@/config/font";
 import {
   ProductsItem,
   ProductVariant,
   VariantOption,
-  ProductDetailsItem,
   ProductDetailsProps,
 } from "@/types";
 import { useCart } from "@/components/store/Cart";
 import { useCheckout } from "@/components/store/Checkout";
 import { Stepper } from "@/components/ui/Stepper";
 import { Toast } from "@/components/ui/Toast";
+
+interface DbVariantOption {
+  id: string;
+  optionName: string;
+  weight: number;
+  width: number;
+  length: number;
+  height: number;
+  currency: string;
+  unitPrice: number;
+  originalPrice: number;
+  currentPrice: number;
+}
+
+interface DbProductVariant {
+  id: string;
+  variantName: string;
+  variant_options: DbVariantOption[];
+}
+
+interface DbProduct {
+  id: string;
+  src: string;
+  alt: string;
+  name: string;
+  description: string | string[];
+  additionalinfo1: string | string[];
+  additionalinfo2: string | string[];
+  currency: string;
+  status: {
+    isPromo?: boolean;
+    isHidden?: boolean;
+    isDisabled?: boolean;
+    isBestSeller?: boolean;
+    isComingSoon?: boolean;
+  };
+  product_variants: DbProductVariant[];
+}
 
 export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   const { id } = use(params);
@@ -48,120 +83,129 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { data: prod, error } = await supabase
-          .from("products")
-          .select(
-            `
-            *,
-            product_variants (
-              id,
-              variantName,
-              variant_options (
-                id,
-                optionName,
-                weight,
-                width,
-                length,
-                height,
-                currency,
-                unitPrice,
-                originalPrice,
-                currentPrice
+        // // Using Neon SQL queries instead of Supabase
+        const prodData = await sql`
+          SELECT 
+            p.*,
+            json_agg(
+              json_build_object(
+                'id', pv.id,
+                'variantName', pv."variantName",
+                'variant_options', (
+                  SELECT json_agg(
+                    json_build_object(
+                      'id', vo.id,
+                      'optionName', vo."optionName",
+                      'weight', vo.weight,
+                      'width', vo.width,
+                      'length', vo.length,
+                      'height', vo.height,
+                      'currency', vo.currency,
+                      'unitPrice', vo."unitPrice",
+                      'originalPrice', vo."originalPrice",
+                      'currentPrice', vo."currentPrice"
+                    )
+                  )
+                  FROM variant_options vo
+                  WHERE vo."variantId" = pv.id
+                )
               )
-            )
-          `
-          )
-          .eq("id", id)
-          .single();
+            ) as product_variants
+          FROM products p
+          LEFT JOIN product_variants pv ON p.id = pv."productId"
+          WHERE p.id = ${id}
+          GROUP BY p.id
+        `;
 
-        if (error) {
-          throw new Error(`Failed to fetch product: ${error.message}`);
+        if (!prodData || prodData.length === 0) {
+          throw new Error("Product not found");
         }
 
-        if (prod) {
-          const transformedProduct: ProductsItem = {
-            id: prod.id,
-            src: prod.src,
-            alt: prod.alt,
-            name: prod.name,
-            description: Array.isArray(prod.description)
-              ? prod.description
-              : JSON.parse(prod.description || "[]"),
-            additionalInfo1: Array.isArray(prod.additionalInfo1)
-              ? prod.additionalInfo1
-              : JSON.parse(prod.additionalInfo1 || "[]"),
-            additionalInfo2: Array.isArray(prod.additionalInfo2)
-              ? prod.additionalInfo2
-              : JSON.parse(prod.additionalInfo2 || "[]"),
-            currency: prod.currency,
-            status: prod.status,
-            variants: prod.product_variants.map(
-              (
-                variant: ProductDetailsItem["product_variants"][number]
-              ): ProductVariant => ({
-                id: variant.id,
-                variantName: variant.variantName,
-                options: variant.variant_options.map(
-                  (
-                    option: ProductDetailsItem["product_variants"][number]["variant_options"][number]
-                  ): VariantOption => ({
-                    id: option.id,
-                    optionName: option.optionName,
-                    weight: option.weight,
-                    width: option.width,
-                    height: option.height,
-                    length: option.length,
-                    currency: option.currency,
-                    unitPrice: option.unitPrice,
-                    originalPrice: option.originalPrice,
-                    currentPrice: option.currentPrice,
-                  })
-                ),
-              })
-            ),
-          };
-          setProduct(transformedProduct);
-          setSelectedOption(transformedProduct.variants[0]?.options[0] || null);
-        }
+        // // Type assertion for database response
+        const prod = prodData[0] as DbProduct;
 
-        const { data: others, error: othersError } = await supabase
-          .from("products")
-          .select(
-            `
-          *,
-          product_variants (
-            id,
-            variantName,
-            variant_options (
-              id,
-              optionName,
-              weight,
-              width,
-              length,
-              height,
-              currency,
-              unitPrice,
-              originalPrice,
-              currentPrice
-            )
-          )
-        `
-          )
-          .neq("id", id);
+        const transformedProduct: ProductsItem = {
+          id: prod.id,
+          src: prod.src,
+          alt: prod.alt,
+          name: prod.name,
+          description: Array.isArray(prod.description)
+            ? prod.description
+            : JSON.parse(prod.description || "[]"),
+          additionalInfo1: Array.isArray(prod.additionalinfo1)
+            ? prod.additionalinfo1
+            : JSON.parse(prod.additionalinfo1 || "[]"),
+          additionalInfo2: Array.isArray(prod.additionalinfo2)
+            ? prod.additionalinfo2
+            : JSON.parse(prod.additionalinfo2 || "[]"),
+          currency: prod.currency,
+          status: prod.status,
+          variants: (prod.product_variants || []).map(
+            (variant): ProductVariant => ({
+              id: variant.id,
+              variantName: variant.variantName,
+              options: (variant.variant_options || []).map(
+                (option): VariantOption => ({
+                  id: option.id,
+                  optionName: option.optionName,
+                  weight: option.weight,
+                  width: option.width,
+                  height: option.height,
+                  length: option.length,
+                  currency: option.currency,
+                  unitPrice: option.unitPrice,
+                  originalPrice: option.originalPrice,
+                  currentPrice: option.currentPrice,
+                })
+              ),
+            })
+          ),
+        };
 
-        if (othersError) {
-          throw new Error(
-            `Failed to fetch other products: ${othersError.message}`
-          );
-        }
+        setProduct(transformedProduct);
+        setSelectedOption(transformedProduct.variants[0]?.options[0] || null);
+
+        // // Fetch other products
+        const othersData = await sql`
+          SELECT 
+            p.*,
+            json_agg(
+              json_build_object(
+                'id', pv.id,
+                'variantName', pv."variantName",
+                'variant_options', (
+                  SELECT json_agg(
+                    json_build_object(
+                      'id', vo.id,
+                      'optionName', vo."optionName",
+                      'weight', vo.weight,
+                      'width', vo.width,
+                      'length', vo.length,
+                      'height', vo.height,
+                      'currency', vo.currency,
+                      'unitPrice', vo."unitPrice",
+                      'originalPrice', vo."originalPrice",
+                      'currentPrice', vo."currentPrice"
+                    )
+                  )
+                  FROM variant_options vo
+                  WHERE vo."variantId" = pv.id
+                )
+              )
+            ) as product_variants
+          FROM products p
+          LEFT JOIN product_variants pv ON p.id = pv."productId"
+          WHERE p.id != ${id}
+          GROUP BY p.id
+        `;
 
         setProducts(
-          (others || [])
+          ((othersData as DbProduct[]) || [])
             .filter(
               (item) => !item.status?.isHidden && !item.status?.isDisabled
             )
             .map(
-              (item: ProductDetailsItem): ProductsItem => ({
+              (item): ProductsItem => ({
                 id: item.id,
                 src: item.src,
                 alt: item.alt,
@@ -169,24 +213,20 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                 description: Array.isArray(item.description)
                   ? item.description
                   : JSON.parse(item.description || "[]"),
-                additionalInfo1: Array.isArray(item.additionalInfo1)
-                  ? item.additionalInfo1
-                  : JSON.parse(item.additionalInfo1 || "[]"),
-                additionalInfo2: Array.isArray(item.additionalInfo2)
-                  ? item.additionalInfo2
-                  : JSON.parse(item.additionalInfo2 || "[]"),
+                additionalInfo1: Array.isArray(item.additionalinfo1)
+                  ? item.additionalinfo1
+                  : JSON.parse(item.additionalinfo1 || "[]"),
+                additionalInfo2: Array.isArray(item.additionalinfo2)
+                  ? item.additionalinfo2
+                  : JSON.parse(item.additionalinfo2 || "[]"),
                 currency: item.currency,
                 status: item.status,
-                variants: item.product_variants.map(
-                  (
-                    variant: ProductDetailsItem["product_variants"][number]
-                  ): ProductVariant => ({
+                variants: (item.product_variants || []).map(
+                  (variant): ProductVariant => ({
                     id: variant.id,
                     variantName: variant.variantName,
-                    options: variant.variant_options.map(
-                      (
-                        option: ProductDetailsItem["product_variants"][number]["variant_options"][number]
-                      ): VariantOption => ({
+                    options: (variant.variant_options || []).map(
+                      (option): VariantOption => ({
                         id: option.id,
                         optionName: option.optionName,
                         weight: option.weight,
@@ -215,6 +255,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [id]);
 
@@ -307,7 +348,6 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
             </div>
           )}
           <Stepper value={quantity} onChange={(v) => setQuantity(v)} min={1} />
-
           {selectedOption && (
             <>
               {product.status?.isPromo && selectedOption.originalPrice ? (
@@ -343,7 +383,6 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                     selectedOption.currentPrice ?? selectedOption.unitPrice;
                   const originalPrice =
                     selectedOption.originalPrice ?? selectedOption.unitPrice;
-
                   useCart.getState().addItem({
                     id: `${product.id}-${selectedOption.id}`,
                     productId: product.id,
@@ -362,7 +401,6 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                     totalPrice: pricePerUnit * quantity,
                     quantity: quantity,
                   });
-
                   setSuccessMessage("Added to cart");
                 } catch (error) {
                   const errorMessage =
@@ -381,13 +419,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                   setErrorMessage("Please select a variant");
                   return;
                 }
-
-                // Create item object
                 const pricePerUnit =
                   selectedOption.currentPrice ?? selectedOption.unitPrice;
                 const originalPrice =
                   selectedOption.originalPrice ?? selectedOption.unitPrice;
-
                 const checkoutItem = {
                   id: `${product.id}-${selectedOption.id}`,
                   productId: product.id,
@@ -406,12 +441,9 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                   totalPrice: pricePerUnit * quantity,
                   quantity: quantity,
                 };
-
-                // Save to checkout store
                 useCheckout
                   .getState()
                   .setCheckoutData([checkoutItem], pricePerUnit * quantity);
-
                 window.location.href = "/checkout";
               }}
               className="p-4 w-full rounded-lg overflow-hidden cursor-pointer border text-white bg-violet-600 hover:text-violet-600 hover:bg-white hover:border-violet-600"
@@ -452,7 +484,6 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
           >
             <NavArrowLeft className="w-6 h-6 " />
           </button>
-
           <div className="w-full overflow-hidden ">
             <div
               className={`flex transition-transform duration-500 ${
@@ -543,7 +574,6 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
           <Toast message={successMessage} type="success" />
         </div>
       )}
-
       {errorMessage && (
         <div>
           <Toast message={errorMessage} type="error" />

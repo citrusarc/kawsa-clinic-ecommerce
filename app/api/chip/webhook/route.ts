@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { sql } from "@/utils/neon/client";
 import { transporter } from "@/utils/email";
 import { emailSendConfirmationTemplate } from "@/utils/email/emailSendConfirmationTemplate";
 
@@ -15,21 +15,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    const { data: order, error: findError } = await supabase
-      .from("orders")
-      .select(
-        `
-        *,
-        order_items (*)
-      `
-      )
-      .eq("orderNumber", reference)
-      .single();
+    const orderData = await sql`
+      SELECT 
+        o.*,
+        json_agg(oi.*) as order_items
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi."orderId"
+      WHERE o."orderNumber" = ${reference}
+      GROUP BY o.id
+    `;
 
-    if (findError || !order) {
+    if (!orderData || orderData.length === 0) {
       console.error("Order not found for reference:", reference);
       return NextResponse.json({ received: true });
     }
+
+    const order = orderData[0];
 
     if (
       order.paymentStatus === "paid" &&
@@ -42,25 +43,20 @@ export async function POST(req: NextRequest) {
 
     switch (status) {
       case "paid": {
-        const { error: updateError } = await supabase
-          .from("orders")
-          .update({
-            chipPurchaseId,
-            paymentMethod:
-              transaction_data?.payment_method ||
-              transaction_data?.attempts?.[0]?.payment_method ||
-              order.paymentMethod ||
-              null,
-            paymentStatus: "paid",
-            orderStatus: "processing",
-            orderWorkflowStatus: "payment_confirmed",
-          })
-          .eq("id", order.id);
-
-        if (updateError) {
-          console.error("Failed to update PAID order:", updateError);
-          return NextResponse.json({ received: true });
-        }
+        await sql`
+          UPDATE orders
+          SET "chipPurchaseId" = ${chipPurchaseId},
+              "paymentMethod" = ${
+                transaction_data?.payment_method ||
+                transaction_data?.attempts?.[0]?.payment_method ||
+                order.paymentMethod ||
+                null
+              },
+              "paymentStatus" = 'paid',
+              "orderStatus" = 'processing',
+              "orderWorkflowStatus" = 'payment_confirmed'
+          WHERE id = ${order.id}
+        `;
 
         try {
           await transporter.sendMail({
@@ -101,9 +97,7 @@ export async function POST(req: NextRequest) {
               body: JSON.stringify({ orderId: order.id }),
             }
           );
-
           const epResult = await epResponse.json();
-
           if (!epResponse.ok || epResult?.error) {
             console.error("EasyParcel making-order failed:", epResult);
           } else {
@@ -119,43 +113,33 @@ export async function POST(req: NextRequest) {
             epError
           );
         }
-
         break;
       }
-
       case "error":
       case "cancelled":
       case "blocked": {
         if (order.paymentStatus !== "paid") {
-          const { error } = await supabase
-            .from("orders")
-            .update({
-              paymentStatus: "failed",
-              orderStatus: "cancelled_due_to_payment",
-            })
-            .eq("id", order.id);
-
-          if (error) {
-            console.error("Failed to update FAILED order:", error);
-          } else {
-            console.log("Order marked as FAILED:", reference);
-          }
+          await sql`
+            UPDATE orders
+            SET "paymentStatus" = 'failed',
+                "orderStatus" = 'cancelled_due_to_payment'
+            WHERE id = ${order.id}
+          `;
+          console.log("Order marked as FAILED:", reference);
         }
         break;
       }
-
       case "created":
       case "viewed":
         console.log("CHIP status ignored:", status, reference);
         break;
-
       default:
         console.warn(`Unknown CHIP status '${status}' for order ${reference}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (err) {
-    console.error("🔥 CHIP webhook error:", err);
+    console.error("CHIP webhook error:", err);
     return NextResponse.json({ received: true });
   }
 }

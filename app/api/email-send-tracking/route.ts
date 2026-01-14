@@ -1,8 +1,6 @@
 export const runtime = "nodejs";
-
 import { NextRequest, NextResponse } from "next/server";
-
-import { supabase } from "@/utils/supabase/client";
+import { sql } from "@/utils/neon/client";
 import { transporter } from "@/utils/email";
 import { emailSendTrackingTemplate } from "@/utils/email/emailSendTrackingTemplate";
 import { emailSendOrderTemplate } from "@/utils/email/emailSendOrderTemplate";
@@ -21,50 +19,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const orderSelectQuery = `
-      id,
-      orderNumber,
-      fullName,
-      email,
-      phoneNumber,
-      addressLine1,
-      addressLine2,
-      city,
-      state,
-      postcode,
-      country,
-      paymentMethod,
-      paymentStatus,
-      courierName,
-      trackingUrl,
-      awbNumber,
-      awbPdfUrl,
-      subTotalPrice,
-      shippingFee,
-      totalPrice,
-      deliveryStatus,
-      orderStatus,
-      emailSent,
-      orderWorkflowStatus,
-      order_items (*),
-      createdAt
-    `;
-
     let ordersToProcess: OrderSuccessBody[] = [];
 
     if (mode === "cron") {
-      const { data: orders, error } = await supabase
-        .from("orders")
-        .select(orderSelectQuery)
-        .eq("paymentStatus", "paid")
-        .not("awbNumber", "is", null)
-        .eq("orderWorkflowStatus", "awb_generated")
-        .eq("emailSent", false);
-
-      if (error) {
-        console.error("Error fetching orders:", error);
-        throw error;
-      }
+      const orders = await sql`
+        SELECT 
+          o.*,
+          json_agg(oi.*) as order_items
+        FROM orders o
+        LEFT JOIN order_items oi ON o.id = oi."orderId"
+        WHERE o."paymentStatus" = 'paid'
+          AND o."awbNumber" IS NOT NULL
+          AND o."orderWorkflowStatus" = 'awb_generated'
+          AND o."emailSent" = false
+        GROUP BY o.id
+      `;
 
       console.log(
         `Found ${
@@ -80,17 +49,20 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const { data: order, error } = await supabase
-        .from("orders")
-        .select(orderSelectQuery)
-        .eq("orderNumber", orderNumber)
-        .single();
+      const order = await sql`
+        SELECT 
+          o.*,
+          json_agg(oi.*) as order_items
+        FROM orders o
+        LEFT JOIN order_items oi ON o.id = oi."orderId"
+        WHERE o."orderNumber" = ${orderNumber}
+        GROUP BY o.id
+      `;
 
-      if (error || !order) {
+      if (!order || order.length === 0) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
       }
-
-      ordersToProcess = [order as OrderSuccessBody];
+      ordersToProcess = [order[0] as OrderSuccessBody];
     }
 
     let processedCount = 0;
@@ -170,7 +142,6 @@ export async function POST(req: NextRequest) {
 
         const attachments: EmailAttachment[] = [];
 
-        // Fetch AWB PDF from URL if available
         if (order.awbPdfUrl && order.awbPdfUrl !== "#") {
           try {
             const awbResponse = await fetch(order.awbPdfUrl);
@@ -190,7 +161,6 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Generate Pick Order Pdf
         try {
           const pickOrderPdf = await generatePickOrderPdf({
             orderNumber: order.orderNumber,
@@ -202,7 +172,6 @@ export async function POST(req: NextRequest) {
               itemQuantity: item.itemQuantity,
             })),
           });
-
           attachments.push({
             filename: `PICK_ORDER_${order.orderNumber || "UNKNOWN"}.pdf`,
             content: pickOrderPdf,
@@ -238,27 +207,18 @@ export async function POST(req: NextRequest) {
           attachments,
         });
 
-        const { error: updateError } = await supabase
-          .from("orders")
-          .update({ emailSent: true, orderWorkflowStatus: "email_sent" })
-          .eq("id", order.id);
+        // // Update order using Neon SQL
+        await sql`
+          UPDATE orders
+          SET "emailSent" = true,
+              "orderWorkflowStatus" = 'email_sent'
+          WHERE id = ${order.id}
+        `;
 
-        if (updateError) {
-          console.error(
-            `Failed to update order ${order.orderNumber} after sending email:`,
-            updateError
-          );
-          failedEmails.push({
-            orderNumber: order.orderNumber,
-            error: "Database update failed (email was sent)",
-            details: updateError,
-          });
-        } else {
-          processedCount++;
-          console.log(
-            `Tracking email sent to customer and order details sent to admin for order: ${order.orderNumber}`
-          );
-        }
+        processedCount++;
+        console.log(
+          `Tracking email sent to customer and order details sent to admin for order: ${order.orderNumber}`
+        );
       } catch (emailError) {
         console.error(
           `Failed to send email for order ${order.orderNumber}:`,

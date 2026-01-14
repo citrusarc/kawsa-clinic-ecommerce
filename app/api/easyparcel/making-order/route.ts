@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { sql } from "@/utils/neon/client";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_MAKING_ORDER_URL =
@@ -20,34 +20,27 @@ export async function POST(req: NextRequest) {
     let ordersToProcess = [];
 
     if (mode === "cron") {
-      const { data: orders, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("paymentStatus", "paid")
-        .in("orderWorkflowStatus", [
-          "pending_easyparcel_order",
-          "payment_confirmed",
-        ])
-        .is("easyparcelOrderNumber", null);
-
-      if (error) throw error;
+      const orders = await sql`
+        SELECT * FROM orders
+        WHERE "paymentStatus" = 'paid'
+          AND "orderWorkflowStatus" IN ('pending_easyparcel_order', 'payment_confirmed')
+          AND "easyparcelOrderNumber" IS NULL
+      `;
       ordersToProcess = orders;
     } else {
       if (!orderId) {
         return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
       }
 
-      const { data: order, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("id", orderId)
-        .single();
+      const order = await sql`
+        SELECT * FROM orders
+        WHERE id = ${orderId}
+      `;
 
-      if (error || !order) {
+      if (!order || order.length === 0) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
       }
-
-      ordersToProcess = [order];
+      ordersToProcess = [order[0]];
     }
 
     let processedCount = 0;
@@ -64,10 +57,10 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const { data: items } = await supabase
-        .from("order_items")
-        .select("*")
-        .eq("orderId", order.id);
+      const items = await sql`
+        SELECT * FROM order_items
+        WHERE "orderId" = ${order.id}
+      `;
 
       if (!items || items.length === 0) continue;
 
@@ -162,28 +155,16 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const { error: updateError } = await supabase
-        .from("orders")
-        .update({
-          easyparcelOrderNumber: epOrder.order_number,
-          courierName: epOrder.courier_name || order.courierName,
-          orderWorkflowStatus: "easyparcel_order_created",
-          orderStatus: "processing",
-        })
-        .eq("id", order.id);
+      await sql`
+        UPDATE orders
+        SET "easyparcelOrderNumber" = ${epOrder.order_number},
+            "courierName" = ${epOrder.courier_name || order.courierName},
+            "orderWorkflowStatus" = 'easyparcel_order_created',
+            "orderStatus" = 'processing'
+        WHERE id = ${order.id}
+      `;
 
-      if (updateError) {
-        console.error(
-          `Failed to update order ${order.orderNumber}:`,
-          updateError
-        );
-        failedOrders.push({
-          orderNumber: order.orderNumber,
-          error: updateError,
-        });
-      } else {
-        processedCount++;
-      }
+      processedCount++;
     }
 
     return NextResponse.json({

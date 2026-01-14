@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { sql } from "@/utils/neon/client";
 import { OrderItem, OrderBody } from "@/types";
 
 const CHIP_API_URL = process.env.CHIP_API_URL!;
@@ -9,7 +9,6 @@ const CHIP_TOKEN = process.env.CHIP_TEST_API_TOKEN!;
 export async function POST(req: NextRequest) {
   try {
     const body: OrderBody = await req.json();
-
     const {
       fullName,
       email,
@@ -33,78 +32,105 @@ export async function POST(req: NextRequest) {
 
     const totalPrice = Number(subTotalPrice || 0) + Number(shippingFee || 0);
 
-    // 1. Create order
-    const { data: orderData, error: orderError } = await supabase
-      .from("orders")
-      .insert({
-        orderNumber: "ORD-" + Date.now(),
-        fullName,
+    // 1. Create order using Neon SQL
+    const orderData = await sql`
+      INSERT INTO orders (
+        "orderNumber",
+        "fullName",
         email,
-        phoneNumber,
-
-        addressLine1,
-        addressLine2,
+        "phoneNumber",
+        "addressLine1",
+        "addressLine2",
         city,
         state,
         postcode,
         country,
+        "subTotalPrice",
+        "shippingFee",
+        "totalPrice",
+        "paymentMethod",
+        "paymentStatus",
+        "rateId",
+        "serviceId",
+        "serviceName",
+        "courierId",
+        "courierName",
+        "trackingNumber",
+        "deliveryStatus",
+        "orderStatus"
+      ) VALUES (
+        ${"ORD-" + Date.now()},
+        ${fullName},
+        ${email},
+        ${phoneNumber},
+        ${addressLine1},
+        ${addressLine2},
+        ${city},
+        ${state},
+        ${postcode},
+        ${country},
+        ${subTotalPrice},
+        ${shippingFee},
+        ${totalPrice},
+        ${paymentMethod},
+        'pending',
+        ${easyparcel?.rateId || null},
+        ${easyparcel?.serviceId || null},
+        ${easyparcel?.serviceName || null},
+        ${easyparcel?.courierId || null},
+        ${easyparcel?.courierName || null},
+        NULL,
+        'pending',
+        'pending'
+      )
+      RETURNING *
+    `;
 
-        subTotalPrice,
-        shippingFee,
-        totalPrice: totalPrice,
-        paymentMethod,
-        paymentStatus: "pending",
-
-        rateId: easyparcel?.rateId,
-        serviceId: easyparcel?.serviceId,
-        serviceName: easyparcel?.serviceName,
-        courierId: easyparcel?.courierId,
-        courierName: easyparcel?.courierName,
-        trackingNumber: null,
-        deliveryStatus: "pending",
-        orderStatus: "pending",
-      })
-      .select()
-      .single();
-
-    if (orderError || !orderData) {
-      console.error("Order insert error:", orderError);
+    if (!orderData || orderData.length === 0) {
       return NextResponse.json(
-        { error: orderError?.message || "Failed to create order" },
+        { error: "Failed to create order" },
         { status: 500 }
       );
     }
 
-    const orderId = orderData.id;
+    const order = orderData[0];
+    const orderId = order.id;
 
-    // 2. Insert order items
-    const orderItems = items.map((item: OrderItem) => ({
-      orderId,
-      productId: item.productId || null,
-      variantId: item.variantId || null,
-      variantOptionId: item.variantOptionId || null,
-      itemSrc: item.itemSrc,
-      itemName: item.itemName,
-      itemWeight: item.itemWeight,
-      itemWidth: item.itemWidth,
-      itemLength: item.itemLength,
-      itemHeight: item.itemHeight,
-      itemCurrency: item.itemCurrency,
-      itemUnitPrice: item.itemUnitPrice,
-      itemQuantity: item.itemQuantity,
-      itemTotalPrice: item.itemUnitPrice * item.itemQuantity,
-    }));
-
-    const { error: itemsError } = await supabase
-      .from("order_items")
-      .insert(orderItems);
-
-    if (itemsError) {
-      console.error("Order items insert failed:", itemsError);
-      return NextResponse.json(
-        { error: "Failed to save order items: " + itemsError.message },
-        { status: 500 }
-      );
+    // 2. Insert order items using Neon SQL
+    for (const item of items) {
+      await sql`
+        INSERT INTO order_items (
+          "orderId",
+          "productId",
+          "variantId",
+          "variantOptionId",
+          "itemSrc",
+          "itemName",
+          "itemWeight",
+          "itemWidth",
+          "itemLength",
+          "itemHeight",
+          "itemCurrency",
+          "itemUnitPrice",
+          "itemQuantity",
+          "itemTotalPrice"
+        ) VALUES (
+          ${orderId},
+          ${item.productId || null},
+          ${item.variantId || null},
+          ${item.variantOptionId || null},
+          ${item.itemSrc},
+          ${item.itemName},
+          ${item.itemWeight},
+          ${item.itemWidth},
+          ${item.itemLength},
+          ${item.itemHeight},
+          ${item.itemCurrency},
+          ${item.itemUnitPrice},
+          ${item.itemQuantity},
+          ${item.itemUnitPrice * item.itemQuantity}
+        )
+      `;
     }
 
     const SUCCESS_REDIRECT = `${process.env.NEXT_PUBLIC_SITE_URL}/order-success?status=success`;
@@ -133,7 +159,7 @@ export async function POST(req: NextRequest) {
         currency: "MYR",
       },
       brand_id: CHIP_BRAND_ID,
-      reference: orderData.orderNumber,
+      reference: order.orderNumber,
       send_receipt: true,
       platform: "web",
       success_redirect: SUCCESS_REDIRECT,
@@ -152,18 +178,14 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify(chipPayload),
       });
-
       chipData = await chipResponse.json();
-
       if (!chipResponse.ok) {
-        await supabase
-          .from("orders")
-          .update({
-            paymentStatus: "failed",
-            orderStatus: "cancelled_due_to_payment",
-          })
-          .eq("id", orderId);
-
+        await sql`
+          UPDATE orders
+          SET "paymentStatus" = 'failed',
+              "orderStatus" = 'cancelled_due_to_payment'
+          WHERE id = ${orderId}
+        `;
         return NextResponse.json(
           { error: chipData.message || "Failed to create Chip purchase." },
           { status: chipResponse.status }
@@ -171,36 +193,31 @@ export async function POST(req: NextRequest) {
       }
     } catch (err) {
       console.error("CHIP API error:", err);
-      await supabase
-        .from("orders")
-        .update({
-          paymentStatus: "failed",
-          orderStatus: "cancelled_due_to_payment",
-        })
-        .eq("id", orderId);
-
+      await sql`
+        UPDATE orders
+        SET "paymentStatus" = 'failed',
+            "orderStatus" = 'cancelled_due_to_payment'
+        WHERE id = ${orderId}
+      `;
       return NextResponse.json(
         { error: "Failed to call CHIP API" },
         { status: 500 }
       );
     }
 
-    // 5. Update orders with CHIP purchase_id
-    await supabase
-      .from("orders")
-      .update({
-        chipPurchaseId: chipData?.id || null,
-        paymentStatus: "pending",
-        orderStatus: "awaiting_payment",
-        paymentMethod: paymentMethod,
-      })
-      .eq("id", orderId)
-      .select()
-      .single();
+    // 5. Update orders with CHIP purchase_id using Neon SQL
+    await sql`
+      UPDATE orders
+      SET "chipPurchaseId" = ${chipData?.id || null},
+          "paymentStatus" = 'pending',
+          "orderStatus" = 'awaiting_payment',
+          "paymentMethod" = ${paymentMethod}
+      WHERE id = ${orderId}
+    `;
 
     return NextResponse.json({
       orderId,
-      orderNumber: orderData.orderNumber,
+      orderNumber: order.orderNumber,
       success: true,
       checkout_url: chipData?.checkout_url || null,
       message: "Order created successfully!",
@@ -208,7 +225,6 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const errorMessage =
       err instanceof Error ? err.message : "Internal server error";
-
     console.error("API Error:", err);
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/utils/supabase/client";
+import { sql } from "@/utils/neon/client";
 import { EasyParcelItem } from "@/types";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
@@ -13,12 +13,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: orders, error: fetchError } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("orderWorkflowStatus", "payment_done_awb_pending");
-
-    if (fetchError) throw fetchError;
+    const orders = await sql`
+      SELECT * FROM orders
+      WHERE "orderWorkflowStatus" = 'payment_done_awb_pending'
+    `;
 
     if (!orders?.length) {
       return NextResponse.json({
@@ -95,23 +93,18 @@ export async function POST(req: NextRequest) {
 
         const parcel = parcelsWithAwb[0];
 
-        const { error: updateError } = await supabase
-          .from("orders")
-          .update({
-            trackingNumber: parcel.parcel_number,
-            trackingUrl: parcel.tracking_url || null,
-            awbNumber: parcel.awb,
-            awbPdfUrl: parcel.awb_id_link || null,
-            orderWorkflowStatus: "awb_generated",
-            deliveryStatus: parcel.ship_status || "ready_for_pickup",
-            orderStatus: "processing",
-          })
-          .eq("id", order.id);
-
-        if (updateError) {
-          failedOrders.push({ orderNumber, error: "Database update failed" });
-          continue;
-        }
+        // // Update order using Neon SQL
+        await sql`
+          UPDATE orders
+          SET "trackingNumber" = ${parcel.parcel_number},
+              "trackingUrl" = ${parcel.tracking_url || null},
+              "awbNumber" = ${parcel.awb},
+              "awbPdfUrl" = ${parcel.awb_id_link || null},
+              "orderWorkflowStatus" = 'awb_generated',
+              "deliveryStatus" = ${parcel.ship_status || "ready_for_pickup"},
+              "orderStatus" = 'processing'
+          WHERE id = ${order.id}
+        `;
 
         updatedCount++;
       } catch (orderErr) {
