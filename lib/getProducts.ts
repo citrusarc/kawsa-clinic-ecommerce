@@ -4,7 +4,7 @@ import {
   ProductsItem,
   ProductVariant,
   VariantOption,
-  ProductDetailsItem,
+  GetProductsItem,
 } from "@/types";
 
 export async function getProducts(): Promise<ProductsItem[]> {
@@ -49,7 +49,7 @@ export async function getProducts(): Promise<ProductsItem[]> {
       return [];
     }
 
-    const transformedData: ProductsItem[] = (data as ProductDetailsItem[]).map(
+    const transformedData: ProductsItem[] = (data as GetProductsItem[]).map(
       (product) => ({
         id: product.id,
         src: product.src,
