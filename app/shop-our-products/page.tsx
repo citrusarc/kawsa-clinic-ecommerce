@@ -3,15 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { StarSolid } from "iconoir-react";
+
 import { spectral } from "@/config/font";
-// // Removed: import { getProducts } from "@/lib/getProducts";
 import { ProductsItem } from "@/types";
 
 export default function ShopOurProductsPage() {
   const [products, setProducts] = useState<ProductsItem[]>([]);
 
   useEffect(() => {
-    // // Changed: Fetch from API route instead of direct DB call
     fetch("/api/products")
       .then((res) => res.json())
       .then((data) =>

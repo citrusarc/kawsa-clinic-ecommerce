@@ -1,7 +1,7 @@
 import { sql } from "@/utils/neon/client";
+
 import { ProductsItem, ProductVariant, VariantOption } from "@/types";
 
-// // Added: Type for raw database response
 type RawProductData = {
   id: string;
   src: string;
@@ -78,7 +78,6 @@ export async function getProducts(): Promise<ProductsItem[]> {
       return [];
     }
 
-    // // Changed: Cast data to RawProductData[] to fix type mismatch
     const transformedData: ProductsItem[] = (data as RawProductData[]).map(
       (product) => ({
         id: product.id,

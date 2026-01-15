@@ -115,7 +115,6 @@ export async function POST(req: NextRequest) {
     }));
 
     for (const itemData of orderItemsValues) {
-      // // Changed: Removed "id" from INSERT - let PostgreSQL generate it
       await sql`
         INSERT INTO order_items (
           "orderId",

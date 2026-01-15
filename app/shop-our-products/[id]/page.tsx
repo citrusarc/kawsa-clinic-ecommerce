@@ -8,83 +8,13 @@ import {
   ProductsItem,
   ProductVariant,
   VariantOption,
-  // // Removed: ProductDetailsItem (unused)
   ProductDetailsProps,
+  ProductDetailsItem,
 } from "@/types";
 import { useCart } from "@/components/store/Cart";
 import { useCheckout } from "@/components/store/Checkout";
 import { Stepper } from "@/components/ui/Stepper";
 import { Toast } from "@/components/ui/Toast";
-
-// // Added: Type for API response
-type ApiProductResponse = {
-  product: {
-    id: string;
-    src: string;
-    alt: string;
-    name: string;
-    description: string | string[];
-    additionalInfo1: string | string[];
-    additionalInfo2: string | string[];
-    currency: string;
-    status: {
-      isHidden?: boolean;
-      isDisabled?: boolean;
-      isComingSoon?: boolean;
-      isPromo?: boolean;
-      isBestSeller?: boolean;
-    };
-    product_variants: Array<{
-      id: string;
-      variantName: string;
-      variant_options: Array<{
-        id: string;
-        optionName: string;
-        weight: number;
-        width?: number;
-        length?: number;
-        height?: number;
-        currency: string;
-        unitPrice: number;
-        originalPrice?: number;
-        currentPrice?: number;
-      }>;
-    }>;
-  };
-  otherProducts: Array<{
-    id: string;
-    src: string;
-    alt: string;
-    name: string;
-    description: string | string[];
-    additionalInfo1: string | string[];
-    additionalInfo2: string | string[];
-    currency: string;
-    status: {
-      isHidden?: boolean;
-      isDisabled?: boolean;
-      isComingSoon?: boolean;
-      isPromo?: boolean;
-      isBestSeller?: boolean;
-    };
-    product_variants: Array<{
-      id: string;
-      variantName: string;
-      variant_options: Array<{
-        id: string;
-        optionName: string;
-        weight: number;
-        width?: number;
-        length?: number;
-        height?: number;
-        currency: string;
-        unitPrice: number;
-        originalPrice?: number;
-        currentPrice?: number;
-      }>;
-    }>;
-  }>;
-};
 
 export default function ProductDetailsPage({ params }: ProductDetailsProps) {
   const { id } = use(params);
@@ -120,8 +50,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
           throw new Error(`Failed to fetch product`);
         }
 
-        // // Changed: Use ApiProductResponse type instead of any
-        const data: ApiProductResponse = await response.json();
+        const data: ProductDetailsItem = await response.json();
         const { product: prod, otherProducts } = data;
 
         if (prod) {
@@ -141,12 +70,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
               : JSON.parse(prod.additionalInfo2 || "[]"),
             currency: prod.currency,
             status: prod.status,
-            // // Changed: Properly type variant
             variants: prod.product_variants.map(
               (variant): ProductVariant => ({
                 id: variant.id,
                 variantName: variant.variantName,
-                // // Changed: Properly type option
                 options: variant.variant_options.map(
                   (option): VariantOption => ({
                     id: option.id,
@@ -173,7 +100,6 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
             .filter(
               (item) => !item.status?.isHidden && !item.status?.isDisabled
             )
-            // // Changed: Properly type item
             .map(
               (item): ProductsItem => ({
                 id: item.id,
@@ -191,12 +117,10 @@ export default function ProductDetailsPage({ params }: ProductDetailsProps) {
                   : JSON.parse(item.additionalInfo2 || "[]"),
                 currency: item.currency,
                 status: item.status,
-                // // Changed: Properly type variant
                 variants: item.product_variants.map(
                   (variant): ProductVariant => ({
                     id: variant.id,
                     variantName: variant.variantName,
-                    // // Changed: Properly type option
                     options: variant.variant_options.map(
                       (option): VariantOption => ({
                         id: option.id,

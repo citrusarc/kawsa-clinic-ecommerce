@@ -1,6 +1,6 @@
 import { ProductsItem, ItemStatus } from "@/types";
 
-const defaultStatus = {
+const defaultStatus: ItemStatus = {
   isDisabled: false,
   isHidden: false,
   isComingSoon: false,

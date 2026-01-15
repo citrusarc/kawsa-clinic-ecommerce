@@ -86,7 +86,6 @@ export default function OrderSuccessPage() {
             </h2>
             <div className="flex flex-col gap-4 sm:gap-8">
               {order.order_items.map((item) => (
-                // // Changed: Use item.id instead of item.orderNumber for unique key
                 <div key={item.id} className="flex gap-4 items-start">
                   <div className="relative shrink-0 w-32 h-32 rounded-xl sm:rounded-2xl overflow-hidden">
                     <Image
@@ -104,7 +103,6 @@ export default function OrderSuccessPage() {
                       Quantity: {item.itemQuantity}
                     </p>
                     <p className="text-violet-600 font-semibold">
-                      {/* // // Changed: Convert to number before toFixed */}
                       RM{Number(item.itemTotalPrice).toFixed(2)}
                     </p>
                   </div>
@@ -112,15 +110,12 @@ export default function OrderSuccessPage() {
               ))}
               <div>
                 <p className="text-neutral-400">
-                  {/* // // Changed: Convert to number before toFixed */}
                   Sub Total: RM{Number(order.subTotalPrice).toFixed(2)}
                 </p>
                 <p className="text-neutral-400">
-                  {/* // // Changed: Convert to number before toFixed */}
                   Shipping Fee: RM{Number(order.shippingFee).toFixed(2)}
                 </p>
                 <p className="mt-4 sm:mt-8 text-xl font-semibold">
-                  {/* // // Changed: Convert to number before toFixed */}
                   Total: RM{Number(order.totalPrice).toFixed(2)}
                 </p>
               </div>

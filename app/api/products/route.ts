@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProducts } from "@/lib/getProducts";
 
-// // Changed: Removed unused 'req' parameter
 export async function GET() {
   try {
     const products = await getProducts();

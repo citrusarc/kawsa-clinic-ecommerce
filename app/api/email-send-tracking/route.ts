@@ -7,7 +7,7 @@ import { transporter } from "@/utils/email";
 import { emailSendTrackingTemplate } from "@/utils/email/emailSendTrackingTemplate";
 import { emailSendOrderTemplate } from "@/utils/email/emailSendOrderTemplate";
 import { generatePickOrderPdf } from "@/utils/email/generatePickOrderPdf";
-import type { OrderSuccessBody, EmailAttachment } from "@/types";
+import { OrderSuccessBody, EmailAttachment } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {

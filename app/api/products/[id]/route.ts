@@ -6,10 +6,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // // Changed: Await params in Next.js 15
     const { id } = await params;
 
-    // Fetch single product
     const productData = await sql`
       SELECT 
         p.*,
@@ -50,7 +48,6 @@ export async function GET(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    // Fetch other products
     const otherProductsData = await sql`
       SELECT 
         p.*,

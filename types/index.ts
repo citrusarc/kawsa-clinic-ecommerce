@@ -44,6 +44,109 @@ export type ProductVariant = {
   options: VariantOption[];
 };
 
+export type RawProductData = {
+  id: string;
+  src: string;
+  alt: string;
+  name: string;
+  description: string | string[];
+  additionalInfo1: string | string[];
+  additionalInfo2: string | string[];
+  currency: string;
+  status: {
+    isHidden?: boolean;
+    isDisabled?: boolean;
+    isComingSoon?: boolean;
+    isPromo?: boolean;
+    isBestSeller?: boolean;
+  };
+  product_variants: Array<{
+    id: string;
+    variantName: string;
+    variant_options: Array<{
+      id: string;
+      optionName: string;
+      weight: number;
+      width?: number;
+      length?: number;
+      height?: number;
+      currency: string;
+      unitPrice: number;
+      originalPrice?: number;
+      currentPrice?: number;
+    }>;
+  }>;
+};
+
+export type ProductDetailsItem = {
+  product: {
+    id: string;
+    src: string;
+    alt: string;
+    name: string;
+    description: string | string[];
+    additionalInfo1: string | string[];
+    additionalInfo2: string | string[];
+    currency: string;
+    status: {
+      isHidden?: boolean;
+      isDisabled?: boolean;
+      isComingSoon?: boolean;
+      isPromo?: boolean;
+      isBestSeller?: boolean;
+    };
+    product_variants: Array<{
+      id: string;
+      variantName: string;
+      variant_options: Array<{
+        id: string;
+        optionName: string;
+        weight: number;
+        width?: number;
+        length?: number;
+        height?: number;
+        currency: string;
+        unitPrice: number;
+        originalPrice?: number;
+        currentPrice?: number;
+      }>;
+    }>;
+  };
+  otherProducts: Array<{
+    id: string;
+    src: string;
+    alt: string;
+    name: string;
+    description: string | string[];
+    additionalInfo1: string | string[];
+    additionalInfo2: string | string[];
+    currency: string;
+    status: {
+      isHidden?: boolean;
+      isDisabled?: boolean;
+      isComingSoon?: boolean;
+      isPromo?: boolean;
+      isBestSeller?: boolean;
+    };
+    product_variants: Array<{
+      id: string;
+      variantName: string;
+      variant_options: Array<{
+        id: string;
+        optionName: string;
+        weight: number;
+        width?: number;
+        length?: number;
+        height?: number;
+        currency: string;
+        unitPrice: number;
+        originalPrice?: number;
+        currentPrice?: number;
+      }>;
+    }>;
+  }>;
+};
+
 export type ProductsItem = {
   id: string;
   src: string;
@@ -57,70 +160,8 @@ export type ProductsItem = {
   variants: ProductVariant[];
 };
 
-export type ProductDetailsItem = {
-  id: string;
-  src: string;
-  alt: string;
-  name: string;
-  description: string | string[];
-  additionalInfo1: string | string[];
-  additionalInfo2: string | string[];
-  currency: string;
-  status: {
-    isHidden: boolean;
-    isDisabled: boolean;
-    isComingSoon: boolean;
-    isPromo: boolean;
-    isBestSeller: boolean;
-  };
-  product_variants: {
-    id: string;
-    variantName: string;
-    variant_options: {
-      id: string;
-      optionName: string;
-      weight: number;
-      width?: number;
-      length?: number;
-      height?: number;
-      currency: string;
-      unitPrice: number;
-      originalPrice?: number;
-      currentPrice?: number;
-    }[];
-  }[];
-};
-
 export type ProductDetailsProps = {
   params: Promise<{ id: string }>;
-};
-
-export type GetProductsItem = {
-  id: string;
-  src: string;
-  alt: string;
-  name: string;
-  description: string | string[];
-  additionalInfo1: string | string[];
-  additionalInfo2: string | string[];
-  currency: string;
-  status: { isHidden: boolean; isDisabled: boolean; isComingSoon: boolean };
-  product_variants: {
-    id: string;
-    variantName: string;
-    variant_options: {
-      id: string;
-      optionName: string;
-      weight: number;
-      width?: number;
-      length?: number;
-      height?: number;
-      currency: string;
-      unitPrice: number;
-      originalPrice?: number;
-      currentPrice?: number;
-    }[];
-  }[];
 };
 
 export type IngredientsItem = {
@@ -143,11 +184,6 @@ export type IngredientsDetailsPageProps = {
 export type TestimonialSet = {
   before: { src: string; alt: string };
   after: { src: string; alt: string };
-};
-
-export type TestimonialItem = {
-  src: string;
-  alt: string;
 };
 
 export type CartItem = {
@@ -349,24 +385,6 @@ export type EasyParcelItem = {
   awb_id_link?: string;
   ship_status?: string;
   [key: string]: unknown;
-};
-
-export type EasyParcelParcel = {
-  parcel_number: string;
-  tracking_url: string;
-  awb: string;
-  awb_id_link: string;
-  ship_status: string;
-};
-export type EasyParcelResult = {
-  messagenow: string;
-  result: string;
-  parcel: EasyParcelParcel[];
-};
-export type EasyParcelResponse = {
-  api_status: string;
-  error_remark?: string;
-  result?: EasyParcelResult[];
 };
 
 export type StepperProps = {
