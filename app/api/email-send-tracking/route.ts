@@ -9,6 +9,23 @@ import { emailSendOrderTemplate } from "@/utils/email/emailSendOrderTemplate";
 import { generatePickOrderPdf } from "@/utils/email/generatePickOrderPdf";
 import { OrderSuccessBody, EmailAttachment } from "@/types";
 
+export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Call POST with cron mode
+  const mockBody = { mode: "cron" };
+  const request = new NextRequest(req.url, {
+    method: "POST",
+    headers: req.headers,
+    body: JSON.stringify(mockBody),
+  });
+
+  return POST(request);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

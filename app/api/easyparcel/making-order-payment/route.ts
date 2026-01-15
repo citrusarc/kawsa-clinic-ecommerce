@@ -1,18 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import { sql } from "@/utils/neon/client";
 
 const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_MAKING_ORDER_PAYMENT_URL =
   process.env.EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL!;
 
-export async function POST(req: NextRequest) {
+// // Added: GET handler for Vercel Cron
+export async function GET(req: NextRequest) {
+  // Verify Vercel Cron Secret
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Call the existing POST handler logic with cron mode
+  return POST(req, true);
+}
+
+export async function POST(req: NextRequest, isCron: boolean = false) {
   try {
-    const body = await req.json();
+    let body = { mode: "cron", orderId: null };
+
+    if (!isCron) {
+      body = await req.json();
+    }
+
     const { orderId, mode } = body;
 
     if (mode === "cron") {
-      const cronSecret = req.headers.get("x-cron-secret");
+      const cronSecret =
+        req.headers.get("x-cron-secret") ||
+        req.headers.get("authorization")?.replace("Bearer ", "");
       if (cronSecret !== process.env.CRON_SECRET) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
@@ -27,22 +45,18 @@ export async function POST(req: NextRequest) {
           AND "paymentStatus" = 'paid'
           AND "trackingNumber" IS NULL
       `;
-
       ordersToProcess = orders || [];
     } else {
       if (!orderId) {
         return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
       }
-
       const orderData = await sql`
         SELECT * FROM orders
         WHERE id = ${orderId}
       `;
-
       if (!orderData || orderData.length === 0) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
       }
-
       ordersToProcess = [orderData[0]];
     }
 
@@ -128,7 +142,6 @@ export async function POST(req: NextRequest) {
             "orderStatus" = 'processing'
         WHERE id = ${order.id}
       `;
-
       processedCount++;
     }
 
