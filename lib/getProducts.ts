@@ -1,40 +1,11 @@
 import { sql } from "@/utils/neon/client";
 
-import { ProductsItem, ProductVariant, VariantOption } from "@/types";
-
-type RawProductData = {
-  id: string;
-  src: string;
-  alt: string;
-  name: string;
-  description: string | string[];
-  additionalInfo1: string | string[];
-  additionalInfo2: string | string[];
-  currency: string;
-  status: {
-    isHidden?: boolean;
-    isDisabled?: boolean;
-    isComingSoon?: boolean;
-    isPromo?: boolean;
-    isBestSeller?: boolean;
-  };
-  product_variants: Array<{
-    id: string;
-    variantName: string;
-    variant_options: Array<{
-      id: string;
-      optionName: string;
-      weight: number;
-      width?: number;
-      length?: number;
-      height?: number;
-      currency: string;
-      unitPrice: number;
-      originalPrice?: number;
-      currentPrice?: number;
-    }>;
-  }>;
-};
+import {
+  ProductsItem,
+  ProductVariant,
+  VariantOption,
+  ProductDetailsItem,
+} from "@/types";
 
 export async function getProducts(): Promise<ProductsItem[]> {
   try {
@@ -78,7 +49,7 @@ export async function getProducts(): Promise<ProductsItem[]> {
       return [];
     }
 
-    const transformedData: ProductsItem[] = (data as RawProductData[]).map(
+    const transformedData: ProductsItem[] = (data as ProductDetailsItem[]).map(
       (product) => ({
         id: product.id,
         src: product.src,
