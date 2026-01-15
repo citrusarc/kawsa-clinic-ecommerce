@@ -51,6 +51,7 @@ export default function HeroSection() {
             >
               <Image
                 fill
+                priority
                 src={item.src}
                 alt={item.alt}
                 className="object-cover"

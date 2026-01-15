@@ -207,6 +207,7 @@ export type RateCheckingItem = {
 };
 
 export type OrderItem = {
+  id: string;
   orderNumber: string;
   productId: string;
   variantId: string;

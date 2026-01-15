@@ -1,10 +1,8 @@
 "use client";
-
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/components/store/Cart";
 import { useCheckout } from "@/components/store/Checkout";
-
 import { OrderSuccessBody } from "@/types";
 import { spectral } from "@/config/font";
 
@@ -12,16 +10,13 @@ export default function OrderSuccessPage() {
   const hasCleared = useRef(false);
   const intervalRef = useRef<number | null>(null);
   const timeoutRef = useRef<number | null>(null);
-
   const clearCart = useCart((state) => state.clearCart);
   const clearCheckout = useCheckout((state) => state.clearCheckout);
-
   const [order, setOrder] = useState<OrderSuccessBody | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const orderNumber = localStorage.getItem("lastOrderNumber");
-
     if (!orderNumber) {
       setLoading(false);
       return;
@@ -47,7 +42,6 @@ export default function OrderSuccessPage() {
     };
 
     fetchOrder();
-
     intervalRef.current = window.setInterval(fetchOrder, 5000);
     timeoutRef.current = window.setTimeout(() => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -79,22 +73,21 @@ export default function OrderSuccessPage() {
       >
         Order Placed Successfully!
       </h2>
-
       {order ? (
         <>
           <p>
-            We’ve received your order{" "}
+            We have received your order{" "}
             <span className="font-semibold">{order.orderNumber}</span> <br />
             Please check your email for details.
           </p>
-
           <div className="space-y-4 sm:space-y-8">
             <h2 className="text-xl font-semibold text-violet-600">
               Order Summary
             </h2>
             <div className="flex flex-col gap-4 sm:gap-8">
               {order.order_items.map((item) => (
-                <div key={item.orderNumber} className="flex gap-4 items-start">
+                // // Changed: Use item.id instead of item.orderNumber for unique key
+                <div key={item.id} className="flex gap-4 items-start">
                   <div className="relative shrink-0 w-32 h-32 rounded-xl sm:rounded-2xl overflow-hidden">
                     <Image
                       fill
@@ -111,20 +104,24 @@ export default function OrderSuccessPage() {
                       Quantity: {item.itemQuantity}
                     </p>
                     <p className="text-violet-600 font-semibold">
-                      RM{item.itemTotalPrice.toFixed(2)}
+                      {/* // // Changed: Convert to number before toFixed */}
+                      RM{Number(item.itemTotalPrice).toFixed(2)}
                     </p>
                   </div>
                 </div>
               ))}
               <div>
                 <p className="text-neutral-400">
-                  Sub Total: RM{order.subTotalPrice.toFixed(2)}
+                  {/* // // Changed: Convert to number before toFixed */}
+                  Sub Total: RM{Number(order.subTotalPrice).toFixed(2)}
                 </p>
                 <p className="text-neutral-400">
-                  Shipping Fee: RM{order.shippingFee.toFixed(2)}
+                  {/* // // Changed: Convert to number before toFixed */}
+                  Shipping Fee: RM{Number(order.shippingFee).toFixed(2)}
                 </p>
                 <p className="mt-4 sm:mt-8 text-xl font-semibold">
-                  Total: RM{order.totalPrice.toFixed(2)}
+                  {/* // // Changed: Convert to number before toFixed */}
+                  Total: RM{Number(order.totalPrice).toFixed(2)}
                 </p>
               </div>
             </div>

@@ -1,25 +1,30 @@
 "use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { StarSolid } from "iconoir-react";
-
 import { spectral } from "@/config/font";
-import { getProducts } from "@/lib/getProducts";
+// // Removed: import { getProducts } from "@/lib/getProducts";
 import { ProductsItem } from "@/types";
 
 export default function ShopOurProductsPage() {
   const [products, setProducts] = useState<ProductsItem[]>([]);
 
   useEffect(() => {
-    getProducts().then((data) =>
-      setProducts(
-        data.filter(
-          (item) => !item.status?.isHidden && !item.status?.isDisabled
+    // // Changed: Fetch from API route instead of direct DB call
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) =>
+        setProducts(
+          (data.products || []).filter(
+            (item: ProductsItem) =>
+              !item.status?.isHidden && !item.status?.isDisabled
+          )
         )
       )
-    );
+      .catch((error) => {
+        console.error("Error fetching products:", error);
+      });
   }, []);
 
   return (
@@ -30,7 +35,6 @@ export default function ShopOurProductsPage() {
         SHOP OUR PRODUCTS
       </h2>
       <p>Shop the routine that works.</p>
-
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 w-full">
         {products.map((item) => (
           <Link
@@ -49,7 +53,6 @@ export default function ShopOurProductsPage() {
                 Best Seller
               </span>
             )}
-
             <div className="relative w-full aspect-square rounded-4xl overflow-hidden">
               <Image
                 fill

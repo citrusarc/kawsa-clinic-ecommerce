@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import { sql } from "@/utils/neon/client";
 import { OrderItem, OrderBody } from "@/types";
 
@@ -56,7 +55,6 @@ export async function POST(req: NextRequest) {
         "serviceName",
         "courierId",
         "courierName",
-        "trackingNumber",
         "deliveryStatus",
         "orderStatus"
       )
@@ -81,7 +79,6 @@ export async function POST(req: NextRequest) {
         ${easyparcel?.serviceName || null},
         ${easyparcel?.courierId || null},
         ${easyparcel?.courierName || null},
-        NULL,
         'pending',
         'pending'
       )
@@ -99,6 +96,7 @@ export async function POST(req: NextRequest) {
     const order = orderData[0];
     const orderId = order.id;
 
+    // Insert order items
     const orderItemsValues = items.map((item: OrderItem) => ({
       orderId,
       productId: item.productId || null,
@@ -117,6 +115,7 @@ export async function POST(req: NextRequest) {
     }));
 
     for (const itemData of orderItemsValues) {
+      // // Changed: Removed "id" from INSERT - let PostgreSQL generate it
       await sql`
         INSERT INTO order_items (
           "orderId",

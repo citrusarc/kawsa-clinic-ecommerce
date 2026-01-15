@@ -1,13 +1,11 @@
 "use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { NavArrowLeft, NavArrowRight } from "iconoir-react/regular";
 import { StarSolid } from "iconoir-react";
-
 import { spectral } from "@/config/font";
-import { getProducts } from "@/lib/getProducts";
+// // Removed: import { getProducts } from "@/lib/getProducts";
 import { ProductsItem } from "@/types";
 
 export default function ProductsSection() {
@@ -16,13 +14,20 @@ export default function ProductsSection() {
   const [products, setProducts] = useState<ProductsItem[]>([]);
 
   useEffect(() => {
-    getProducts().then((data) =>
-      setProducts(
-        data.filter(
-          (item) => !item.status?.isHidden && !item.status?.isDisabled
+    // // Changed: Fetch from API route instead of direct DB call
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) =>
+        setProducts(
+          (data.products || []).filter(
+            (item: ProductsItem) =>
+              !item.status?.isHidden && !item.status?.isDisabled
+          )
         )
       )
-    );
+      .catch((error) => {
+        console.error("Error fetching products:", error);
+      });
   }, []);
 
   useEffect(() => {
@@ -33,6 +38,7 @@ export default function ProductsSection() {
         Math.min(prev, Math.max(0, products.length - newItemsToShow))
       );
     };
+
     updateItemsToShow();
     window.addEventListener("resize", updateItemsToShow);
     return () => window.removeEventListener("resize", updateItemsToShow);
@@ -58,7 +64,6 @@ export default function ProductsSection() {
         SHINE THROUGH EVERY DAY
       </h2>
       <p>Healthy Skin Makes Every First Impression Count</p>
-
       <div className="relative flex w-full items-center">
         {showNavigation && (
           <button
@@ -83,7 +88,6 @@ export default function ProductsSection() {
               const status = item.status || {};
               const option = item.variants[0]?.options[0];
               const isPromo = item.status?.isPromo;
-
               return (
                 <div
                   key={index}
@@ -106,7 +110,6 @@ export default function ProductsSection() {
                       Best Seller
                     </span>
                   )}
-
                   <Link
                     key={item.id}
                     href={`/shop-our-products/${item.id}`}
