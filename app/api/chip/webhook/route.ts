@@ -81,9 +81,9 @@ export async function POST(req: NextRequest) {
             html: emailSendConfirmationTemplate({
               orderNumber: order.orderNumber,
               fullName: order.fullName,
-              subTotalPrice: order.subTotalPrice,
-              shippingFee: order.shippingFee,
-              totalPrice: order.totalPrice,
+              subTotalPrice: Number(order.subTotalPrice),
+              shippingFee: Number(order.shippingFee),
+              totalPrice: Number(order.totalPrice),
               items: order.order_items ?? [],
             }),
           });

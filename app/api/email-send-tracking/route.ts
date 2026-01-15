@@ -148,9 +148,9 @@ export async function POST(req: NextRequest) {
             courierName: order.courierName,
             trackingUrl: order.trackingUrl,
             awbNumber: order.awbNumber,
-            subTotalPrice: order.subTotalPrice,
-            shippingFee: order.shippingFee,
-            totalPrice: order.totalPrice,
+            subTotalPrice: Number(order.subTotalPrice),
+            shippingFee: Number(order.shippingFee),
+            totalPrice: Number(order.totalPrice),
             items: order.order_items ?? [],
           }),
         });
