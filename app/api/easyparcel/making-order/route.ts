@@ -10,7 +10,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { orderId } = body;
 
-    // // Removed cron mode support - manual trigger only
     if (!orderId) {
       return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
     }

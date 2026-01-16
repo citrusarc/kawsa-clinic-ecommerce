@@ -6,7 +6,6 @@ const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_PARCEL_STATUS_URL =
   process.env.EASYPARCEL_DEMO_PARCEL_STATUS_URL!;
 
-// // GET handler for Vercel Cron
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -17,7 +16,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    // // Fixed: Use Authorization header for cron auth
     const authHeader = req.headers.get("authorization");
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
