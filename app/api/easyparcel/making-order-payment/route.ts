@@ -5,33 +5,18 @@ const EASYPARCEL_API_KEY = process.env.EASYPARCEL_DEMO_API_KEY!;
 const EASYPARCEL_MAKING_ORDER_PAYMENT_URL =
   process.env.EASYPARCEL_DEMO_MAKING_ORDER_PAYMENT_URL!;
 
-// // Added: GET handler for Vercel Cron
-export async function GET(req: NextRequest) {
-  // Verify Vercel Cron Secret
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Call the existing POST handler logic with cron mode
-  return POST(req, true);
-}
-
-export async function POST(req: NextRequest, isCron: boolean = false) {
+async function handleRequest(req: NextRequest, isCron: boolean = false) {
   try {
     let body = { mode: "cron", orderId: null };
-
     if (!isCron) {
       body = await req.json();
     }
-
     const { orderId, mode } = body;
 
+    // // Fixed: Use Authorization header for cron auth
     if (mode === "cron") {
-      const cronSecret =
-        req.headers.get("x-cron-secret") ||
-        req.headers.get("authorization")?.replace("Bearer ", "");
-      if (cronSecret !== process.env.CRON_SECRET) {
+      const authHeader = req.headers.get("authorization");
+      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
     }
@@ -77,6 +62,7 @@ export async function POST(req: NextRequest, isCron: boolean = false) {
           body: JSON.stringify(paymentPayload),
         });
         result = await response.json();
+
         if (!response.ok || result.api_status !== "Success") {
           throw new Error("Payment API failed");
         }
@@ -158,4 +144,18 @@ export async function POST(req: NextRequest, isCron: boolean = false) {
       { status: 500 }
     );
   }
+}
+
+// // GET handler for Vercel Cron
+export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return handleRequest(req, true);
+}
+
+// // POST handler for manual triggers
+export async function POST(req: NextRequest) {
+  return handleRequest(req, false);
 }

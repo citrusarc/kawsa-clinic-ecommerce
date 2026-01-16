@@ -1,7 +1,6 @@
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-
 import { sql } from "@/utils/neon/client";
 import { transporter } from "@/utils/email";
 import { emailSendTrackingTemplate } from "@/utils/email/emailSendTrackingTemplate";
@@ -9,12 +8,12 @@ import { emailSendOrderTemplate } from "@/utils/email/emailSendOrderTemplate";
 import { generatePickOrderPdf } from "@/utils/email/generatePickOrderPdf";
 import { OrderSuccessBody, EmailAttachment } from "@/types";
 
+// // GET handler for Vercel Cron
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
   // Call POST with cron mode
   const mockBody = { mode: "cron" };
   const request = new NextRequest(req.url, {
@@ -22,7 +21,6 @@ export async function GET(req: NextRequest) {
     headers: req.headers,
     body: JSON.stringify(mockBody),
   });
-
   return POST(request);
 }
 
@@ -31,9 +29,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { orderNumber, mode } = body;
 
+    // // Fixed: Use Authorization header for cron auth
     if (mode === "cron") {
-      const cronSecret = req.headers.get("x-cron-secret");
-      if (cronSecret !== process.env.CRON_SECRET) {
+      const authHeader = req.headers.get("authorization");
+      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
     }
@@ -64,7 +63,6 @@ export async function POST(req: NextRequest) {
           AND o."emailSent" = false
         GROUP BY o.id
       `;
-
       console.log(
         `Found ${
           orders?.length || 0
@@ -78,7 +76,6 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
-
       const orderData = await sql`
         SELECT 
           o.*,
@@ -99,11 +96,9 @@ export async function POST(req: NextRequest) {
         WHERE o."orderNumber" = ${orderNumber}
         GROUP BY o.id
       `;
-
       if (!orderData || orderData.length === 0) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
       }
-
       ordersToProcess = [orderData[0] as OrderSuccessBody];
     }
 
@@ -214,7 +209,6 @@ export async function POST(req: NextRequest) {
               itemQuantity: item.itemQuantity,
             })),
           });
-
           attachments.push({
             filename: `PICK_ORDER_${order.orderNumber || "UNKNOWN"}.pdf`,
             content: pickOrderPdf,
@@ -229,7 +223,7 @@ export async function POST(req: NextRequest) {
 
         await transporter.sendMail({
           from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
-          to: "citrusarc.studio@gmail.com", // //
+          to: "citrusarc.studio@gmail.com",
           subject: `New Order Received - ${order.orderNumber}`,
           html: emailSendOrderTemplate({
             orderNumber: order.orderNumber,
