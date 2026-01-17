@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // // Get all orders with AWB that haven't been delivered yet
     const orders = await sql`
       SELECT * FROM orders
       WHERE "easyparcelOrderNumber" IS NOT NULL
@@ -37,8 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`Tracking ${orders.length} orders for delivery updates`);
-
-    // // Prepare bulk tracking request
+   
     const bulkPayload = {
       api: EASYPARCEL_API_KEY,
       bulk: orders.map((order) => ({
@@ -74,8 +72,7 @@ export async function POST(req: NextRequest) {
     let updatedCount = 0;
     const failedOrders = [];
     const deliveredOrders = [];
-
-    // // Process each tracking result
+ 
     for (const trackingResult of result.result || []) {
       try {
         if (trackingResult.status !== "Success") {
@@ -90,17 +87,14 @@ export async function POST(req: NextRequest) {
         if (parcelList.length === 0) continue;
 
         const parcel = parcelList[0];
-        // // Use EasyParcel status directly
         const shipStatus = parcel.ship_status;
 
-        // // Find corresponding order in our database
         const order = orders.find(
           (o) => o.easyparcelOrderNumber === trackingResult.order_no
         );
 
         if (!order) continue;
-
-        // // Only update if status has changed
+    
         if (order.deliveryStatus !== shipStatus) {
           await sql`
             UPDATE orders
@@ -111,7 +105,6 @@ export async function POST(req: NextRequest) {
 
           updatedCount++;
 
-          // // Track delivered orders
           if (shipStatus === "Successfully Delivered") {
             deliveredOrders.push({
               orderNumber: order.orderNumber,
