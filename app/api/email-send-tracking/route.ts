@@ -56,14 +56,19 @@ export async function POST(req: NextRequest) {
         LEFT JOIN order_items oi ON oi."orderId" = o.id
         WHERE o."paymentStatus" = 'paid'
           AND o."awbNumber" IS NOT NULL
+          -- // CRITICAL: Only send email when AWB PDF URL is ready
+          AND o."awbPdfUrl" IS NOT NULL
+          AND o."awbPdfUrl" != '#'
+          AND o."awbPdfUrl" != ''
           AND o."orderWorkflowStatus" = 'awb_generated'
           AND o."emailSent" = false
         GROUP BY o.id
+        FOR UPDATE SKIP LOCKED
       `;
       console.log(
         `Found ${
           orders?.length || 0
-        } orders ready for email tracking and email order`
+        } orders ready for email with AWB PDF`
       );
       ordersToProcess = (orders ?? []) as OrderSuccessBody[];
     } else {
@@ -101,6 +106,7 @@ export async function POST(req: NextRequest) {
 
     let processedCount = 0;
     const failedEmails = [];
+    const skippedOrders = [];
 
     for (const order of ordersToProcess) {
       console.log(`Processing email for order ${order.orderNumber}`);
@@ -119,6 +125,33 @@ export async function POST(req: NextRequest) {
 
       if (!order.awbNumber) {
         console.log(`Skipping order ${order.orderNumber} - AWB not ready`);
+        skippedOrders.push({
+          orderNumber: order.orderNumber,
+          reason: "No AWB number",
+        });
+        continue;
+      }
+
+      if (!order.awbPdfUrl || order.awbPdfUrl === "#" || order.awbPdfUrl === "") {
+        console.log(`Skipping order ${order.orderNumber} - AWB PDF URL not ready`);
+        skippedOrders.push({
+          orderNumber: order.orderNumber,
+          reason: "AWB PDF URL not ready",
+        });
+        continue;
+      }
+
+      try {
+        new URL(order.awbPdfUrl);
+      } catch {
+        console.error(
+          `Skipping order ${order.orderNumber} - Invalid AWB PDF URL: ${order.awbPdfUrl}`
+        );
+        skippedOrders.push({
+          orderNumber: order.orderNumber,
+          reason: "Invalid AWB PDF URL",
+          awbPdfUrl: order.awbPdfUrl,
+        });
         continue;
       }
 
@@ -127,6 +160,26 @@ export async function POST(req: NextRequest) {
         failedEmails.push({
           orderNumber: order.orderNumber,
           error: "No email address",
+        });
+        continue;
+      }
+
+      try {
+        await sql`
+          UPDATE orders
+          SET "emailSent" = true,
+              "orderWorkflowStatus" = 'email_sent'
+          WHERE id = ${order.id}
+            AND "emailSent" = false
+        `;
+      } catch (updateError) {
+        console.error(
+          `Failed to mark email as sent for ${order.orderNumber}:`,
+          updateError
+        );
+        failedEmails.push({
+          orderNumber: order.orderNumber,
+          error: "Failed to update emailSent flag",
         });
         continue;
       }
@@ -143,6 +196,10 @@ export async function POST(req: NextRequest) {
         .join(", ");
 
       try {
+        const subTotalPrice = Number(order.subTotalPrice) || 0;
+        const shippingFee = Number(order.shippingFee) || 0;
+        const totalPrice = Number(order.totalPrice) || 0;
+
         await transporter.sendMail({
           from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
           to: order.email,
@@ -157,9 +214,9 @@ export async function POST(req: NextRequest) {
             courierName: order.courierName,
             trackingUrl: order.trackingUrl,
             awbNumber: order.awbNumber,
-            subTotalPrice: Number(order.subTotalPrice),
-            shippingFee: Number(order.shippingFee),
-            totalPrice: Number(order.totalPrice),
+            subTotalPrice,
+            shippingFee,
+            totalPrice,
             items: order.order_items ?? [],
           }),
         });
@@ -176,23 +233,26 @@ export async function POST(req: NextRequest) {
 
         const attachments: EmailAttachment[] = [];
 
-        if (order.awbPdfUrl && order.awbPdfUrl !== "#") {
-          try {
-            const awbResponse = await fetch(order.awbPdfUrl);
-            if (awbResponse.ok) {
-              const awbBuffer = await awbResponse.arrayBuffer();
-              attachments.push({
-                filename: `AWB_${order.orderNumber}.pdf`,
-                content: Buffer.from(awbBuffer),
-                contentType: "application/pdf",
-              });
-            }
-          } catch (awbError) {
-            console.error(
-              `Failed to fetch AWB PDF for ${order.orderNumber}:`,
-              awbError
-            );
+        try {
+          const awbResponse = await fetch(order.awbPdfUrl);
+          if (awbResponse.ok) {
+            const awbBuffer = await awbResponse.arrayBuffer();
+            attachments.push({
+              filename: `AWB_${order.orderNumber}.pdf`,
+              content: Buffer.from(awbBuffer),
+              contentType: "application/pdf",
+            });
+            console.log(`AWB PDF attached for order ${order.orderNumber}`);
+          } else {
+            throw new Error(`HTTP ${awbResponse.status}`);
           }
+        } catch (awbError) {
+          console.error(
+            `Failed to fetch AWB PDF for ${order.orderNumber}:`,
+            order.awbPdfUrl,
+            awbError
+          );
+          throw new Error(`AWB PDF fetch failed: ${awbError}`);
         }
 
         try {
@@ -232,31 +292,40 @@ export async function POST(req: NextRequest) {
             courierName: order.courierName,
             awbNumber: order.awbNumber,
             trackingUrl: order.trackingUrl,
-            awbPdfUrl: order.awbPdfUrl || "#",
-            subTotalPrice: order.subTotalPrice,
-            shippingFee: order.shippingFee,
-            totalPrice: order.totalPrice,
+            awbPdfUrl: order.awbPdfUrl,
+            subTotalPrice,
+            shippingFee,
+            totalPrice,
             items: order.order_items ?? [],
           }),
           attachments,
         });
 
-        await sql`
-          UPDATE orders
-          SET "emailSent" = true,
-              "orderWorkflowStatus" = 'email_sent'
-          WHERE id = ${order.id}
-        `;
-
         processedCount++;
         console.log(
-          `Tracking email sent to customer and order details sent to admin for order: ${order.orderNumber}`
+          `✅ Email sent successfully for order: ${order.orderNumber}`
         );
       } catch (emailError) {
         console.error(
           `Failed to send email for order ${order.orderNumber}:`,
           emailError
         );
+
+        try {
+          await sql`
+            UPDATE orders
+            SET "emailSent" = false,
+                "orderWorkflowStatus" = 'awb_generated'
+            WHERE id = ${order.id}
+          `;
+          console.log(`Rolled back emailSent flag for ${order.orderNumber}`);
+        } catch (rollbackError) {
+          console.error(
+            `Failed to rollback emailSent for ${order.orderNumber}:`,
+            rollbackError
+          );
+        }
+
         failedEmails.push({
           orderNumber: order.orderNumber,
           error: "Email sending failed",
@@ -272,6 +341,7 @@ export async function POST(req: NextRequest) {
       success: true,
       processedCount,
       totalOrders: ordersToProcess.length,
+      skippedOrders: skippedOrders.length > 0 ? skippedOrders : undefined,
       failedEmails: failedEmails.length > 0 ? failedEmails : undefined,
     });
   } catch (err) {
