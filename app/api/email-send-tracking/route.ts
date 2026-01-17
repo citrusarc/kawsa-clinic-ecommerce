@@ -59,7 +59,6 @@ export async function POST(req: NextRequest) {
           AND o."orderWorkflowStatus" = 'awb_generated'
           AND o."emailSent" = false
         GROUP BY o.id
-        FOR UPDATE SKIP LOCKED
       `;
       console.log(
         `Found ${
@@ -132,26 +131,6 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      try {
-        await sql`
-          UPDATE orders
-          SET "emailSent" = true,
-              "orderWorkflowStatus" = 'email_sent'
-          WHERE id = ${order.id}
-            AND "emailSent" = false
-        `;
-      } catch (updateError) {
-        console.error(
-          `Failed to mark email as sent for ${order.orderNumber}:`,
-          updateError
-        );
-        failedEmails.push({
-          orderNumber: order.orderNumber,
-          error: "Failed to update emailSent flag",
-        });
-        continue;
-      }
-
       const address = [
         order.addressLine1,
         order.addressLine2,
@@ -164,10 +143,6 @@ export async function POST(req: NextRequest) {
         .join(", ");
 
       try {
-        const subTotalPrice = Number(order.subTotalPrice) || 0;
-        const shippingFee = Number(order.shippingFee) || 0;
-        const totalPrice = Number(order.totalPrice) || 0;
-
         await transporter.sendMail({
           from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
           to: order.email,
@@ -182,9 +157,9 @@ export async function POST(req: NextRequest) {
             courierName: order.courierName,
             trackingUrl: order.trackingUrl,
             awbNumber: order.awbNumber,
-            subTotalPrice,
-            shippingFee,
-            totalPrice,
+            subTotalPrice: Number(order.subTotalPrice),
+            shippingFee: Number(order.shippingFee),
+            totalPrice: Number(order.totalPrice),
             items: order.order_items ?? [],
           }),
         });
@@ -203,8 +178,6 @@ export async function POST(req: NextRequest) {
 
         if (order.awbPdfUrl && order.awbPdfUrl !== "#") {
           try {
-            new URL(order.awbPdfUrl);
-            
             const awbResponse = await fetch(order.awbPdfUrl);
             if (awbResponse.ok) {
               const awbBuffer = await awbResponse.arrayBuffer();
@@ -213,15 +186,10 @@ export async function POST(req: NextRequest) {
                 content: Buffer.from(awbBuffer),
                 contentType: "application/pdf",
               });
-            } else {
-              console.error(
-                `Failed to fetch AWB PDF for ${order.orderNumber}: HTTP ${awbResponse.status}`
-              );
             }
           } catch (awbError) {
             console.error(
-              `Invalid or failed AWB PDF URL for ${order.orderNumber}:`,
-              order.awbPdfUrl,
+              `Failed to fetch AWB PDF for ${order.orderNumber}:`,
               awbError
             );
           }
@@ -265,13 +233,20 @@ export async function POST(req: NextRequest) {
             awbNumber: order.awbNumber,
             trackingUrl: order.trackingUrl,
             awbPdfUrl: order.awbPdfUrl || "#",
-            subTotalPrice,
-            shippingFee,
-            totalPrice,
+            subTotalPrice: order.subTotalPrice,
+            shippingFee: order.shippingFee,
+            totalPrice: order.totalPrice,
             items: order.order_items ?? [],
           }),
           attachments,
         });
+
+        await sql`
+          UPDATE orders
+          SET "emailSent" = true,
+              "orderWorkflowStatus" = 'email_sent'
+          WHERE id = ${order.id}
+        `;
 
         processedCount++;
         console.log(
@@ -282,21 +257,6 @@ export async function POST(req: NextRequest) {
           `Failed to send email for order ${order.orderNumber}:`,
           emailError
         );
-        
-        try {
-          await sql`
-            UPDATE orders
-            SET "emailSent" = false,
-                "orderWorkflowStatus" = 'awb_generated'
-            WHERE id = ${order.id}
-          `;
-        } catch (rollbackError) {
-          console.error(
-            `Failed to rollback emailSent for ${order.orderNumber}:`,
-            rollbackError
-          );
-        }
-
         failedEmails.push({
           orderNumber: order.orderNumber,
           error: "Email sending failed",
