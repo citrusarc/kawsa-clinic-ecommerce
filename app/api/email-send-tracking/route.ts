@@ -56,7 +56,6 @@ export async function POST(req: NextRequest) {
         LEFT JOIN order_items oi ON oi."orderId" = o.id
         WHERE o."paymentStatus" = 'paid'
           AND o."awbNumber" IS NOT NULL
-          -- // CRITICAL: Only send email when AWB PDF URL is ready
           AND o."awbPdfUrl" IS NOT NULL
           AND o."awbPdfUrl" != '#'
           AND o."awbPdfUrl" != ''
@@ -66,9 +65,7 @@ export async function POST(req: NextRequest) {
         FOR UPDATE SKIP LOCKED
       `;
       console.log(
-        `Found ${
-          orders?.length || 0
-        } orders ready for email with AWB PDF`
+        `Found ${orders?.length || 0} orders ready for email with AWB PDF`
       );
       ordersToProcess = (orders ?? []) as OrderSuccessBody[];
     } else {
@@ -164,26 +161,6 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      try {
-        await sql`
-          UPDATE orders
-          SET "emailSent" = true,
-              "orderWorkflowStatus" = 'email_sent'
-          WHERE id = ${order.id}
-            AND "emailSent" = false
-        `;
-      } catch (updateError) {
-        console.error(
-          `Failed to mark email as sent for ${order.orderNumber}:`,
-          updateError
-        );
-        failedEmails.push({
-          orderNumber: order.orderNumber,
-          error: "Failed to update emailSent flag",
-        });
-        continue;
-      }
-
       const address = [
         order.addressLine1,
         order.addressLine2,
@@ -199,27 +176,6 @@ export async function POST(req: NextRequest) {
         const subTotalPrice = Number(order.subTotalPrice) || 0;
         const shippingFee = Number(order.shippingFee) || 0;
         const totalPrice = Number(order.totalPrice) || 0;
-
-        await transporter.sendMail({
-          from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
-          to: order.email,
-          bcc: process.env.ADMIN_EMAIL
-            ? process.env.ADMIN_EMAIL.split(",").map((e) => e.trim())
-            : [],
-          subject: `Your order ${order.orderNumber} is on the way 🚚`,
-          html: emailSendTrackingTemplate({
-            orderNumber: order.orderNumber,
-            fullName: order.fullName,
-            address,
-            courierName: order.courierName,
-            trackingUrl: order.trackingUrl,
-            awbNumber: order.awbNumber,
-            subTotalPrice,
-            shippingFee,
-            totalPrice,
-            items: order.order_items ?? [],
-          }),
-        });
 
         const formattedCreatedAt = order.createdAt
           ? new Date(order.createdAt).toLocaleString("en-MY", {
@@ -242,7 +198,7 @@ export async function POST(req: NextRequest) {
               content: Buffer.from(awbBuffer),
               contentType: "application/pdf",
             });
-            console.log(`AWB PDF attached for order ${order.orderNumber}`);
+            console.log(`AWB PDF fetched for order ${order.orderNumber}`);
           } else {
             throw new Error(`HTTP ${awbResponse.status}`);
           }
@@ -280,6 +236,29 @@ export async function POST(req: NextRequest) {
 
         await transporter.sendMail({
           from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
+          to: order.email,
+          bcc: process.env.ADMIN_EMAIL
+            ? process.env.ADMIN_EMAIL.split(",").map((e) => e.trim())
+            : [],
+          subject: `Your order ${order.orderNumber} is on the way 🚚`,
+          html: emailSendTrackingTemplate({
+            orderNumber: order.orderNumber,
+            fullName: order.fullName,
+            address,
+            courierName: order.courierName,
+            trackingUrl: order.trackingUrl,
+            awbNumber: order.awbNumber,
+            subTotalPrice,
+            shippingFee,
+            totalPrice,
+            items: order.order_items ?? [],
+          }),
+        });
+
+        console.log(`✅ Customer email sent for order ${order.orderNumber}`);
+
+        await transporter.sendMail({
+          from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
           to: "citrusarc.studio@gmail.com",
           subject: `New Order Received - ${order.orderNumber}`,
           html: emailSendOrderTemplate({
@@ -298,33 +277,26 @@ export async function POST(req: NextRequest) {
             totalPrice,
             items: order.order_items ?? [],
           }),
-          attachments,
+          attachments, 
         });
 
+        console.log(`✅ Admin email sent for order ${order.orderNumber}`);
+
+        await sql`
+          UPDATE orders
+          SET "emailSent" = true,
+              "orderWorkflowStatus" = 'email_sent'
+          WHERE id = ${order.id}
+        `;
+
         processedCount++;
-        console.log(
-          `✅ Email sent successfully for order: ${order.orderNumber}`
-        );
+        console.log(`✅ All emails sent successfully for order: ${order.orderNumber}`);
+
       } catch (emailError) {
         console.error(
           `Failed to send email for order ${order.orderNumber}:`,
           emailError
         );
-
-        try {
-          await sql`
-            UPDATE orders
-            SET "emailSent" = false,
-                "orderWorkflowStatus" = 'awb_generated'
-            WHERE id = ${order.id}
-          `;
-          console.log(`Rolled back emailSent flag for ${order.orderNumber}`);
-        } catch (rollbackError) {
-          console.error(
-            `Failed to rollback emailSent for ${order.orderNumber}:`,
-            rollbackError
-          );
-        }
 
         failedEmails.push({
           orderNumber: order.orderNumber,
