@@ -37,6 +37,32 @@ export async function POST(req: NextRequest) {
     let ordersToProcess: OrderSuccessBody[] = [];
 
     if (mode === "cron") {
+  
+      const lockedOrders = await sql`
+        SELECT o.id
+        FROM orders o
+        WHERE o."paymentStatus" = 'paid'
+          AND o."awbNumber" IS NOT NULL
+          AND o."awbPdfUrl" IS NOT NULL
+          AND o."awbPdfUrl" != '#'
+          AND o."awbPdfUrl" != ''
+          AND o."orderWorkflowStatus" = 'awb_generated'
+          AND o."emailSent" = false
+        FOR UPDATE SKIP LOCKED
+      `;
+
+      if (!lockedOrders || lockedOrders.length === 0) {
+        console.log("No orders ready for email");
+        return NextResponse.json({
+          success: true,
+          processedCount: 0,
+          totalOrders: 0,
+          message: "No orders to process",
+        });
+      }
+
+      const orderIds = lockedOrders.map((o) => o.id);
+
       const orders = await sql`
         SELECT 
           o.*,
@@ -54,16 +80,10 @@ export async function POST(req: NextRequest) {
           ) as order_items
         FROM orders o
         LEFT JOIN order_items oi ON oi."orderId" = o.id
-        WHERE o."paymentStatus" = 'paid'
-          AND o."awbNumber" IS NOT NULL
-          AND o."awbPdfUrl" IS NOT NULL
-          AND o."awbPdfUrl" != '#'
-          AND o."awbPdfUrl" != ''
-          AND o."orderWorkflowStatus" = 'awb_generated'
-          AND o."emailSent" = false
+        WHERE o.id = ANY(${orderIds})
         GROUP BY o.id
-        FOR UPDATE SKIP LOCKED
       `;
+
       console.log(
         `Found ${orders?.length || 0} orders ready for email with AWB PDF`
       );
@@ -277,7 +297,7 @@ export async function POST(req: NextRequest) {
             totalPrice,
             items: order.order_items ?? [],
           }),
-          attachments, 
+          attachments,
         });
 
         console.log(`✅ Admin email sent for order ${order.orderNumber}`);
@@ -297,7 +317,6 @@ export async function POST(req: NextRequest) {
           `Failed to send email for order ${order.orderNumber}:`,
           emailError
         );
-
         failedEmails.push({
           orderNumber: order.orderNumber,
           error: "Email sending failed",
