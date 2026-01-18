@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     let ordersToProcess: OrderSuccessBody[] = [];
 
     if (mode === "cron") {
-  
+
       const lockedOrders = await sql`
         SELECT o.id
         FROM orders o
