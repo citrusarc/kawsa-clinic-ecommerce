@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     body: JSON.stringify(mockBody),
   });
   return POST(request);
-}
+}``
 
 export async function POST(req: NextRequest) {
   try {
@@ -275,7 +275,7 @@ export async function POST(req: NextRequest) {
           }),
         });
 
-        console.log(`✅ Customer email sent for order ${order.orderNumber}`);
+        console.log(`Customer email sent for order ${order.orderNumber}`);
 
         await transporter.sendMail({
           from: `"Kawsa MD Formula" <${process.env.EMAIL_USER}>`,
@@ -300,7 +300,7 @@ export async function POST(req: NextRequest) {
           attachments,
         });
 
-        console.log(`✅ Admin email sent for order ${order.orderNumber}`);
+        console.log(`Admin email sent for order ${order.orderNumber}`);
 
         await sql`
           UPDATE orders
@@ -310,7 +310,7 @@ export async function POST(req: NextRequest) {
         `;
 
         processedCount++;
-        console.log(`✅ All emails sent successfully for order: ${order.orderNumber}`);
+        console.log(`All emails sent successfully for order: ${order.orderNumber}`);
 
       } catch (emailError) {
         console.error(
